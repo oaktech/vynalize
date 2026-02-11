@@ -1,0 +1,17 @@
+{
+  "name": "Vinyl Visions",
+  "short_name": "Vinyl Visions",
+  "description": "Analog music visualizer companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/vinyl.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
