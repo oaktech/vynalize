@@ -2,13 +2,18 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import os from 'os';
-import { generateFingerprint, cleanupFile } from '../services/fingerprint.js';
-import { lookupFingerprint } from '../services/acoustid.js';
+import fs from 'fs';
+import { identifyWithACRCloud } from '../services/acrcloud.js';
 import { enrichMetadata } from '../services/musicbrainz.js';
 
+const uploadDir = path.join(os.tmpdir(), 'vinyl-visions-uploads');
+
+// Ensure upload directory exists
+fs.mkdirSync(uploadDir, { recursive: true });
+
 const upload = multer({
-  dest: path.join(os.tmpdir(), 'vinyl-visions-uploads'),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  dest: uploadDir,
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 export const identifyRouter = Router();
@@ -23,49 +28,32 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
   console.log(`[identify] Received file: ${req.file.size} bytes, mime: ${req.file.mimetype}`);
 
   try {
-    // Step 1: Generate fingerprint with fpcalc
-    console.log('[identify] Generating fingerprint...');
-    const { duration, fingerprint } = await generateFingerprint(audioPath);
-    console.log(`[identify] Fingerprint generated (duration: ${duration}s)`);
+    const result = await identifyWithACRCloud(audioPath);
 
-    // Step 2: Lookup on AcoustID
-    console.log('[identify] Looking up on AcoustID...');
-    const lookup = await lookupFingerprint(fingerprint, duration);
-
-    if (!lookup) {
-      console.log('[identify] No match found');
+    if (!result) {
       res.json({ match: false });
       return;
     }
 
-    console.log(`[identify] Match: "${lookup.title}" by ${lookup.artist}`);
-
-    // Step 3: Enrich with MusicBrainz + Cover Art
+    // Try to get album art via MusicBrainz search
     let albumArtUrl: string | null = null;
-    let bpm: number | null = null;
-
-    if (lookup.musicbrainzId) {
-      try {
-        const enriched = await enrichMetadata(
-          lookup.musicbrainzId,
-          lookup.releaseGroupId
-        );
-        albumArtUrl = enriched.albumArtUrl;
-        bpm = enriched.bpm;
-      } catch (err) {
-        console.warn('[identify] Enrichment failed:', err);
+    try {
+      const mbSearch = await searchMusicBrainz(result.artist, result.title);
+      if (mbSearch?.albumArtUrl) {
+        albumArtUrl = mbSearch.albumArtUrl;
       }
+    } catch (err) {
+      console.warn('[identify] Album art lookup failed:', err);
     }
 
     res.json({
       match: true,
-      title: lookup.title,
-      artist: lookup.artist,
-      album: lookup.album,
-      duration: lookup.duration,
-      musicbrainzId: lookup.musicbrainzId,
+      title: result.title,
+      artist: result.artist,
+      album: result.album,
+      duration: result.duration,
       albumArtUrl,
-      bpm,
+      bpm: null,
     });
   } catch (err) {
     console.error('[identify] Error:', err);
@@ -73,6 +61,72 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
       error: err instanceof Error ? err.message : 'Identification failed',
     });
   } finally {
-    await cleanupFile(audioPath);
+    // Clean up uploaded file
+    try {
+      await fs.promises.unlink(audioPath);
+    } catch {}
   }
 });
+
+const MB_API = 'https://musicbrainz.org/ws/2';
+const CAA_URL = 'https://coverartarchive.org';
+const USER_AGENT = 'VinylVisions/0.1.0 (https://github.com/vinyl-visions)';
+
+async function searchMusicBrainz(
+  artist: string,
+  title: string
+): Promise<{ albumArtUrl: string | null } | null> {
+  const query = `recording:"${title}" AND artist:"${artist}"`;
+  const params = new URLSearchParams({ query, fmt: 'json', limit: '3' });
+
+  const mbRes = await fetch(`${MB_API}/recording?${params}`, {
+    headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+  });
+
+  if (!mbRes.ok) return null;
+
+  const data = (await mbRes.json()) as {
+    recordings?: Array<{
+      releases?: Array<{
+        'release-group'?: { id: string };
+      }>;
+    }>;
+  };
+
+  const releases = data.recordings?.[0]?.releases || [];
+  const releaseGroupIds = [
+    ...new Set(
+      releases
+        .map((r) => r['release-group']?.id)
+        .filter((id): id is string => !!id)
+    ),
+  ];
+
+  for (const rgId of releaseGroupIds.slice(0, 3)) {
+    try {
+      const caaRes = await fetch(`${CAA_URL}/release-group/${rgId}`, {
+        headers: { 'User-Agent': USER_AGENT },
+      });
+      if (caaRes.ok) {
+        const caaData = (await caaRes.json()) as {
+          images?: Array<{
+            front: boolean;
+            image: string;
+            thumbnails?: Record<string, string>;
+          }>;
+        };
+        const front = caaData.images?.find((img) => img.front);
+        if (front) {
+          return {
+            albumArtUrl:
+              front.thumbnails?.['250'] ||
+              front.thumbnails?.small ||
+              front.image,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  return null;
+}
