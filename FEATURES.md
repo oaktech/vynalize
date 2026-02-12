@@ -9,12 +9,15 @@
 
 ## Song Identification
 
-- Audio fingerprinting via Chromaprint (`fpcalc`)
-- Automatic identification through AcoustID database
-- Metadata enrichment from MusicBrainz (title, artist, album, duration)
-- Album artwork from Cover Art Archive
-- Periodic re-identification every 20 seconds to detect track changes
+- Shazam-powered recognition via node-shazam -- designed for ambient/room audio
+- Automatic identification from microphone capture every 30 seconds
+- Returns title, artist, album, and album art directly from Shazam
+- No API key required for song identification
+- Manual search fallback via MusicBrainz (type artist + title directly)
+- Album artwork from Shazam or Cover Art Archive (manual search)
+- Periodic re-identification to detect track changes
 - Animated listening indicator that pulses with audio energy
+- Future: RapidAPI Shazam (apidojo) integration for higher accuracy and richer metadata
 
 ## Visualizer Modes
 
