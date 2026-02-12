@@ -1,15 +1,28 @@
+import { useState, useEffect } from 'react';
 import { useStore } from '../store';
-import { usePositionTracker } from '../hooks/usePositionTracker';
 
 export default function SyncControls() {
-  const position = useStore((s) => s.position);
   const lyrics = useStore((s) => s.lyrics);
-  const { adjustOffset, tapSync } = usePositionTracker();
+  const offsetMs = useStore((s) => s.position.offsetMs);
+  const adjustOffset = useStore((s) => s.adjustOffset);
+  const tapSync = useStore((s) => s.tapSync);
+  const [displayTime, setDisplayTime] = useState('0:00');
 
-  const posMs = position.elapsedMs + position.offsetMs;
-  const posSec = Math.max(0, Math.floor(posMs / 1000));
-  const minutes = Math.floor(posSec / 60);
-  const seconds = posSec % 60;
+  // Update time display at a reasonable rate
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const pos = useStore.getState().position;
+      if (pos.startedAt) {
+        const elapsed = performance.now() - pos.startedAt;
+        const totalMs = elapsed + pos.offsetMs;
+        const totalSec = Math.max(0, Math.floor(totalMs / 1000));
+        const min = Math.floor(totalSec / 60);
+        const sec = totalSec % 60;
+        setDisplayTime(`${min}:${sec.toString().padStart(2, '0')}`);
+      }
+    }, 250);
+    return () => clearInterval(interval);
+  }, []);
 
   // Find first lyric line to use as sync target
   const firstLyric = lyrics.length > 0 ? lyrics[0] : null;
@@ -17,7 +30,7 @@ export default function SyncControls() {
   return (
     <div className="flex items-center gap-3">
       <span className="text-xs text-white/40 tabular-nums font-mono">
-        {minutes}:{seconds.toString().padStart(2, '0')}
+        {displayTime}
       </span>
 
       <div className="flex items-center gap-1">
@@ -57,9 +70,9 @@ export default function SyncControls() {
         </button>
       )}
 
-      {position.offsetMs !== 0 && (
+      {offsetMs !== 0 && (
         <span className="text-[10px] text-white/30 tabular-nums">
-          offset: {position.offsetMs > 0 ? '+' : ''}{(position.offsetMs / 1000).toFixed(1)}s
+          offset: {offsetMs > 0 ? '+' : ''}{(offsetMs / 1000).toFixed(1)}s
         </span>
       )}
     </div>

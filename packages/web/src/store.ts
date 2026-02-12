@@ -38,6 +38,8 @@ interface VinylStore {
   position: PositionState;
   setPosition: (p: Partial<PositionState>) => void;
   resetPosition: () => void;
+  adjustOffset: (deltaMs: number) => void;
+  tapSync: (targetMs: number) => void;
 
   // Display modes
   appMode: AppMode;
@@ -92,6 +94,14 @@ export const useStore = create<VinylStore>((set) => ({
   setPosition: (p) =>
     set((state) => ({ position: { ...state.position, ...p } })),
   resetPosition: () => set({ position: defaultPosition }),
+  adjustOffset: (deltaMs) =>
+    set((state) => ({
+      position: { ...state.position, offsetMs: state.position.offsetMs + deltaMs },
+    })),
+  tapSync: (targetMs) =>
+    set((state) => ({
+      position: { ...state.position, offsetMs: targetMs - state.position.elapsedMs },
+    })),
 
   appMode: 'visualizer',
   visualizerMode: 'spectrum',

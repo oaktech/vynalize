@@ -57,7 +57,6 @@ export default function VideoPlayer() {
   const currentSong = useStore((s) => s.currentSong);
   const videoId = useStore((s) => s.videoId);
   const setVideoId = useStore((s) => s.setVideoId);
-  const position = useStore((s) => s.position);
   const playerRef = useRef<YTPlayer | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,18 +129,23 @@ export default function VideoPlayer() {
 
   // Sync position periodically
   useEffect(() => {
-    if (!playerRef.current || !position.isTracking) return;
+    const interval = setInterval(() => {
+      if (!playerRef.current) return;
+      const pos = useStore.getState().position;
+      if (!pos.startedAt) return;
 
-    const posMs = position.elapsedMs + position.offsetMs;
-    const posSec = posMs / 1000;
-    const now = Date.now();
+      const elapsed = performance.now() - pos.startedAt;
+      const totalMs = elapsed + pos.offsetMs;
+      const posSec = totalMs / 1000;
+      const now = Date.now();
 
-    // Only seek if significant drift or it's been a while
-    if (now - lastSeekRef.current > 10000 && posSec > 1) {
-      playerRef.current.seekTo(posSec, true);
-      lastSeekRef.current = now;
-    }
-  }, [Math.floor((position.elapsedMs + position.offsetMs) / 10000)]);
+      if (now - lastSeekRef.current > 10000 && posSec > 1) {
+        playerRef.current.seekTo(posSec, true);
+        lastSeekRef.current = now;
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [videoId]);
 
   if (!currentSong) {
     return (

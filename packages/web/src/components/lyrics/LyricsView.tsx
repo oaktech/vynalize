@@ -1,51 +1,66 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useStore } from '../../store';
 import KaraokeLine from './KaraokeLine';
 
 export default function LyricsView() {
   const lyrics = useStore((s) => s.lyrics);
-  const position = useStore((s) => s.position);
   const currentSong = useStore((s) => s.currentSong);
   const accentColor = useStore((s) => s.accentColor);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
+  const [posMs, setPosMs] = useState(0);
 
-  const posMs = position.elapsedMs + position.offsetMs;
+  // Drive position from store's startedAt + offsetMs via local RAF
+  useEffect(() => {
+    let active = true;
+
+    function tick() {
+      if (!active) return;
+      const pos = useStore.getState().position;
+      if (pos.startedAt) {
+        const elapsed = performance.now() - pos.startedAt;
+        setPosMs(elapsed + pos.offsetMs);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+    return () => { active = false; };
+  }, []);
 
   // Find current line index
-  const currentIndex = useMemo(() => {
-    let idx = -1;
-    for (let i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].timeMs <= posMs) {
-        idx = i;
-      } else {
-        break;
-      }
+  let currentIndex = -1;
+  for (let i = 0; i < lyrics.length; i++) {
+    if (lyrics[i].timeMs <= posMs) {
+      currentIndex = i;
+    } else {
+      break;
     }
-    return idx;
-  }, [lyrics, posMs]);
+  }
 
   // Calculate progress through current line
-  const lineProgress = useMemo(() => {
-    if (currentIndex < 0 || currentIndex >= lyrics.length) return 0;
+  let lineProgress = 0;
+  if (currentIndex >= 0 && currentIndex < lyrics.length) {
     const lineStart = lyrics[currentIndex].timeMs;
     const lineEnd =
       currentIndex < lyrics.length - 1
         ? lyrics[currentIndex + 1].timeMs
         : lineStart + 4000;
     const duration = lineEnd - lineStart;
-    return Math.max(0, Math.min(1, (posMs - lineStart) / duration));
-  }, [currentIndex, lyrics, posMs]);
+    lineProgress = Math.max(0, Math.min(1, (posMs - lineStart) / duration));
+  }
 
   // Auto-scroll to active line
+  const lastScrolledIndex = useRef(-1);
   useEffect(() => {
-    if (activeLineRef.current) {
+    if (currentIndex !== lastScrolledIndex.current && activeLineRef.current) {
+      lastScrolledIndex.current = currentIndex;
       activeLineRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
       });
     }
-  }, [currentIndex]);
+  });
 
   if (lyrics.length === 0) {
     return (
@@ -55,7 +70,7 @@ export default function LyricsView() {
             <>
               <p className="text-white/40 text-lg">No synced lyrics found</p>
               <p className="text-white/20 text-sm mt-2">
-                for "{currentSong.title}" by {currentSong.artist}
+                for &ldquo;{currentSong.title}&rdquo; by {currentSong.artist}
               </p>
             </>
           ) : (
