@@ -28,27 +28,38 @@ app.get('/api/health', (_req, res) => {
 app.get('/api/diag', async (_req, res) => {
   const checks: Record<string, string> = {};
 
-  checks.acrcloud_host = process.env.ACRCLOUD_HOST || 'MISSING';
-  checks.acrcloud_key = process.env.ACRCLOUD_ACCESS_KEY
-    ? `set (${process.env.ACRCLOUD_ACCESS_KEY.length} chars)`
-    : 'MISSING';
-  checks.acrcloud_secret = process.env.ACRCLOUD_ACCESS_SECRET
-    ? `set (${process.env.ACRCLOUD_ACCESS_SECRET.length} chars)`
-    : 'MISSING';
-  checks.youtube_key = process.env.YOUTUBE_API_KEY
-    ? `set (${process.env.YOUTUBE_API_KEY.length} chars)`
-    : 'MISSING';
+  // 1. API keys
+  checks.acoustid_key = process.env.ACOUSTID_API_KEY ? `set (${process.env.ACOUSTID_API_KEY.length} chars)` : 'MISSING';
+  checks.youtube_key = process.env.YOUTUBE_API_KEY ? `set (${process.env.YOUTUBE_API_KEY.length} chars)` : 'MISSING';
 
-  // Test ACRCloud connectivity
-  if (process.env.ACRCLOUD_HOST) {
-    try {
-      const r = await fetch(`https://${process.env.ACRCLOUD_HOST}/v1/identify`, {
-        method: 'POST',
-      });
-      checks.acrcloud_api = r.status === 400 ? 'reachable' : `status: ${r.status}`;
-    } catch (e) {
-      checks.acrcloud_api = `unreachable: ${(e as Error).message}`;
-    }
+  // 2. fpcalc
+  const { execFile } = await import('child_process');
+  const { promisify } = await import('util');
+  const exec = promisify(execFile);
+  try {
+    const { stdout } = await exec('fpcalc', ['-version']);
+    checks.fpcalc = stdout.trim();
+  } catch {
+    checks.fpcalc = 'NOT FOUND - install with: brew install chromaprint';
+  }
+
+  // 3. ffmpeg
+  try {
+    const { stdout } = await exec('ffmpeg', ['-version']);
+    checks.ffmpeg = stdout.split('\n')[0];
+  } catch {
+    checks.ffmpeg = 'NOT FOUND - install with: brew install ffmpeg';
+  }
+
+  // 4. AcoustID connectivity
+  try {
+    const r = await fetch(`https://api.acoustid.org/v2/lookup?client=${process.env.ACOUSTID_API_KEY}&duration=10&fingerprint=test&meta=recordings`);
+    const d = (await r.json()) as { status: string; error?: { message: string } };
+    checks.acoustid_api = d.status === 'error' && d.error?.message === 'invalid fingerprint'
+      ? 'reachable, key valid'
+      : `status: ${d.status}, ${d.error?.message || 'ok'}`;
+  } catch (e) {
+    checks.acoustid_api = `unreachable: ${(e as Error).message}`;
   }
 
   res.json(checks);
@@ -57,8 +68,9 @@ app.get('/api/diag', async (_req, res) => {
 app.listen(PORT, () => {
   console.log(`[server] Vinyl Visions backend running on port ${PORT}`);
 
-  if (!process.env.ACRCLOUD_ACCESS_KEY) {
-    console.warn('[server] WARNING: ACRCLOUD_ACCESS_KEY not set - song identification will not work');
+  // Check for required env vars
+  if (!process.env.ACOUSTID_API_KEY) {
+    console.warn('[server] WARNING: ACOUSTID_API_KEY not set - song identification will not work');
   }
   if (!process.env.YOUTUBE_API_KEY) {
     console.warn('[server] WARNING: YOUTUBE_API_KEY not set - video search will not work');
