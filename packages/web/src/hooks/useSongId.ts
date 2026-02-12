@@ -3,27 +3,41 @@ import { useStore } from '../store';
 import { getMediaStream } from '../services/audioEngine';
 import { identifySong } from '../services/identifyApi';
 
-const CAPTURE_DURATION_MS = 12000;
-const IDENTIFY_INTERVAL_MS = 20000;
+const CAPTURE_DURATION_MS = 15000;
+const IDENTIFY_INTERVAL_MS = 30000;
 
 export function useSongId() {
   const isListening = useStore((s) => s.isListening);
   const setCurrentSong = useStore((s) => s.setCurrentSong);
   const setIdentifying = useStore((s) => s.setIdentifying);
-  const currentSong = useStore((s) => s.currentSong);
-  const intervalRef = useRef<number>(0);
+  const currentSongRef = useRef(useStore.getState().currentSong);
+  const isRunning = useRef(false);
+
+  // Keep ref in sync without causing re-renders
+  useEffect(() => {
+    return useStore.subscribe((state) => {
+      currentSongRef.current = state.currentSong;
+    });
+  }, []);
 
   const captureAndIdentify = useCallback(async () => {
+    if (isRunning.current) return;
     const stream = getMediaStream();
-    if (!stream) return;
+    if (!stream) {
+      console.warn('[songid] No media stream available');
+      return;
+    }
 
+    isRunning.current = true;
     setIdentifying(true);
+    console.log('[songid] Starting 15s audio capture...');
 
     try {
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
           : 'audio/webm',
+        audioBitsPerSecond: 128000,
       });
 
       const chunks: Blob[] = [];
@@ -31,7 +45,8 @@ export function useSongId() {
         if (e.data.size > 0) chunks.push(e.data);
       };
 
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        mediaRecorder.onerror = (e) => reject(e);
         mediaRecorder.onstop = () => {
           resolve(new Blob(chunks, { type: mediaRecorder.mimeType }));
         };
@@ -43,32 +58,41 @@ export function useSongId() {
         }, CAPTURE_DURATION_MS);
       });
 
+      console.log(`[songid] Captured ${(blob.size / 1024).toFixed(1)}KB, sending to server...`);
+
       const song = await identifySong(blob);
+
       if (song) {
-        // Only update if it's a different song
-        if (!currentSong || song.title !== currentSong.title || song.artist !== currentSong.artist) {
+        const current = currentSongRef.current;
+        if (!current || song.title !== current.title || song.artist !== current.artist) {
+          console.log(`[songid] Identified: "${song.title}" by ${song.artist}`);
           setCurrentSong(song);
+        } else {
+          console.log('[songid] Same song still playing');
         }
+      } else {
+        console.log('[songid] No match found');
       }
     } catch (err) {
-      console.error('Song identification error:', err);
+      console.error('[songid] Error:', err);
     } finally {
+      isRunning.current = false;
       setIdentifying(false);
     }
-  }, [currentSong, setCurrentSong, setIdentifying]);
+  }, [setCurrentSong, setIdentifying]);
 
   useEffect(() => {
     if (!isListening) return;
 
     // First identification after a short delay
-    const initialTimeout = setTimeout(captureAndIdentify, 3000);
+    const initialTimeout = setTimeout(captureAndIdentify, 2000);
 
     // Then periodically
-    intervalRef.current = window.setInterval(captureAndIdentify, IDENTIFY_INTERVAL_MS);
+    const intervalId = window.setInterval(captureAndIdentify, IDENTIFY_INTERVAL_MS);
 
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(intervalRef.current);
+      clearInterval(intervalId);
     };
   }, [isListening, captureAndIdentify]);
 }

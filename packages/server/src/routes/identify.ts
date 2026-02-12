@@ -20,6 +20,7 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
   }
 
   const audioPath = req.file.path;
+  console.log(`[identify] Received file: ${req.file.size} bytes, mime: ${req.file.mimetype}`);
 
   try {
     // Step 1: Generate fingerprint with fpcalc

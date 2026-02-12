@@ -16,6 +16,7 @@ export async function identifySong(audioBlob: Blob): Promise<SongInfo | null> {
   }
 
   const data = await res.json();
+  console.log('[identifyApi] Server response:', data);
   if (!data.title) return null;
 
   return {

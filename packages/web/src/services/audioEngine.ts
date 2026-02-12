@@ -13,6 +13,8 @@ export async function initAudioCapture(): Promise<{
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 1,
     },
   });
 

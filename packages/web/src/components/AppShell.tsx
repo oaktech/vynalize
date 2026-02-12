@@ -5,6 +5,7 @@ import ListeningPulse from './ListeningPulse';
 import ModeSelector from './ModeSelector';
 import SyncControls from './SyncControls';
 import Settings from './Settings';
+import ManualSearch from './ManualSearch';
 import VisualizerView from './visualizer/VisualizerView';
 import LyricsView from './lyrics/LyricsView';
 import VideoPlayer from './video/VideoPlayer';
@@ -106,6 +107,7 @@ export default function AppShell() {
             <NowPlaying />
           </div>
           <div className="flex items-center gap-2">
+            <ManualSearch />
             {bpm && (
               <span className="text-xs text-white/30 tabular-nums font-mono mr-2">
                 {bpm} BPM

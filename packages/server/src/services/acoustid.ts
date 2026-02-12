@@ -45,7 +45,14 @@ export async function lookupFingerprint(
     throw new Error(`AcoustID API error: ${res.status}`);
   }
 
-  const data = (await res.json()) as { results?: AcoustIDResult[] };
+  const data = (await res.json()) as { status: string; results?: AcoustIDResult[]; error?: { message: string } };
+  console.log(`[acoustid] Response status: ${data.status}, results: ${data.results?.length ?? 0}`);
+  if (data.error) {
+    console.error(`[acoustid] API error: ${data.error.message}`);
+  }
+  if (data.results?.length) {
+    console.log(`[acoustid] Top result score: ${(data.results[0] as any).score}, recordings: ${data.results[0].recordings?.length ?? 0}`);
+  }
   if (!data.results || data.results.length === 0) {
     return null;
   }
