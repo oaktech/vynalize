@@ -2,9 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import os from 'os';
-import { generateFingerprint, cleanupFile } from '../services/fingerprint.js';
-import { lookupFingerprint } from '../services/acoustid.js';
-import { enrichMetadata } from '../services/musicbrainz.js';
+import fs from 'fs';
+import { recognizeSong } from '../services/shazam.js';
 
 const upload = multer({
   dest: path.join(os.tmpdir(), 'vinyl-visions-uploads'),
@@ -23,49 +22,25 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
   console.log(`[identify] Received file: ${req.file.size} bytes, mime: ${req.file.mimetype}`);
 
   try {
-    // Step 1: Generate fingerprint with fpcalc
-    console.log('[identify] Generating fingerprint...');
-    const { duration, fingerprint } = await generateFingerprint(audioPath);
-    console.log(`[identify] Fingerprint generated (duration: ${duration}s)`);
+    const result = await recognizeSong(audioPath);
 
-    // Step 2: Lookup on AcoustID
-    console.log('[identify] Looking up on AcoustID...');
-    const lookup = await lookupFingerprint(fingerprint, duration);
-
-    if (!lookup) {
+    if (!result) {
       console.log('[identify] No match found');
       res.json({ match: false });
       return;
     }
 
-    console.log(`[identify] Match: "${lookup.title}" by ${lookup.artist}`);
-
-    // Step 3: Enrich with MusicBrainz + Cover Art
-    let albumArtUrl: string | null = null;
-    let bpm: number | null = null;
-
-    if (lookup.musicbrainzId) {
-      try {
-        const enriched = await enrichMetadata(
-          lookup.musicbrainzId,
-          lookup.releaseGroupId
-        );
-        albumArtUrl = enriched.albumArtUrl;
-        bpm = enriched.bpm;
-      } catch (err) {
-        console.warn('[identify] Enrichment failed:', err);
-      }
-    }
+    console.log(`[identify] Match: "${result.title}" by ${result.artist}`);
 
     res.json({
       match: true,
-      title: lookup.title,
-      artist: lookup.artist,
-      album: lookup.album,
-      duration: lookup.duration,
-      musicbrainzId: lookup.musicbrainzId,
-      albumArtUrl,
-      bpm,
+      title: result.title,
+      artist: result.artist,
+      album: result.album,
+      duration: 0,
+      musicbrainzId: null,
+      albumArtUrl: result.albumArtUrl,
+      bpm: null,
     });
   } catch (err) {
     console.error('[identify] Error:', err);
@@ -73,6 +48,8 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
       error: err instanceof Error ? err.message : 'Identification failed',
     });
   } finally {
-    await cleanupFile(audioPath);
+    try {
+      await fs.promises.unlink(audioPath);
+    } catch {}
   }
 });

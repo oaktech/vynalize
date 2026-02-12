@@ -9,24 +9,25 @@ The app never plays music itself -- it's a visual companion for your analog setu
 ### Prerequisites
 
 - Node.js 18+
-- [Chromaprint](https://acoustid.org/chromaprint) (`fpcalc` CLI) for song fingerprinting:
+- [ffmpeg](https://ffmpeg.org/) for audio format conversion:
   ```bash
   # macOS
-  brew install chromaprint
+  brew install ffmpeg
 
   # Ubuntu/Debian
-  sudo apt install libchromaprint-tools
+  sudo apt install ffmpeg
 
   # Windows (via Chocolatey)
-  choco install chromaprint
+  choco install ffmpeg
   ```
 
 ### API Keys (Free)
 
 | Service | Purpose | Get one at |
 |---|---|---|
-| AcoustID | Song identification | https://acoustid.org/new-application |
 | YouTube Data API v3 | Music video search | https://console.cloud.google.com |
+
+Song identification uses Shazam and requires no API key.
 
 ### Setup
 
@@ -39,7 +40,7 @@ npm install
 
 # Configure API keys
 cp .env.example .env
-# Edit .env and add your keys
+# Edit .env and add your YouTube API key
 
 # Start development servers (frontend + backend)
 npm run dev
@@ -51,7 +52,7 @@ npm run dev
 ## How It Works
 
 1. **Listen** -- Grant microphone access and play music from a nearby speaker
-2. **Identify** -- The app captures audio snippets, fingerprints them with Chromaprint, and looks them up on AcoustID
+2. **Identify** -- The app captures audio snippets and identifies them using Shazam's audio fingerprinting
 3. **Visualize** -- Choose from 5 visualization modes, synced karaoke lyrics, or a muted music video
 4. **Sync** -- Use tap-to-sync and offset controls to align lyrics and video with your playback
 
@@ -65,15 +66,15 @@ vinyl-visions/
 └── package.json      # npm workspaces root
 ```
 
-**Why a backend?** Chromaprint has no reliable browser build and AcoustID lacks CORS headers. The server runs `fpcalc` for fingerprinting, proxies AcoustID lookups, and keeps API keys out of the browser.
+**Why a backend?** Song identification via Shazam requires server-side audio processing, and the YouTube Data API key is kept out of the browser.
 
 ### External Services
 
 | Service | Purpose | Auth |
 |---|---|---|
-| AcoustID | Audio fingerprint lookup | API key (server-side) |
-| MusicBrainz | Song metadata | None (User-Agent only) |
-| Cover Art Archive | Album artwork | None |
+| Shazam (via node-shazam) | Song identification | None |
+| MusicBrainz | Manual search metadata | None (User-Agent only) |
+| Cover Art Archive | Album artwork (manual search) | None |
 | lrclib.net | Synced lyrics (LRC) | None |
 | YouTube Data API | Video search | API key (server-side) |
 | YouTube IFrame API | Video embed | None |
@@ -100,7 +101,7 @@ npm run build        # Production build
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Three.js / React Three Fiber
-- **Backend:** Express, TypeScript, Chromaprint/fpcalc
+- **Backend:** Express, TypeScript, node-shazam
 - **Audio:** Web Audio API, AnalyserNode for real-time FFT
 
 ## License
