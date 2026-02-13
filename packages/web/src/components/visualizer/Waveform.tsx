@@ -67,14 +67,14 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
 
     // Phase scrolls at BPM — 3 cycles every 4 beats
     const beatsPerSec = (bpm || 120) / 60;
-    const phase = (performance.now() / 1000) * beatsPerSec * 0.75 * Math.PI * 2;
+    const phase = (performance.now() / 1000) * beatsPerSec * Math.PI * 2;
 
-    // Smooth pseudo-random envelope — varies peak heights across the wave
+    // Smooth pseudo-random envelope — big variation in peak heights
     function envelope(t: number): number {
-      return 0.5
-        + Math.sin(t * 1.7 + phase * 0.3) * 0.2
-        + Math.sin(t * 3.1 - phase * 0.2) * 0.15
-        + Math.sin(t * 5.3 + phase * 0.15) * 0.15;
+      return 0.4
+        + Math.sin(t * 1.7 + phase * 0.3) * 0.3
+        + Math.sin(t * 3.1 - phase * 0.2) * 0.2
+        + Math.sin(t * 5.3 + phase * 0.15) * 0.1;
     }
 
     // Clean sine wave with gentle harmonic, modulated by envelope
