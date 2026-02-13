@@ -85,13 +85,49 @@ function stripPunctuation(w: string): string {
   return w.replace(/[^a-zA-Z0-9']/g, '');
 }
 
+function hexToHsl(hex: string): [number, number, number] {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substring(0, 2), 16) / 255;
+  const g = parseInt(c.substring(2, 4), 16) / 255;
+  const b = parseInt(c.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l * 100];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h * 360, s * 100, l * 100];
+}
+
 export default function AsciiWords({ accentColor }: { accentColor: string }) {
   const currentSong = useStore((s) => s.currentSong);
+  const isBeat = useStore((s) => s.isBeat);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [asciiData, setAsciiData] = useState(EMPTY);
   const [scale, setScale] = useState(1);
+  const [displayColor, setDisplayColor] = useState(accentColor);
   const currentWordRef = useRef('');
+  const hueOffset = useRef(0);
+
+  // Shift hue on each beat
+  useEffect(() => {
+    if (!isBeat) return;
+    hueOffset.current = (hueOffset.current + 35 + Math.random() * 25) % 360;
+    const [h, s, l] = hexToHsl(accentColor);
+    const newH = (h + hueOffset.current) % 360;
+    setDisplayColor(`hsl(${newH}, ${s}%, ${l}%)`);
+  }, [isBeat, accentColor]);
+
+  // Reset color when accent color changes (new song)
+  useEffect(() => {
+    hueOffset.current = 0;
+    setDisplayColor(accentColor);
+  }, [accentColor]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -160,13 +196,13 @@ export default function AsciiWords({ accentColor }: { accentColor: string }) {
           fontSize: `${BASE_PX}px`,
           lineHeight: '1',
           letterSpacing: '0.05em',
-          color: accentColor,
+          color: displayColor,
           whiteSpace: 'pre',
           textAlign: 'center',
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
-          transition: 'transform 0.3s ease-out',
-          filter: `drop-shadow(0 0 8px ${accentColor})`,
+          transition: 'transform 0.3s ease-out, color 0.15s ease-out, filter 0.15s ease-out',
+          filter: `drop-shadow(0 0 8px ${displayColor})`,
         }}
       >
         {asciiData.art}
