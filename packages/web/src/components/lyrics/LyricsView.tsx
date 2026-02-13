@@ -38,18 +38,6 @@ export default function LyricsView() {
     }
   }
 
-  // Calculate progress through current line
-  let lineProgress = 0;
-  if (currentIndex >= 0 && currentIndex < lyrics.length) {
-    const lineStart = lyrics[currentIndex].timeMs;
-    const lineEnd =
-      currentIndex < lyrics.length - 1
-        ? lyrics[currentIndex + 1].timeMs
-        : lineStart + 4000;
-    const duration = lineEnd - lineStart;
-    lineProgress = Math.max(0, Math.min(1, (posMs - lineStart) / duration));
-  }
-
   // Detect chorus lines: text that appears more than once (normalized)
   const chorusSet = useMemo(() => {
     const counts = new Map<string, number>();
@@ -124,7 +112,6 @@ export default function LyricsView() {
             >
               <KaraokeLine
                 text={line.text}
-                progress={i === currentIndex ? lineProgress : i < currentIndex ? 1 : 0}
                 isActive={i === currentIndex}
                 isPast={i < currentIndex}
                 isChorus={chorusSet.has(line.text.trim().toLowerCase())}

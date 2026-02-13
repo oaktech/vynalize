@@ -1,6 +1,5 @@
 interface KaraokeLineProps {
   text: string;
-  progress: number; // 0-1 how far through this line
   isActive: boolean;
   isPast: boolean;
   isChorus: boolean;
@@ -9,7 +8,6 @@ interface KaraokeLineProps {
 
 export default function KaraokeLine({
   text,
-  progress,
   isActive,
   isPast,
   isChorus,
@@ -28,36 +26,16 @@ export default function KaraokeLine({
       }`}
     >
       {isActive ? (
-        isChorus ? (
-          // Chorus: spread fill effect + extra glow
-          <div className="relative inline-block">
-            <span className="text-white/80">{text}</span>
-            <span
-              className="absolute inset-0 overflow-hidden whitespace-nowrap"
-              style={{ width: `${progress * 100}%`, transition: 'width 0.05s linear' }}
-            >
-              <span
-                className="whitespace-nowrap"
-                style={{
-                  color: accentColor,
-                  textShadow: `0 0 24px ${accentColor}aa, 0 0 48px ${accentColor}60, 0 0 80px ${accentColor}30`,
-                }}
-              >
-                {text}
-              </span>
-            </span>
-          </div>
-        ) : (
-          // Normal: instant full highlight
-          <span
-            style={{
-              color: accentColor,
-              textShadow: `0 0 20px ${accentColor}80, 0 0 40px ${accentColor}40`,
-            }}
-          >
-            {text}
-          </span>
-        )
+        <span
+          style={{
+            color: accentColor,
+            textShadow: isChorus
+              ? `0 0 24px ${accentColor}aa, 0 0 48px ${accentColor}60, 0 0 80px ${accentColor}30`
+              : `0 0 20px ${accentColor}80, 0 0 40px ${accentColor}40`,
+          }}
+        >
+          {text}
+        </span>
       ) : (
         <span className={isPast ? 'text-white/40' : 'text-white/70'}>{text}</span>
       )}
