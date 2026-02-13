@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import SpectrumBars from './SpectrumBars';
 import Waveform from './Waveform';
 import RadialSpectrum from './RadialSpectrum';
+import AsciiWords from './AsciiWords';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
@@ -46,6 +47,7 @@ export default function VisualizerView() {
             <GeometricShapes />
           </Suspense>
         )}
+        {visualizerMode === 'ascii' && <AsciiWords accentColor={accentColor} />}
       </div>
     </div>
   );

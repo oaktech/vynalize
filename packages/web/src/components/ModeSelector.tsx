@@ -13,6 +13,7 @@ const vizModes: { id: VisualizerMode; label: string }[] = [
   { id: 'radial', label: 'Radial' },
   { id: 'particles', label: 'Particles' },
   { id: 'geometric', label: 'Geometry' },
+  { id: 'ascii', label: 'ASCII' },
 ];
 
 export default function ModeSelector() {

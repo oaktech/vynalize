@@ -23,7 +23,8 @@ export type VisualizerMode =
   | 'waveform'
   | 'radial'
   | 'particles'
-  | 'geometric';
+  | 'geometric'
+  | 'ascii';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video';
 
