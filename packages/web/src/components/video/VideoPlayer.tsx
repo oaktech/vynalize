@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStore } from '../../store';
-import { searchMusicVideo } from '../../services/videoApi';
 
 declare global {
   interface Window {
@@ -56,38 +55,9 @@ function loadYouTubeAPI(): Promise<void> {
 export default function VideoPlayer() {
   const currentSong = useStore((s) => s.currentSong);
   const videoId = useStore((s) => s.videoId);
-  const setVideoId = useStore((s) => s.setVideoId);
   const playerRef = useRef<YTPlayer | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const containerIdRef = useRef(`yt-player-${Date.now()}`);
   const lastSeekRef = useRef(0);
-
-  // Search for video when song changes
-  useEffect(() => {
-    if (!currentSong) {
-      setVideoId(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    searchMusicVideo(currentSong.artist, currentSong.title).then((id) => {
-      if (cancelled) return;
-      setLoading(false);
-      if (id) {
-        setVideoId(id);
-      } else {
-        setError('No video found');
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentSong, setVideoId]);
 
   // Initialize YouTube player
   useEffect(() => {
@@ -147,34 +117,12 @@ export default function VideoPlayer() {
     return () => clearInterval(interval);
   }, [videoId]);
 
-  if (!currentSong) {
+  if (!videoId) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <p className="text-white/40 text-lg">Waiting for song identification...</p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-white/40 text-sm">Searching for music video...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white/40 text-lg">{error}</p>
-          <p className="text-white/20 text-sm mt-2">
-            for "{currentSong.title}" by {currentSong.artist}
-          </p>
-        </div>
+        <p className="text-white/40 text-lg">
+          {currentSong ? 'No video available' : 'Waiting for song identification...'}
+        </p>
       </div>
     );
   }

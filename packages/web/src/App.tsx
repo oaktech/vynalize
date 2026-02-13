@@ -3,6 +3,8 @@ import { useAudioAnalysis } from './hooks/useAudioAnalysis';
 import { useBeatDetection } from './hooks/useBeatDetection';
 import { useSongId } from './hooks/useSongId';
 import { useLyrics } from './hooks/useLyrics';
+import { useVideoSearch } from './hooks/useVideoSearch';
+import { useAutoDisplay } from './hooks/useAutoDisplay';
 import { usePositionTracker } from './hooks/usePositionTracker';
 import { useStore } from './store';
 import AppShell from './components/AppShell';
@@ -58,6 +60,8 @@ function ActiveApp() {
   useBeatDetection();
   useSongId();
   useLyrics();
+  useVideoSearch();
+  useAutoDisplay();
   usePositionTracker();
 
   return <AppShell />;

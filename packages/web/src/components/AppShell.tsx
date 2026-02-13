@@ -15,6 +15,7 @@ const CONTROLS_HIDE_DELAY = 5000;
 export default function AppShell() {
   const appMode = useStore((s) => s.appMode);
   const setAppMode = useStore((s) => s.setAppMode);
+  const videoId = useStore((s) => s.videoId);
   const isFullscreen = useStore((s) => s.isFullscreen);
   const setFullscreen = useStore((s) => s.setFullscreen);
   const controlsVisible = useStore((s) => s.controlsVisible);
@@ -90,7 +91,7 @@ export default function AppShell() {
           {appMode === 'lyrics' && <LyricsView />}
         </div>
         <div className={`absolute inset-0 transition-opacity duration-500 ${appMode === 'video' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          {appMode === 'video' && <VideoPlayer />}
+          {(appMode === 'video' || videoId) && <VideoPlayer />}
         </div>
       </div>
 

@@ -55,7 +55,9 @@ interface VinylStore {
 
   // Video
   videoId: string | null;
+  videoSearching: boolean;
   setVideoId: (id: string | null) => void;
+  setVideoSearching: (v: boolean) => void;
 
   // Accent color from album art
   accentColor: string;
@@ -114,7 +116,9 @@ export const useStore = create<VinylStore>((set) => ({
   setControlsVisible: (controlsVisible) => set({ controlsVisible }),
 
   videoId: null,
+  videoSearching: false,
   setVideoId: (videoId) => set({ videoId }),
+  setVideoSearching: (videoSearching) => set({ videoSearching }),
 
   accentColor: '#8b5cf6',
   setAccentColor: (accentColor) => set({ accentColor }),
