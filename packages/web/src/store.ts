@@ -62,6 +62,10 @@ interface VinylStore {
   setVideoOffsetMs: (ms: number) => void;
   adjustVideoOffset: (deltaMs: number) => void;
 
+  // Clap detection flash
+  clapFlash: boolean;
+  setClapFlash: (v: boolean) => void;
+
   // Accent color from album art
   accentColor: string;
   setAccentColor: (c: string) => void;
@@ -126,6 +130,9 @@ export const useStore = create<VinylStore>((set) => ({
   setVideoOffsetMs: (videoOffsetMs) => set({ videoOffsetMs }),
   adjustVideoOffset: (deltaMs) =>
     set((state) => ({ videoOffsetMs: state.videoOffsetMs + deltaMs })),
+
+  clapFlash: false,
+  setClapFlash: (clapFlash) => set({ clapFlash }),
 
   accentColor: '#8b5cf6',
   setAccentColor: (accentColor) => set({ accentColor }),

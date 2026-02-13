@@ -21,6 +21,12 @@ app.use('/api/identify', identifyRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/search', searchRouter);
 
+app.post('/api/log', (req, res) => {
+  const { tag, msg } = req.body ?? {};
+  if (tag && msg) console.log(`[${tag}] ${msg}`);
+  res.sendStatus(204);
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });

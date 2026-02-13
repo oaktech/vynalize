@@ -63,6 +63,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
               ['2', 'Lyrics mode'],
               ['3', 'Video mode'],
               ['4', 'ASCII mode'],
+              ['Double clap', 'Cycle display mode'],
             ].map(([key, desc]) => (
               <div key={key} className="flex items-center justify-between">
                 <span className="text-white/40">{desc}</span>

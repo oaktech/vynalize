@@ -1,6 +1,7 @@
 import { useAudioCapture } from './hooks/useAudioCapture';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis';
 import { useBeatDetection } from './hooks/useBeatDetection';
+import { useClapSwitch } from './hooks/useClapSwitch';
 import { useSongId } from './hooks/useSongId';
 import { useLyrics } from './hooks/useLyrics';
 import { useVideoSearch } from './hooks/useVideoSearch';
@@ -58,6 +59,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 function ActiveApp() {
   useAudioAnalysis();
   useBeatDetection();
+  useClapSwitch();
   useSongId();
   useLyrics();
   useVideoSearch();
