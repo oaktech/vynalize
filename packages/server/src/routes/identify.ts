@@ -41,6 +41,7 @@ identifyRouter.post('/', upload.single('audio'), async (req, res) => {
       musicbrainzId: null,
       albumArtUrl: result.albumArtUrl,
       bpm: null,
+      offsetMs: result.offsetMs,
     });
   } catch (err) {
     console.error('[identify] Error:', err);

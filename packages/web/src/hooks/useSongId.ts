@@ -10,6 +10,7 @@ export function useSongId() {
   const isListening = useStore((s) => s.isListening);
   const setCurrentSong = useStore((s) => s.setCurrentSong);
   const setIdentifying = useStore((s) => s.setIdentifying);
+  const setPosition = useStore((s) => s.setPosition);
   const currentSongRef = useRef(useStore.getState().currentSong);
   const isRunning = useRef(false);
 
@@ -31,6 +32,8 @@ export function useSongId() {
     isRunning.current = true;
     setIdentifying(true);
     console.log('[songid] Starting 15s audio capture...');
+
+    const captureStartTime = performance.now();
 
     try {
       const mediaRecorder = new MediaRecorder(stream, {
@@ -60,15 +63,39 @@ export function useSongId() {
 
       console.log(`[songid] Captured ${(blob.size / 1024).toFixed(1)}KB, sending to server...`);
 
-      const song = await identifySong(blob);
+      const result = await identifySong(blob);
 
-      if (song) {
+      if (result) {
+        const { song, offsetMs: shazamOffsetMs } = result;
         const current = currentSongRef.current;
-        if (!current || song.title !== current.title || song.artist !== current.artist) {
-          console.log(`[songid] Identified: "${song.title}" by ${song.artist}`);
+        const isNewSong = !current || song.title !== current.title || song.artist !== current.artist;
+
+        // Time elapsed since we started capturing audio
+        const timeSinceCapture = performance.now() - captureStartTime;
+
+        // The song position right now =
+        //   shazamOffset (where in the song the captured audio matched)
+        //   + timeSinceCapture (time passed since we started recording)
+        const currentPositionMs = shazamOffsetMs + timeSinceCapture;
+
+        if (isNewSong) {
+          console.log(`[songid] Identified: "${song.title}" by ${song.artist} (position: ${(currentPositionMs / 1000).toFixed(1)}s)`);
           setCurrentSong(song);
+          // Auto-sync: set position tracker to the estimated song position
+          setPosition({
+            isTracking: true,
+            startedAt: performance.now(),
+            elapsedMs: 0,
+            offsetMs: currentPositionMs,
+          });
         } else {
-          console.log('[songid] Same song still playing');
+          // Same song — refine position estimate
+          console.log(`[songid] Same song, updating position to ${(currentPositionMs / 1000).toFixed(1)}s`);
+          setPosition({
+            startedAt: performance.now(),
+            elapsedMs: 0,
+            offsetMs: currentPositionMs,
+          });
         }
       } else {
         console.log('[songid] No match found');
@@ -79,7 +106,7 @@ export function useSongId() {
       isRunning.current = false;
       setIdentifying(false);
     }
-  }, [setCurrentSong, setIdentifying]);
+  }, [setCurrentSong, setIdentifying, setPosition]);
 
   useEffect(() => {
     if (!isListening) return;

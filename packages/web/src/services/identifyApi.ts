@@ -1,6 +1,11 @@
 import type { SongInfo } from '../types';
 
-export async function identifySong(audioBlob: Blob): Promise<SongInfo | null> {
+export interface IdentifyResult {
+  song: SongInfo;
+  offsetMs: number;
+}
+
+export async function identifySong(audioBlob: Blob): Promise<IdentifyResult | null> {
   const formData = new FormData();
   formData.append('audio', audioBlob, 'capture.wav');
 
@@ -20,12 +25,15 @@ export async function identifySong(audioBlob: Blob): Promise<SongInfo | null> {
   if (!data.title) return null;
 
   return {
-    title: data.title,
-    artist: data.artist,
-    album: data.album || '',
-    duration: data.duration || 0,
-    albumArtUrl: data.albumArtUrl || null,
-    musicbrainzId: data.musicbrainzId || null,
-    bpm: data.bpm || null,
+    song: {
+      title: data.title,
+      artist: data.artist,
+      album: data.album || '',
+      duration: data.duration || 0,
+      albumArtUrl: data.albumArtUrl || null,
+      musicbrainzId: data.musicbrainzId || null,
+      bpm: data.bpm || null,
+    },
+    offsetMs: data.offsetMs || 0,
   };
 }
