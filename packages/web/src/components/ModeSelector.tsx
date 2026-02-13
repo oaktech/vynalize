@@ -15,6 +15,7 @@ const vizModes: { id: VisualizerMode; label: string }[] = [
   { id: 'particles', label: 'Particles' },
   { id: 'geometric', label: 'Geometry' },
   { id: 'radical', label: 'Radical' },
+  { id: 'nebula', label: 'Nebula' },
 ];
 
 export default function ModeSelector() {
