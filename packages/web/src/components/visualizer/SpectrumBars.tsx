@@ -16,9 +16,11 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
-/** Boost quiet signals and compress dynamic range */
-function boost(value: number): number {
-  return Math.min(1, Math.pow(value * 3.5, 0.6));
+/** Compress dynamic range with per-bar frequency compensation */
+function boost(value: number, barNorm: number): number {
+  // Higher bars get more gain to compensate for natural spectral rolloff
+  const gain = 1.5 + barNorm * 3.5;
+  return Math.min(1, Math.pow(value * gain, 0.55));
 }
 
 export default function SpectrumBars({ accentColor }: { accentColor: string }) {
@@ -57,10 +59,8 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
-    const usableBins = Math.floor(freq.length * 0.6);
-    const barCount = Math.min(64, usableBins);
-    const binsPerBar = Math.floor(usableBins / barCount);
-    const gap = 2 * devicePixelRatio;
+    const barCount = 32;
+    const gap = 3 * devicePixelRatio;
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 
     const [r, g, b] = hexToRgb(accentColor);
@@ -74,13 +74,26 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     beatFlash.current *= 0.92;
     const flashBoost = beatFlash.current * 0.3;
 
+    // Logarithmic frequency mapping — spreads energy evenly across bars
+    const minFreq = 1;
+    const maxFreq = freq.length * 0.75;
+    const logMin = Math.log(minFreq);
+    const logMax = Math.log(maxFreq);
+
     for (let i = 0; i < barCount; i++) {
+      const loEdge = Math.exp(logMin + (i / barCount) * (logMax - logMin));
+      const hiEdge = Math.exp(logMin + ((i + 1) / barCount) * (logMax - logMin));
+      const lo = Math.floor(loEdge);
+      const hi = Math.max(lo + 1, Math.floor(hiEdge));
+
       let sum = 0;
-      for (let j = 0; j < binsPerBar; j++) {
-        sum += freq[i * binsPerBar + j];
+      let count = 0;
+      for (let j = lo; j < hi && j < freq.length; j++) {
+        sum += freq[j];
+        count++;
       }
-      const raw = sum / binsPerBar / 255;
-      const target = boost(raw);
+      const raw = count > 0 ? sum / count / 255 : 0;
+      const target = boost(raw, i / (barCount - 1));
 
       // Smooth: fast attack, slow decay for fluid motion
       const prev = smoothBars.current[i];
