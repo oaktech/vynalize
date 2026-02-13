@@ -4,6 +4,7 @@ import SpectrumBars from './SpectrumBars';
 import Waveform from './Waveform';
 import RadialSpectrum from './RadialSpectrum';
 import AsciiWords from './AsciiWords';
+import Radical from './Radical';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
@@ -48,6 +49,7 @@ export default function VisualizerView() {
           </Suspense>
         )}
         {visualizerMode === 'ascii' && <AsciiWords accentColor={accentColor} />}
+        {visualizerMode === 'radical' && <Radical accentColor={accentColor} />}
       </div>
     </div>
   );

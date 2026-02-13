@@ -24,7 +24,8 @@ export type VisualizerMode =
   | 'radial'
   | 'particles'
   | 'geometric'
-  | 'ascii';
+  | 'ascii'
+  | 'radical';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video';
 
