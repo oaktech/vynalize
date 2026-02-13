@@ -16,12 +16,16 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
+const POINTS = 200;
+const CYCLES = 4; // clean, even wave cycles across the screen
+
 export default function Waveform({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioFeatures = useStore((s) => s.audioFeatures);
   const isBeat = useStore((s) => s.isBeat);
-  const glowIntensity = useRef(0);
-  const peakRef = useRef(0.01);
+  const bpm = useStore((s) => s.bpm);
+  const beatPulse = useRef(0);
+  const smoothAmp = useRef(0.15);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,7 +40,7 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
   }, []);
 
   useEffect(() => {
-    if (isBeat) glowIntensity.current = 1;
+    if (isBeat) beatPulse.current = 1;
   }, [isBeat]);
 
   useEffect(() => {
@@ -48,87 +52,88 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
     const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
-    const timeData = audioFeatures.timeData;
     const centerY = height / 2;
     const [r, g, b] = hexToRgb(accentColor);
+    const { rms } = audioFeatures;
 
-    glowIntensity.current *= 0.93;
-    const glow = glowIntensity.current;
+    // Beat pulse
+    beatPulse.current *= 0.8;
+    const pulse = beatPulse.current;
 
-    // Adaptive gain: track peak amplitude and normalize to it
-    let currentPeak = 0;
-    for (let i = 0; i < timeData.length; i++) {
-      const amp = Math.abs(timeData[i] - 128) / 128;
-      if (amp > currentPeak) currentPeak = amp;
+    // Smooth amplitude — follows volume, spikes on beats
+    const targetAmp = Math.min(0.95, 0.25 + rms * 4.5 + pulse * 0.7);
+    smoothAmp.current += (targetAmp - smoothAmp.current) * 0.08;
+    const amp = smoothAmp.current;
+
+    // Phase scrolls at BPM — 3 cycles every 4 beats
+    const beatsPerSec = (bpm || 120) / 60;
+    const phase = (performance.now() / 1000) * beatsPerSec * 0.75 * Math.PI * 2;
+
+    // Smooth pseudo-random envelope — varies peak heights across the wave
+    function envelope(t: number): number {
+      return 0.5
+        + Math.sin(t * 1.7 + phase * 0.3) * 0.2
+        + Math.sin(t * 3.1 - phase * 0.2) * 0.15
+        + Math.sin(t * 5.3 + phase * 0.15) * 0.15;
     }
-    // Fast attack, slow decay for peak tracking
-    peakRef.current = currentPeak > peakRef.current
-      ? currentPeak
-      : peakRef.current * 0.997;
-    // Gain that normalizes signal to fill ~80% of height, with minimum boost
-    const gain = Math.min(12, 0.8 / Math.max(peakRef.current, 0.005));
 
-    // Main waveform
+    // Clean sine wave with gentle harmonic, modulated by envelope
+    function wave(t: number): number {
+      const main = Math.sin(t * CYCLES * Math.PI * 2 + phase);
+      const harmonic = Math.sin(t * CYCLES * 2 * Math.PI * 2 + phase * 2) * 0.12;
+      return (main + harmonic) * envelope(t);
+    }
+
+    // Beat glow
+    if (pulse > 0.05) {
+      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${pulse * 0.6})`;
+      ctx.shadowBlur = 25 * pulse * devicePixelRatio;
+    }
+
+    // Main wave
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.7 + glow * 0.3})`;
-    ctx.lineWidth = (2.5 + glow * 4) * devicePixelRatio;
-    ctx.lineCap = 'round';
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.75 + pulse * 0.25})`;
+    ctx.lineWidth = (2 + pulse * 3) * devicePixelRatio;
     ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
 
-    if (glow > 0.1) {
-      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${glow * 0.7})`;
-      ctx.shadowBlur = 25 * glow * devicePixelRatio;
+    for (let i = 0; i <= POINTS; i++) {
+      const t = i / POINTS;
+      const y = centerY + wave(t) * amp * centerY;
+      if (i === 0) ctx.moveTo(0, y);
+      else ctx.lineTo(t * width, y);
     }
-
-    const sliceWidth = width / timeData.length;
-    let x = 0;
-
-    for (let i = 0; i < timeData.length; i++) {
-      const raw = (timeData[i] - 128) / 128;
-      const v = Math.max(-1, Math.min(1, raw * gain));
-      const y = centerY + v * centerY * 0.85;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-      x += sliceWidth;
-    }
-
     ctx.stroke();
-    ctx.shadowBlur = 0;
 
-    // Filled area under waveform (subtle)
+    // Soft fill between wave and center
     ctx.lineTo(width, centerY);
     ctx.lineTo(0, centerY);
     ctx.closePath();
-    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.05)`;
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.03 + pulse * 0.05})`;
     ctx.fill();
 
-    // Secondary mirror waveform (dimmer, inverted)
+    ctx.shadowBlur = 0;
+
+    // Mirror (inverted, softer)
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.2)`;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.12 + pulse * 0.08})`;
     ctx.lineWidth = 1.5 * devicePixelRatio;
-    x = 0;
-    for (let i = 0; i < timeData.length; i++) {
-      const raw = (timeData[i] - 128) / 128;
-      const v = Math.max(-1, Math.min(1, raw * gain));
-      const y = centerY - v * centerY * 0.6;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-      x += sliceWidth;
+    for (let i = 0; i <= POINTS; i++) {
+      const t = i / POINTS;
+      const y = centerY - wave(t) * amp * centerY * 0.45;
+      if (i === 0) ctx.moveTo(0, y);
+      else ctx.lineTo(t * width, y);
     }
     ctx.stroke();
 
     // Center line
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.1)`;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.06)`;
     ctx.lineWidth = 1 * devicePixelRatio;
     ctx.moveTo(0, centerY);
     ctx.lineTo(width, centerY);
     ctx.stroke();
-  }, [audioFeatures, accentColor, isBeat]);
+  }, [audioFeatures, accentColor, isBeat, bpm]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }
