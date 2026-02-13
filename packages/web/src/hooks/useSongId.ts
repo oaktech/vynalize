@@ -3,8 +3,8 @@ import { useStore } from '../store';
 import { getMediaStream } from '../services/audioEngine';
 import { identifySong } from '../services/identifyApi';
 
-const CAPTURE_DURATION_MS = 15000;
-const IDENTIFY_INTERVAL_MS = 30000;
+const CAPTURE_DURATION_MS = 5000;
+const IDENTIFY_INTERVAL_MS = 20000;
 
 export function useSongId() {
   const isListening = useStore((s) => s.isListening);
