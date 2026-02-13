@@ -1,6 +1,5 @@
 let audioContext: AudioContext | null = null;
 let analyserNode: AnalyserNode | null = null;
-let gainNode: GainNode | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let mediaStream: MediaStream | null = null;
 
@@ -21,22 +20,13 @@ export async function initAudioCapture(): Promise<{
 
   const context = new AudioContext();
   const source = context.createMediaStreamSource(stream);
-
-  // Boost mic signal for better visualizer response
-  const gain = context.createGain();
-  gain.gain.value = 3.0;
-
   const analyser = context.createAnalyser();
   analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.4;
-  analyser.minDecibels = -90;
-  analyser.maxDecibels = -10;
-  source.connect(gain);
-  gain.connect(analyser);
+  analyser.smoothingTimeConstant = 0.8;
+  source.connect(analyser);
 
   audioContext = context;
   analyserNode = analyser;
-  gainNode = gain;
   sourceNode = source;
   mediaStream = stream;
 
@@ -63,10 +53,6 @@ export function stopAudioCapture(): void {
   if (sourceNode) {
     sourceNode.disconnect();
     sourceNode = null;
-  }
-  if (gainNode) {
-    gainNode.disconnect();
-    gainNode = null;
   }
   if (analyserNode) {
     analyserNode.disconnect();
