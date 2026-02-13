@@ -3,6 +3,7 @@ interface KaraokeLineProps {
   progress: number; // 0-1 how far through this line
   isActive: boolean;
   isPast: boolean;
+  isChorus: boolean;
   accentColor: string;
 }
 
@@ -11,38 +12,52 @@ export default function KaraokeLine({
   progress,
   isActive,
   isPast,
+  isChorus,
   accentColor,
 }: KaraokeLineProps) {
   return (
     <div
       className={`relative py-3 transition-all duration-300 ${
         isActive
-          ? 'text-3xl md:text-5xl font-bold scale-100'
+          ? isChorus
+            ? 'text-4xl md:text-6xl font-extrabold scale-105'
+            : 'text-3xl md:text-5xl font-bold scale-100'
           : isPast
           ? 'text-lg md:text-2xl font-medium opacity-40 scale-95'
           : 'text-lg md:text-2xl font-medium opacity-60 scale-95'
       }`}
     >
       {isActive ? (
-        <div className="relative inline-block">
-          {/* Background text (unfilled) */}
-          <span className="text-white/80">{text}</span>
-          {/* Filled text overlay */}
-          <span
-            className="absolute inset-0 overflow-hidden whitespace-nowrap"
-            style={{ width: `${progress * 100}%` }}
-          >
+        isChorus ? (
+          // Chorus: spread fill effect + extra glow
+          <div className="relative inline-block">
+            <span className="text-white/80">{text}</span>
             <span
-              className="whitespace-nowrap font-extrabold"
-              style={{
-                color: accentColor,
-                textShadow: `0 0 20px ${accentColor}80, 0 0 40px ${accentColor}40`,
-              }}
+              className="absolute inset-0 overflow-hidden whitespace-nowrap"
+              style={{ width: `${progress * 100}%`, transition: 'width 0.05s linear' }}
             >
-              {text}
+              <span
+                className="whitespace-nowrap"
+                style={{
+                  color: accentColor,
+                  textShadow: `0 0 24px ${accentColor}aa, 0 0 48px ${accentColor}60, 0 0 80px ${accentColor}30`,
+                }}
+              >
+                {text}
+              </span>
             </span>
+          </div>
+        ) : (
+          // Normal: instant full highlight
+          <span
+            style={{
+              color: accentColor,
+              textShadow: `0 0 20px ${accentColor}80, 0 0 40px ${accentColor}40`,
+            }}
+          >
+            {text}
           </span>
-        </div>
+        )
       ) : (
         <span className={isPast ? 'text-white/40' : 'text-white/70'}>{text}</span>
       )}

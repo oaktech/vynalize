@@ -153,7 +153,7 @@ export default function AsciiWords({ accentColor }: { accentColor: string }) {
     if (!position.startedAt || lyrics.length === 0) {
       newWord = currentSong?.title || '';
     } else {
-      const posMs = performance.now() - position.startedAt + position.offsetMs + 1000;
+      const posMs = performance.now() - position.startedAt + position.offsetMs + 500;
 
       let idx = 0;
       for (let i = lyrics.length - 1; i >= 0; i--) {

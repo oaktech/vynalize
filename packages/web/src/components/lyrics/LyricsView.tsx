@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useStore } from '../../store';
 import KaraokeLine from './KaraokeLine';
 
@@ -49,6 +49,20 @@ export default function LyricsView() {
     const duration = lineEnd - lineStart;
     lineProgress = Math.max(0, Math.min(1, (posMs - lineStart) / duration));
   }
+
+  // Detect chorus lines: text that appears more than once (normalized)
+  const chorusSet = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const line of lyrics) {
+      const key = line.text.trim().toLowerCase();
+      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const set = new Set<string>();
+    for (const [key, count] of counts) {
+      if (count > 1) set.add(key);
+    }
+    return set;
+  }, [lyrics]);
 
   // Auto-scroll to active line
   const lastScrolledIndex = useRef(-1);
@@ -113,6 +127,7 @@ export default function LyricsView() {
                 progress={i === currentIndex ? lineProgress : i < currentIndex ? 1 : 0}
                 isActive={i === currentIndex}
                 isPast={i < currentIndex}
+                isChorus={chorusSet.has(line.text.trim().toLowerCase())}
                 accentColor={accentColor}
               />
             </div>
