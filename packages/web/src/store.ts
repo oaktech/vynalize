@@ -56,8 +56,11 @@ interface VinylStore {
   // Video
   videoId: string | null;
   videoSearching: boolean;
+  videoOffsetMs: number;
   setVideoId: (id: string | null) => void;
   setVideoSearching: (v: boolean) => void;
+  setVideoOffsetMs: (ms: number) => void;
+  adjustVideoOffset: (deltaMs: number) => void;
 
   // Accent color from album art
   accentColor: string;
@@ -117,8 +120,12 @@ export const useStore = create<VinylStore>((set) => ({
 
   videoId: null,
   videoSearching: false,
+  videoOffsetMs: 0,
   setVideoId: (videoId) => set({ videoId }),
   setVideoSearching: (videoSearching) => set({ videoSearching }),
+  setVideoOffsetMs: (videoOffsetMs) => set({ videoOffsetMs }),
+  adjustVideoOffset: (deltaMs) =>
+    set((state) => ({ videoOffsetMs: state.videoOffsetMs + deltaMs })),
 
   accentColor: '#8b5cf6',
   setAccentColor: (accentColor) => set({ accentColor }),

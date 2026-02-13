@@ -9,7 +9,7 @@ declare global {
         config: {
           videoId: string;
           playerVars?: Record<string, number | string>;
-          events?: Record<string, (event: { target: YTPlayer }) => void>;
+          events?: Record<string, (event: { target: YTPlayer; data: number }) => void>;
         }
       ) => YTPlayer;
     };
@@ -19,11 +19,20 @@ declare global {
 
 interface YTPlayer {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  getCurrentTime: () => number;
   playVideo: () => void;
   pauseVideo: () => void;
   mute: () => void;
   destroy: () => void;
   getPlayerState: () => number;
+}
+
+/** Calculate the target video position in seconds */
+function getTargetVideoSec(): number | null {
+  const { position, videoOffsetMs } = useStore.getState();
+  if (!position.startedAt) return null;
+  const elapsed = performance.now() - position.startedAt;
+  return (elapsed + position.offsetMs + videoOffsetMs) / 1000;
 }
 
 let apiLoaded = false;
@@ -55,6 +64,8 @@ function loadYouTubeAPI(): Promise<void> {
 export default function VideoPlayer() {
   const currentSong = useStore((s) => s.currentSong);
   const videoId = useStore((s) => s.videoId);
+  const videoOffsetMs = useStore((s) => s.videoOffsetMs);
+  const setAppMode = useStore((s) => s.setAppMode);
   const playerRef = useRef<YTPlayer | null>(null);
   const containerIdRef = useRef(`yt-player-${Date.now()}`);
   const lastSeekRef = useRef(0);
@@ -64,6 +75,7 @@ export default function VideoPlayer() {
     if (!videoId) return;
 
     let player: YTPlayer | null = null;
+    const startSec = Math.max(0, Math.floor(getTargetVideoSec() ?? 0));
 
     loadYouTubeAPI().then(() => {
       player = new window.YT.Player(containerIdRef.current, {
@@ -76,12 +88,26 @@ export default function VideoPlayer() {
           showinfo: 0,
           fs: 0,
           iv_load_policy: 3,
+          start: startSec,
         },
         events: {
           onReady: (event: { target: YTPlayer }) => {
             event.target.mute();
             event.target.playVideo();
             playerRef.current = event.target;
+
+            // Seek to precise sub-second position (start param is integer-only)
+            const target = getTargetVideoSec();
+            if (target && target > 1) {
+              event.target.seekTo(target, true);
+              lastSeekRef.current = Date.now();
+            }
+          },
+          onStateChange: (event: { target: YTPlayer; data: number }) => {
+            // YT state 0 = ended
+            if (event.data === 0) {
+              useStore.getState().setAppMode('visualizer');
+            }
           },
         },
       });
@@ -97,23 +123,39 @@ export default function VideoPlayer() {
     };
   }, [videoId]);
 
-  // Sync position periodically
+  // Immediately seek when video offset is adjusted by the user
   useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    const target = getTargetVideoSec();
+    if (!target || target < 1) return;
+    player.seekTo(target, true);
+    lastSeekRef.current = Date.now();
+  }, [videoOffsetMs]);
+
+  // Drift-based sync: read YouTube's actual position, only seek when off by >2s
+  useEffect(() => {
+    const DRIFT_THRESHOLD = 2; // seconds — only seek if drift exceeds this
+    const SEEK_COOLDOWN = 5000; // ms — let YouTube settle after a seek
+
     const interval = setInterval(() => {
-      if (!playerRef.current) return;
-      const pos = useStore.getState().position;
-      if (!pos.startedAt) return;
+      const player = playerRef.current;
+      if (!player) return;
 
-      const elapsed = performance.now() - pos.startedAt;
-      const totalMs = elapsed + pos.offsetMs;
-      const posSec = totalMs / 1000;
+      const target = getTargetVideoSec();
+      if (!target || target < 1) return;
+
       const now = Date.now();
+      if (now - lastSeekRef.current < SEEK_COOLDOWN) return;
 
-      if (now - lastSeekRef.current > 10000 && posSec > 1) {
-        playerRef.current.seekTo(posSec, true);
+      const actual = player.getCurrentTime();
+      const drift = Math.abs(actual - target);
+
+      if (drift > DRIFT_THRESHOLD) {
+        player.seekTo(target, true);
         lastSeekRef.current = now;
       }
-    }, 5000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [videoId]);
 
