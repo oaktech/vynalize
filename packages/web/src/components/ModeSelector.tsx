@@ -5,6 +5,7 @@ const appModes: { id: AppMode; label: string; icon: string }[] = [
   { id: 'visualizer', label: 'Visualizer', icon: 'M9 19V6l12-3v13M9 19c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2zm12-3c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2z' },
   { id: 'lyrics', label: 'Lyrics', icon: 'M4 6h16M4 10h16M4 14h10M4 18h7' },
   { id: 'video', label: 'Video', icon: 'M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { id: 'ascii', label: 'ASCII', icon: 'M4 7V4h16v3M9 20h6M12 4v16' },
 ];
 
 const vizModes: { id: VisualizerMode; label: string }[] = [
@@ -13,7 +14,6 @@ const vizModes: { id: VisualizerMode; label: string }[] = [
   { id: 'radial', label: 'Radial' },
   { id: 'particles', label: 'Particles' },
   { id: 'geometric', label: 'Geometry' },
-  { id: 'ascii', label: 'ASCII' },
   { id: 'radical', label: 'Radical' },
 ];
 

@@ -9,6 +9,7 @@ import ManualSearch from './ManualSearch';
 import VisualizerView from './visualizer/VisualizerView';
 import LyricsView from './lyrics/LyricsView';
 import VideoPlayer from './video/VideoPlayer';
+import AsciiWords from './visualizer/AsciiWords';
 
 const CONTROLS_HIDE_DELAY = 5000;
 
@@ -19,6 +20,7 @@ export default function AppShell() {
   const setFullscreen = useStore((s) => s.setFullscreen);
   const controlsVisible = useStore((s) => s.controlsVisible);
   const setControlsVisible = useStore((s) => s.setControlsVisible);
+  const accentColor = useStore((s) => s.accentColor);
   const isListening = useStore((s) => s.isListening);
   const bpm = useStore((s) => s.bpm);
   const hideTimer = useRef<number>(0);
@@ -42,6 +44,7 @@ export default function AppShell() {
       if (e.key === '1') setAppMode('visualizer');
       if (e.key === '2') setAppMode('lyrics');
       if (e.key === '3') setAppMode('video');
+      if (e.key === '4') setAppMode('ascii');
     };
 
     window.addEventListener('mousemove', handleMove);
@@ -91,6 +94,9 @@ export default function AppShell() {
         </div>
         <div className={`absolute inset-0 transition-opacity duration-500 ${appMode === 'video' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           {appMode === 'video' && <VideoPlayer />}
+        </div>
+        <div className={`absolute inset-0 transition-opacity duration-500 ${appMode === 'ascii' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          {appMode === 'ascii' && <AsciiWords accentColor={accentColor} />}
         </div>
       </div>
 

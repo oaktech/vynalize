@@ -24,10 +24,9 @@ export type VisualizerMode =
   | 'radial'
   | 'particles'
   | 'geometric'
-  | 'ascii'
   | 'radical';
 
-export type AppMode = 'visualizer' | 'lyrics' | 'video';
+export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
 export interface AudioFeatures {
   rms: number;

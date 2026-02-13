@@ -3,7 +3,6 @@ import { useStore } from '../../store';
 import SpectrumBars from './SpectrumBars';
 import Waveform from './Waveform';
 import RadialSpectrum from './RadialSpectrum';
-import AsciiWords from './AsciiWords';
 import Radical from './Radical';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
@@ -48,7 +47,6 @@ export default function VisualizerView() {
             <GeometricShapes />
           </Suspense>
         )}
-        {visualizerMode === 'ascii' && <AsciiWords accentColor={accentColor} />}
         {visualizerMode === 'radical' && <Radical accentColor={accentColor} />}
       </div>
     </div>
