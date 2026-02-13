@@ -59,8 +59,8 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
-    const barCount = 32;
-    const gap = 3 * devicePixelRatio;
+    const barCount = 64;
+    const gap = 2 * devicePixelRatio;
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 
     const [r, g, b] = hexToRgb(accentColor);
