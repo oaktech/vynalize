@@ -21,6 +21,7 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
   const audioFeatures = useStore((s) => s.audioFeatures);
   const isBeat = useStore((s) => s.isBeat);
   const glowIntensity = useRef(0);
+  const peakRef = useRef(0.01);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -54,25 +55,38 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
     glowIntensity.current *= 0.93;
     const glow = glowIntensity.current;
 
-    // Draw waveform
+    // Adaptive gain: track peak amplitude and normalize to it
+    let currentPeak = 0;
+    for (let i = 0; i < timeData.length; i++) {
+      const amp = Math.abs(timeData[i] - 128) / 128;
+      if (amp > currentPeak) currentPeak = amp;
+    }
+    // Fast attack, slow decay for peak tracking
+    peakRef.current = currentPeak > peakRef.current
+      ? currentPeak
+      : peakRef.current * 0.997;
+    // Gain that normalizes signal to fill ~80% of height, with minimum boost
+    const gain = Math.min(12, 0.8 / Math.max(peakRef.current, 0.005));
+
+    // Main waveform
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.6 + glow * 0.4})`;
-    ctx.lineWidth = (2 + glow * 3) * devicePixelRatio;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.7 + glow * 0.3})`;
+    ctx.lineWidth = (2.5 + glow * 4) * devicePixelRatio;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Glow effect
     if (glow > 0.1) {
-      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${glow * 0.6})`;
-      ctx.shadowBlur = 20 * glow * devicePixelRatio;
+      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${glow * 0.7})`;
+      ctx.shadowBlur = 25 * glow * devicePixelRatio;
     }
 
     const sliceWidth = width / timeData.length;
     let x = 0;
 
     for (let i = 0; i < timeData.length; i++) {
-      const v = timeData[i] / 128.0 - 1;
-      const y = centerY + v * centerY * 0.8;
+      const raw = (timeData[i] - 128) / 128;
+      const v = Math.max(-1, Math.min(1, raw * gain));
+      const y = centerY + v * centerY * 0.85;
 
       if (i === 0) {
         ctx.moveTo(x, y);
@@ -85,14 +99,22 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Secondary mirror waveform (dimmer)
+    // Filled area under waveform (subtle)
+    ctx.lineTo(width, centerY);
+    ctx.lineTo(0, centerY);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.05)`;
+    ctx.fill();
+
+    // Secondary mirror waveform (dimmer, inverted)
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.15)`;
-    ctx.lineWidth = 1 * devicePixelRatio;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.2)`;
+    ctx.lineWidth = 1.5 * devicePixelRatio;
     x = 0;
     for (let i = 0; i < timeData.length; i++) {
-      const v = timeData[i] / 128.0 - 1;
-      const y = centerY - v * centerY * 0.5;
+      const raw = (timeData[i] - 128) / 128;
+      const v = Math.max(-1, Math.min(1, raw * gain));
+      const y = centerY - v * centerY * 0.6;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
       x += sliceWidth;
@@ -101,7 +123,7 @@ export default function Waveform({ accentColor }: { accentColor: string }) {
 
     // Center line
     ctx.beginPath();
-    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.08)`;
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.1)`;
     ctx.lineWidth = 1 * devicePixelRatio;
     ctx.moveTo(0, centerY);
     ctx.lineTo(width, centerY);

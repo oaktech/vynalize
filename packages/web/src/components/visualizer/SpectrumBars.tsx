@@ -16,11 +16,17 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
+/** Boost quiet signals and compress dynamic range */
+function boost(value: number): number {
+  return Math.min(1, Math.pow(value * 3.5, 0.6));
+}
+
 export default function SpectrumBars({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioFeatures = useStore((s) => s.audioFeatures);
   const isBeat = useStore((s) => s.isBeat);
   const beatFlash = useRef(0);
+  const smoothBars = useRef<Float32Array | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -51,7 +57,6 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
-    // Use first half of frequency data (more musically relevant)
     const usableBins = Math.floor(freq.length * 0.6);
     const barCount = Math.min(64, usableBins);
     const binsPerBar = Math.floor(usableBins / barCount);
@@ -59,6 +64,11 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 
     const [r, g, b] = hexToRgb(accentColor);
+
+    // Initialize smooth bars
+    if (!smoothBars.current || smoothBars.current.length !== barCount) {
+      smoothBars.current = new Float32Array(barCount);
+    }
 
     // Decay beat flash
     beatFlash.current *= 0.92;
@@ -69,17 +79,26 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
       for (let j = 0; j < binsPerBar; j++) {
         sum += freq[i * binsPerBar + j];
       }
-      const avg = sum / binsPerBar / 255;
-      const barHeight = avg * height * 0.85;
+      const raw = sum / binsPerBar / 255;
+      const target = boost(raw);
+
+      // Smooth: fast attack, slow decay for fluid motion
+      const prev = smoothBars.current[i];
+      smoothBars.current[i] = target > prev
+        ? prev + (target - prev) * 0.4
+        : prev + (target - prev) * 0.15;
+
+      const val = smoothBars.current[i];
+      const barHeight = Math.max(2 * devicePixelRatio, val * height * 0.9);
 
       const x = i * (barWidth + gap);
       const y = height - barHeight;
 
       // Gradient from accent color to brighter version
       const gradient = ctx.createLinearGradient(x, height, x, y);
-      const brightness = Math.min(1, avg + flashBoost);
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.3 + brightness * 0.5})`);
-      gradient.addColorStop(1, `rgba(${Math.min(255, r + 60)}, ${Math.min(255, g + 60)}, ${Math.min(255, b + 60)}, ${0.7 + brightness * 0.3})`);
+      const brightness = Math.min(1, val + flashBoost);
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.4 + brightness * 0.5})`);
+      gradient.addColorStop(1, `rgba(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)}, ${0.8 + brightness * 0.2})`);
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
@@ -87,9 +106,17 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
       ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
       ctx.fill();
 
+      // Glow on loud bars
+      if (val > 0.5) {
+        ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${(val - 0.5) * 0.8})`;
+        ctx.shadowBlur = 15 * devicePixelRatio;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
       // Reflection
       const reflGradient = ctx.createLinearGradient(x, height, x, height + barHeight * 0.3);
-      reflGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.15)`);
+      reflGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.1 + val * 0.1})`);
       reflGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
       ctx.fillStyle = reflGradient;
       ctx.fillRect(x, height, barWidth, barHeight * 0.3);

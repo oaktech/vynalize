@@ -16,6 +16,11 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
+/** Boost quiet signals and compress dynamic range */
+function boost(value: number): number {
+  return Math.min(1, Math.pow(value * 3.5, 0.6));
+}
+
 export default function RadialSpectrum({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioFeatures = useStore((s) => s.audioFeatures);
@@ -51,8 +56,8 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
 
     const centerX = width / 2;
     const centerY = height / 2;
-    const baseRadius = Math.min(width, height) * 0.2;
-    const maxBarLength = Math.min(width, height) * 0.25;
+    const baseRadius = Math.min(width, height) * 0.18;
+    const maxBarLength = Math.min(width, height) * 0.3;
 
     const [r, g, b] = hexToRgb(accentColor);
 
@@ -79,8 +84,9 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       for (let j = 0; j < binsPerBar; j++) {
         sum += freq[i * binsPerBar + j];
       }
-      const avg = sum / binsPerBar / 255;
-      const barLength = avg * maxBarLength;
+      const raw = sum / binsPerBar / 255;
+      const val = boost(raw);
+      const barLength = val * maxBarLength;
 
       const angle = i * angleStep;
       const x1 = Math.cos(angle) * baseRadius;
@@ -88,17 +94,17 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       const x2 = Math.cos(angle) * (baseRadius + barLength);
       const y2 = Math.sin(angle) * (baseRadius + barLength);
 
-      const alpha = 0.3 + avg * 0.7;
+      const alpha = 0.3 + val * 0.7;
       ctx.beginPath();
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      ctx.lineWidth = (2 + avg * 2) * devicePixelRatio;
+      ctx.lineWidth = (2 + val * 3) * devicePixelRatio;
       ctx.lineCap = 'round';
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
 
       // Mirror bars (inner)
-      const innerLength = avg * maxBarLength * 0.4;
+      const innerLength = val * maxBarLength * 0.5;
       const x3 = Math.cos(angle) * (baseRadius - innerLength);
       const y3 = Math.sin(angle) * (baseRadius - innerLength);
       ctx.beginPath();
@@ -110,10 +116,10 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     }
 
     // Center circle glow
-    const rms = audioFeatures.rms;
+    const energy = boost(audioFeatures.energy);
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, baseRadius);
-    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.15 + rms * 0.3})`);
-    gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, ${0.05 + rms * 0.1})`);
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.2 + energy * 0.4})`);
+    gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, ${0.1 + energy * 0.15})`);
     gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
     ctx.fillStyle = gradient;
     ctx.beginPath();

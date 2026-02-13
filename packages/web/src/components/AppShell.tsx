@@ -101,7 +101,7 @@ export default function AppShell() {
         }`}
       >
         {/* Top bar */}
-        <div className="pointer-events-auto absolute top-0 left-0 right-0 p-4 flex items-start justify-between bg-gradient-to-b from-black/60 to-transparent">
+        <div className="pointer-events-auto absolute top-0 left-0 right-0 px-5 py-4 md:px-6 md:py-5 flex items-center justify-between bg-gradient-to-b from-black/70 via-black/40 to-transparent pb-10">
           <div className="flex items-center gap-3">
             <ListeningPulse />
             <NowPlaying />

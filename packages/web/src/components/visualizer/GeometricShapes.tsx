@@ -3,6 +3,11 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../../store';
 
+/** Boost quiet signals and compress dynamic range */
+function boost(value: number): number {
+  return Math.min(1, Math.pow(value * 3.5, 0.6));
+}
+
 function ReactiveShape({
   geometry,
   position,
@@ -21,23 +26,23 @@ function ReactiveShape({
   useFrame((state) => {
     if (!meshRef.current) return;
     const t = state.clock.elapsedTime;
-    const band = audioFeatures?.[bandKey] ?? 0;
+    const band = boost(audioFeatures?.[bandKey] ?? 0);
 
-    if (isBeat) beatScale.current = 1.4;
+    if (isBeat) beatScale.current = 1.5;
     beatScale.current += (1 - beatScale.current) * 0.08;
 
-    const scale = (0.8 + band * 1.5) * beatScale.current;
+    const scale = (0.8 + band * 2) * beatScale.current;
     meshRef.current.scale.setScalar(scale);
 
-    meshRef.current.rotation.x = t * 0.3 + band * 2;
-    meshRef.current.rotation.y = t * 0.2 + band;
+    meshRef.current.rotation.x = t * 0.3 + band * 3;
+    meshRef.current.rotation.y = t * 0.2 + band * 1.5;
     meshRef.current.rotation.z = t * 0.1;
 
     const mat = meshRef.current.material as THREE.MeshStandardMaterial;
     const color = new THREE.Color(accentColor);
-    color.offsetHSL(0, 0, band * 0.3);
+    color.offsetHSL(0, 0, band * 0.4);
     mat.color = color;
-    mat.emissive = color.clone().multiplyScalar(0.3 + band * 0.5);
+    mat.emissive = color.clone().multiplyScalar(0.3 + band * 0.7);
   });
 
   return (
@@ -46,7 +51,7 @@ function ReactiveShape({
         color={accentColor}
         wireframe
         transparent
-        opacity={0.7}
+        opacity={0.8}
       />
     </mesh>
   );
@@ -59,8 +64,8 @@ function Scene() {
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    const energy = audioFeatures?.energy ?? 0;
-    groupRef.current.rotation.y = t * 0.1 + energy * 0.5;
+    const energy = boost(audioFeatures?.energy ?? 0);
+    groupRef.current.rotation.y = t * 0.1 + energy * 0.8;
   });
 
   const icosahedron = new THREE.IcosahedronGeometry(1, 1);
@@ -69,9 +74,9 @@ function Scene() {
 
   return (
     <>
-      <ambientLight intensity={0.2} />
-      <pointLight position={[5, 5, 5]} intensity={0.8} />
-      <pointLight position={[-5, -5, 3]} intensity={0.4} color="#4060ff" />
+      <ambientLight intensity={0.3} />
+      <pointLight position={[5, 5, 5]} intensity={1} />
+      <pointLight position={[-5, -5, 3]} intensity={0.6} color="#4060ff" />
 
       <group ref={groupRef}>
         <ReactiveShape geometry={icosahedron} position={[-2.5, 0, 0]} bandKey="bass" />

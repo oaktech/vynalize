@@ -5,6 +5,11 @@ import { useStore } from '../../store';
 
 const PARTICLE_COUNT = 2000;
 
+/** Boost quiet signals and compress dynamic range */
+function boost(value: number): number {
+  return Math.min(1, Math.pow(value * 3.5, 0.6));
+}
+
 function Particles() {
   const meshRef = useRef<THREE.Points>(null);
   const audioFeatures = useStore((s) => s.audioFeatures);
@@ -55,15 +60,15 @@ function Particles() {
     const targetG = tempColor.g;
     const targetB = tempColor.b;
 
-    const bass = audioFeatures?.bass ?? 0;
-    const mid = audioFeatures?.mid ?? 0;
-    const high = audioFeatures?.high ?? 0;
-    const energy = audioFeatures?.energy ?? 0;
+    const bass = boost(audioFeatures?.bass ?? 0);
+    const mid = boost(audioFeatures?.mid ?? 0);
+    const high = boost(audioFeatures?.high ?? 0);
+    const energy = boost(audioFeatures?.energy ?? 0);
 
     if (isBeat) beatPulse.current = 1;
     beatPulse.current *= 0.92;
 
-    const expansionForce = energy * 0.05 + beatPulse.current * 0.15;
+    const expansionForce = energy * 0.12 + beatPulse.current * 0.25;
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const i3 = i * 3;
@@ -80,18 +85,18 @@ function Particles() {
       const nz = dist > 0 ? dz / dist : 0;
 
       // Push outward with bass, pull inward gently
-      const radialForce = expansionForce - (dist - 4) * 0.002;
+      const radialForce = expansionForce - (dist - 4) * 0.003;
       velocities[i3] += nx * radialForce * delta;
       velocities[i3 + 1] += ny * radialForce * delta;
       velocities[i3 + 2] += nz * radialForce * delta;
 
       // Rotation around Y axis with mid
-      const rotSpeed = mid * 0.3 + 0.05;
-      velocities[i3] += -dz * rotSpeed * delta * 0.1;
-      velocities[i3 + 2] += dx * rotSpeed * delta * 0.1;
+      const rotSpeed = mid * 0.5 + 0.08;
+      velocities[i3] += -dz * rotSpeed * delta * 0.12;
+      velocities[i3 + 2] += dx * rotSpeed * delta * 0.12;
 
       // Vertical oscillation with high
-      velocities[i3 + 1] += Math.sin(Date.now() * 0.001 + i * 0.1) * high * 0.02 * delta;
+      velocities[i3 + 1] += Math.sin(Date.now() * 0.001 + i * 0.1) * high * 0.04 * delta;
 
       // Damping
       velocities[i3] *= 0.98;
@@ -104,10 +109,10 @@ function Particles() {
       pos[i3 + 2] += velocities[i3 + 2];
 
       // Color: blend between accent and white based on energy
-      const brightness = Math.min(1, bass * 2 + beatPulse.current);
-      col[i3] = targetR + (1 - targetR) * brightness * 0.3;
-      col[i3 + 1] = targetG + (1 - targetG) * brightness * 0.3;
-      col[i3 + 2] = targetB + (1 - targetB) * brightness * 0.3;
+      const brightness = Math.min(1, bass * 1.5 + beatPulse.current);
+      col[i3] = targetR + (1 - targetR) * brightness * 0.4;
+      col[i3 + 1] = targetG + (1 - targetG) * brightness * 0.4;
+      col[i3 + 2] = targetB + (1 - targetB) * brightness * 0.4;
     }
 
     posAttr.needsUpdate = true;
@@ -127,10 +132,10 @@ function Particles() {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.06}
+        size={0.08}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.85}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
         depthWrite={false}
