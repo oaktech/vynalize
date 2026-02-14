@@ -25,7 +25,8 @@ export type VisualizerMode =
   | 'particles'
   | 'geometric'
   | 'radical'
-  | 'nebula';
+  | 'nebula'
+  | 'vitals';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
