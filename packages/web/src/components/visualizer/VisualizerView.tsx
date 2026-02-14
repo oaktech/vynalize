@@ -8,6 +8,7 @@ import Nebula from './Nebula';
 import Vitals from './Vitals';
 import Synthwave from './Synthwave';
 import SpaceAge from './SpaceAge';
+import StarryNight from './StarryNight';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
@@ -56,6 +57,7 @@ export default function VisualizerView() {
         {visualizerMode === 'vitals' && <Vitals accentColor={accentColor} />}
         {visualizerMode === 'synthwave' && <Synthwave accentColor={accentColor} />}
         {visualizerMode === 'spaceage' && <SpaceAge accentColor={accentColor} />}
+        {visualizerMode === 'starrynight' && <StarryNight accentColor={accentColor} />}
       </div>
     </div>
   );

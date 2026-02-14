@@ -28,7 +28,8 @@ export type VisualizerMode =
   | 'nebula'
   | 'vitals'
   | 'synthwave'
-  | 'spaceage';
+  | 'spaceage'
+  | 'starrynight';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
