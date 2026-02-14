@@ -5,6 +5,12 @@ import { useStore } from '../../store';
 
 const STAR_COUNT = 200;
 
+/** Compress dynamic range — same approach as SpectrumBars boost().
+ *  Quiet mic signals get amplified, loud signals are tamed. */
+function boost(value: number, gain: number): number {
+  return Math.min(1, Math.pow(value * gain, 0.55));
+}
+
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
     const match = color.match(/(\d+)/g);
@@ -216,13 +222,13 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
 
     const { rms, bass, mid, high, energy } = audioFeatures;
 
-    // Smooth audio
+    // Smooth audio (fast attack, slow decay — matches SpectrumBars)
     const s = smooth.current;
-    s.rms += (rms - s.rms) * 0.1;
-    s.bass += (bass - s.bass) * 0.1;
-    s.mid += (mid - s.mid) * 0.1;
-    s.high += (high - s.high) * 0.1;
-    s.energy += (energy - s.energy) * 0.1;
+    s.rms += (rms - s.rms) * (rms > s.rms ? 0.4 : 0.15);
+    s.bass += (bass - s.bass) * (bass > s.bass ? 0.4 : 0.15);
+    s.mid += (mid - s.mid) * (mid > s.mid ? 0.4 : 0.15);
+    s.high += (high - s.high) * (high > s.high ? 0.4 : 0.15);
+    s.energy += (energy - s.energy) * (energy > s.energy ? 0.4 : 0.15);
 
     // Beat pulse decay
     beatPulse.current *= 0.85;
@@ -708,11 +714,16 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     const eclCenterX = p3x + panelW * 0.5;
     const eclCenterY = panelH * 0.38;
     const sunBase = panelW * 0.18;
-    const sunRadius = sunBase * (1 + pulse * 0.15 + s.high * 0.1);
+
+    // Compressed audio for sun reactivity — quiet mic signals boosted into visible range
+    const bHigh = boost(s.high, 5.0);
+    const bBass = boost(s.bass, 3.5);
+
+    const sunRadius = sunBase * (1 + pulse * 0.15 + bHigh * 0.15);
     const moonOffset = Math.sin(now * 0.1) * sunBase * 0.15;
 
     // Corona (3 concentric radial gradients — pulse size & brightness)
-    const coronaBright = 0.3 + s.high * 1.5 + pulse * 1.2;
+    const coronaBright = 0.3 + bHigh * 1.8 + pulse * 1.2;
     for (let c = 2; c >= 0; c--) {
       const cRadius = sunRadius * (2.5 + c * 0.8 + pulse * 0.6);
       const cGrad = ctx.createRadialGradient(
@@ -732,7 +743,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     const rayCount = 12;
     for (let i = 0; i < rayCount; i++) {
       const a = (i / rayCount) * Math.PI * 2 + now * 0.15;
-      const rayLen = sunRadius * (0.6 + s.high * 1.8 + pulse * 1.2);
+      const rayLen = sunRadius * (0.6 + bHigh * 2.0 + pulse * 1.2);
       const rayW = 0.09 + pulse * 0.03;
       ctx.beginPath();
       ctx.moveTo(
@@ -754,7 +765,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
 
     // Sun disk — glow pulses on beat
     ctx.shadowColor = '#ff8800';
-    ctx.shadowBlur = (10 + pulse * 25 + s.high * 15) * dpr;
+    ctx.shadowBlur = (10 + pulse * 25 + bHigh * 20) * dpr;
     const sunGrad = ctx.createRadialGradient(
       eclCenterX, eclCenterY, 0,
       eclCenterX, eclCenterY, sunRadius,
@@ -783,7 +794,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     // Solar prominences — larger + more reactive
     const promAngles = [0.5, 2.3, 4.1];
     for (const pa of promAngles) {
-      const pLen = sunRadius * (0.12 + s.high * 0.4 + pulse * 0.3);
+      const pLen = sunRadius * (0.12 + bHigh * 0.5 + pulse * 0.3);
       const pxp = eclCenterX + Math.cos(pa) * sunRadius;
       const pyp = eclCenterY + Math.sin(pa) * sunRadius;
       const ex = eclCenterX + Math.cos(pa) * (sunRadius + pLen);
@@ -793,7 +804,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.beginPath();
       ctx.moveTo(pxp, pyp);
       ctx.quadraticCurveTo(cxp, cyp, ex, ey);
-      ctx.strokeStyle = `rgba(255,140,30,${0.4 + pulse * 0.5 + s.high * 0.3})`;
+      ctx.strokeStyle = `rgba(255,140,30,${0.4 + pulse * 0.5 + bHigh * 0.4})`;
       ctx.lineWidth = (2 + pulse * 2) * dpr;
       ctx.shadowColor = '#ff6600';
       ctx.shadowBlur = (8 + pulse * 12) * dpr;

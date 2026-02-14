@@ -20,6 +20,12 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
+/** Compress dynamic range — same approach as SpectrumBars boost().
+ *  Quiet mic signals get amplified, loud signals are tamed. */
+function boost(value: number, gain: number): number {
+  return Math.min(1, Math.pow(value * gain, 0.55));
+}
+
 // ── ECG waveform shape ───────────────────────────────────────
 // Attempt to mimic PQRST complex: flat → small P bump → sharp QRS spike → small T bump → flat
 function ecgShape(t: number): number {
@@ -104,13 +110,19 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     const { rms, bass, mid, high, energy } = audioFeatures;
     const now = performance.now() / 1000;
 
-    // ── Smooth audio values ──
+    // ── Smooth audio values (fast attack, slow decay — matches SpectrumBars) ──
     const sa = smoothAudio.current;
-    sa.bass += (bass - sa.bass) * 0.1;
-    sa.mid += (mid - sa.mid) * 0.1;
-    sa.high += (high - sa.high) * 0.1;
-    sa.rms += (rms - sa.rms) * 0.12;
-    sa.energy += (energy - sa.energy) * 0.1;
+    sa.bass += (bass - sa.bass) * (bass > sa.bass ? 0.4 : 0.15);
+    sa.mid += (mid - sa.mid) * (mid > sa.mid ? 0.4 : 0.15);
+    sa.high += (high - sa.high) * (high > sa.high ? 0.4 : 0.15);
+    sa.rms += (rms - sa.rms) * (rms > sa.rms ? 0.4 : 0.15);
+    sa.energy += (energy - sa.energy) * (energy > sa.energy ? 0.4 : 0.15);
+
+    // Compressed band energies — boost quiet mic signals into visible range
+    const bBass = boost(sa.bass, 3.5);
+    const bMid = boost(sa.mid, 4.0);
+    const bHigh = boost(sa.high, 5.0);  // highs roll off most, need most gain
+    const bRms = boost(sa.rms, 3.0);
 
     // ── Detect bass/volume spikes directly for ECG trigger ──
     const rmsDelta = rms - prevRms.current;
@@ -142,8 +154,8 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ? ecgShape(beatPhase.current) * (2.0 + beatStrength.current * 3.0)
       : 0;
     const ecgBaseline =
-      Math.sin(now * 1.2) * sa.bass * 0.4 +
-      Math.sin(now * 3.7) * sa.bass * 0.2 +
+      Math.sin(now * 1.2) * bBass * 0.5 +
+      Math.sin(now * 3.7) * bBass * 0.25 +
       Math.sin(now * 0.5) * 0.02;
     const ecgVal = ecgBeat + ecgBaseline;
 
@@ -153,26 +165,27 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ? Math.sin(plethPhase / 0.15 * Math.PI * 0.5) // sharp rise
       : Math.exp(-(plethPhase - 0.15) * 4) * 0.9 + // exponential decay
         Math.sin((plethPhase - 0.15) / 0.2 * Math.PI) * 0.15 * Math.exp(-(plethPhase - 0.15) * 3); // dicrotic notch
-    const plethVal = plethShape * (0.3 + sa.rms * 5);
+    const plethVal = plethShape * (0.3 + bRms * 3);
 
     // EEG channels: synthetic oscillations at characteristic frequencies
-    // Delta (bass): slow 1-3Hz waves, amplitude driven by bass
+    // Amplitude driven by compressed band energies — responsive to quiet mic audio
+    // Delta (bass): slow 1-3Hz waves
     const deltaVal =
       (Math.sin(now * 1.5 * Math.PI * 2) * 0.5 +
        Math.sin(now * 2.8 * Math.PI * 2) * 0.3 +
-       Math.sin(now * 0.7 * Math.PI * 2) * 0.2) * (0.15 + sa.bass * 4);
+       Math.sin(now * 0.7 * Math.PI * 2) * 0.2) * (0.05 + bBass * 2.5);
 
-    // Alpha (mid): 8-12Hz waves, amplitude driven by mid
+    // Alpha (mid): 8-12Hz waves
     const alphaVal =
       (Math.sin(now * 9.5 * Math.PI * 2) * 0.5 +
        Math.sin(now * 11.2 * Math.PI * 2) * 0.3 +
-       Math.sin(now * 8.1 * Math.PI * 2) * 0.2) * (0.1 + sa.mid * 4);
+       Math.sin(now * 8.1 * Math.PI * 2) * 0.2) * (0.05 + bMid * 2.5);
 
-    // Beta (high): 15-30Hz waves, amplitude driven by high
+    // Beta (high): 15-30Hz waves
     const betaVal =
       (Math.sin(now * 18 * Math.PI * 2) * 0.4 +
        Math.sin(now * 24 * Math.PI * 2) * 0.35 +
-       Math.sin(now * 28 * Math.PI * 2) * 0.25) * (0.1 + sa.high * 5);
+       Math.sin(now * 28 * Math.PI * 2) * 0.25) * (0.05 + bHigh * 2.5);
 
     // Push to buffers
     const idx = writeIdx.current % HISTORY;
