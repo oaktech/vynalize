@@ -106,6 +106,7 @@ export default function VideoPlayer() {
           onStateChange: (event: { target: YTPlayer; data: number }) => {
             // YT state 0 = ended
             if (event.data === 0) {
+              useStore.getState().setVisualizerMode('synthwave');
               useStore.getState().setAppMode('visualizer');
             }
           },
