@@ -23,7 +23,6 @@ export default function AppShell() {
   const accentColor = useStore((s) => s.accentColor);
   const isListening = useStore((s) => s.isListening);
   const bpm = useStore((s) => s.bpm);
-  const clapFlash = useStore((s) => s.clapFlash);
   const hideTimer = useRef<number>(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -171,11 +170,6 @@ export default function AppShell() {
           </div>
         </div>
       </div>
-
-      {/* Clap detection flash */}
-      {clapFlash && (
-        <div className="absolute inset-0 bg-white/10 pointer-events-none animate-pulse" />
-      )}
 
       {/* Settings modal */}
       <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
