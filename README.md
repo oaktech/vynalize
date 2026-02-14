@@ -27,7 +27,7 @@ The app never plays music itself -- it's a visual companion for your analog setu
 |---|---|---|
 | YouTube Data API v3 | Music video search | https://console.cloud.google.com |
 
-Song identification uses Shazam and requires no API key.
+Song identification uses Shazam and requires no API key. The app works as a pure visualizer even without any API keys configured.
 
 ### Setup
 
@@ -53,8 +53,44 @@ npm run dev
 
 1. **Listen** -- Grant microphone access and play music from a nearby speaker
 2. **Identify** -- The app captures audio snippets and identifies them using Shazam's audio fingerprinting
-3. **Visualize** -- Choose from 5 visualization modes, synced karaoke lyrics, or a muted music video
+3. **Visualize** -- Choose from 10 visualization modes, synced karaoke lyrics, ASCII art, or a muted music video
 4. **Sync** -- Use tap-to-sync and offset controls to align lyrics and video with your playback
+
+## Display Modes
+
+| Mode | Description |
+|---|---|
+| Visualizer | 10 audio-reactive visualizations (see below) |
+| Lyrics | Karaoke-style synced lyrics from lrclib.net |
+| Video | Muted YouTube music video, synced to your playback |
+| ASCII | Song title and lyrics rendered as ASCII art |
+
+Switch modes with keyboard shortcuts, the mode selector, or a hands-free double-clap.
+
+## Visualizers
+
+| # | Name | Description |
+|---|---|---|
+| 1 | Spectrum Bars | 64-bar frequency spectrum with reflections and beat flash |
+| 2 | Waveform | Oscilloscope-style time-domain display with glow |
+| 3 | Radial Spectrum | 128-bar circular display with BPM-driven rotation |
+| 4 | Particle Field | 2,000 particles in 3D, driven by bass/mid/high bands |
+| 5 | Geometric Shapes | Wireframe polyhedra responding to frequency bands |
+| 6 | Radical | -- |
+| 7 | Nebula | -- |
+| 8 | Vitals | ECG-style visualizer |
+| 9 | Synthwave | Retro 80s aesthetic |
+| 10 | Space Age | -- |
+
+3D visualizers (Particle Field, Geometric Shapes) are lazy-loaded to keep the main bundle small (~33KB gzipped).
+
+## Beat Detection
+
+Real-time onset detection using spectral flux with BPM estimation from a rolling 30-beat window. Beat events drive visual effects across all visualizers. BPM is displayed in the control overlay.
+
+## Double-Clap Mode Switching
+
+Hands-free mode cycling for TV/cast setups. Two claps within 300--800ms cycles through Visualizer, Lyrics, Video, and ASCII modes. A 3-second cooldown prevents rapid cycling, and a visual flash confirms detection.
 
 ## Architecture
 
@@ -97,12 +133,15 @@ npm run build        # Production build
 | `1` | Visualizer mode |
 | `2` | Lyrics mode |
 | `3` | Video mode |
+| `4` | ASCII mode |
 
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Three.js / React Three Fiber
 - **Backend:** Express, TypeScript, node-shazam
-- **Audio:** Web Audio API, AnalyserNode for real-time FFT
+- **Audio:** Web Audio API, AnalyserNode for real-time FFT (2048-point at 60fps)
+
+Installable as a PWA on mobile via the browser's "Add to Home Screen" option.
 
 ## License
 
