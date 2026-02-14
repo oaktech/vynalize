@@ -93,24 +93,12 @@ Five built-in visualizations, all reactive to live audio:
 - Gradient overlays on control bars for readability over any visualization
 - Smooth crossfade transitions between display modes (500ms)
 
-## Double-Clap Mode Switching
-
-- Hands-free mode cycling for TV/cast use without a keyboard
-- Detects clap transients via RMS delta spikes from the mic audio stream
-- Double-clap (two claps within 300–800ms) cycles through: Visualizer → Lyrics → Video → ASCII
-- 150ms minimum gap between individual clap detections to avoid multi-frame triggers
-- 3s cooldown after switching to prevent rapid cycling
-- Visual flash overlay on clap detection for feedback
-- Server-side logging (`[clap]`) for debugging on cast devices without devtools
-- `CLAP_RMS_DELTA` threshold (currently 0.03) needs tuning for louder environments
-- `DEBUG_SPIKES` flag in `useClapSwitch.ts` enables verbose spike logging for threshold calibration
-
 ## UI & Controls
 
 - Four app modes: Visualizer, Lyrics, Video, ASCII
 - Five visualizer sub-modes selectable from bottom bar
 - Fullscreen toggle via button or keyboard (F key)
-- Keyboard shortcuts: 1/2/3/4 for mode switching, F for fullscreen, Esc to exit, double-clap to cycle
+- Keyboard shortcuts: 1/2/3/4 for mode switching, F for fullscreen, Esc to exit
 - Settings panel with microphone input device selection
 - Responsive layout for phone, tablet, desktop, and TV displays
 - PWA manifest for "install to home screen" on mobile
@@ -123,3 +111,7 @@ Five built-in visualizations, all reactive to live audio:
 - All API keys kept server-side, never exposed to the browser
 - MusicBrainz rate limiting (1 req/sec) built into the server
 - Graceful degradation: app works as a pure visualizer even without API keys
+
+## Planned
+
+- Seasonal visualizer screens (e.g. snowfall for winter, cherry blossoms for spring, fireflies for summer, falling leaves for autumn)
