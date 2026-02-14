@@ -6,6 +6,7 @@ import RadialSpectrum from './RadialSpectrum';
 import Radical from './Radical';
 import Nebula from './Nebula';
 import Vitals from './Vitals';
+import Synthwave from './Synthwave';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
@@ -52,6 +53,7 @@ export default function VisualizerView() {
         {visualizerMode === 'radical' && <Radical accentColor={accentColor} />}
         {visualizerMode === 'nebula' && <Nebula accentColor={accentColor} />}
         {visualizerMode === 'vitals' && <Vitals accentColor={accentColor} />}
+        {visualizerMode === 'synthwave' && <Synthwave accentColor={accentColor} />}
       </div>
     </div>
   );

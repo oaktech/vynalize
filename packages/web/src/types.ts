@@ -26,7 +26,8 @@ export type VisualizerMode =
   | 'geometric'
   | 'radical'
   | 'nebula'
-  | 'vitals';
+  | 'vitals'
+  | 'synthwave';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
