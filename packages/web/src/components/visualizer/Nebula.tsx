@@ -189,9 +189,10 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     const bHigh = boost(s.high, 5.0);
     const bRms = boost(s.rms, 3.0);
     const bEnergy = boost(s.energy, 3.0);
+    const bLowMid = boost(s.bass * 0.4 + s.mid * 0.6, 6.0); // lower-mid blend — strongest on mic
 
     // Beat pulse decay
-    beatPulse.current *= 0.85;
+    beatPulse.current *= 0.88;
     const pulse = beatPulse.current;
 
     // Colors
@@ -212,7 +213,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
 
     // Draw faded trail (creates light streaks on particles)
     if (trail) {
-      ctx.globalAlpha = 0.45 + bEnergy * 0.3;
+      ctx.globalAlpha = 0.45 + bLowMid * 0.35;
       ctx.drawImage(trail, 0, 0);
       ctx.globalAlpha = 1;
     }
@@ -240,8 +241,8 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const isAccent = ri % 2 === 0;
       const [rr, rg, rb] = isAccent ? [r1, g1, b1] : [r2, g2, b2];
 
-      const ribbonAmp = height * (0.06 + bBass * 0.18 + pulse * 0.04);
-      const ribbonWidth = height * (0.08 + bEnergy * 0.14);
+      const ribbonAmp = height * (0.06 + bLowMid * 0.22 + pulse * 0.05);
+      const ribbonWidth = height * (0.08 + bLowMid * 0.16);
       const phaseOffset = ri * 1.7;
       const speed = beatsPerSec * 0.3 * (ri % 2 === 0 ? 1 : -0.7);
 
@@ -271,7 +272,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       ctx.closePath();
 
       const grad = ctx.createLinearGradient(0, ribbonY - ribbonAmp, 0, ribbonY + ribbonAmp + ribbonWidth);
-      const alpha = 0.04 + bEnergy * 0.1 + pulse * 0.03;
+      const alpha = 0.04 + bLowMid * 0.14 + pulse * 0.04;
       grad.addColorStop(0, `rgba(${rr}, ${rg}, ${rb}, 0)`);
       grad.addColorStop(0.3, `rgba(${rr}, ${rg}, ${rb}, ${alpha})`);
       grad.addColorStop(0.5, `rgba(${rr}, ${rg}, ${rb}, ${alpha * 1.5})`);
@@ -337,12 +338,12 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       ? Math.sin(blinkPhase.current * Math.PI)
       : 0;
 
-    const eyeRadius = maxR * (0.14 + bRms * 0.08 + pulse * 0.04);
-    const irisRadius = eyeRadius * (0.55 + bEnergy * 0.1);
-    const pupilRadius = irisRadius * (0.4 + pulse * 0.15 - bEnergy * 0.1); // dilates with beats
+    const eyeRadius = maxR * (0.14 + bLowMid * 0.1 + pulse * 0.05);
+    const irisRadius = eyeRadius * (0.55 + bLowMid * 0.12);
+    const pupilRadius = irisRadius * (0.4 + pulse * 0.15 - bLowMid * 0.1); // dilates with beats
     const gazeMaxDist = eyeRadius * 0.55;
     // Outer nebula glow (sclera glow)
-    const orbAlpha = 0.15 + bEnergy * 0.25 + pulse * 0.2;
+    const orbAlpha = 0.15 + bLowMid * 0.35 + pulse * 0.25;
     const outerGlow = ctx.createRadialGradient(cx, cy, eyeRadius * 0.5, cx, cy, eyeRadius * 2.5);
     outerGlow.addColorStop(0, `rgba(${r1}, ${g1}, ${b1}, ${orbAlpha * 0.5})`);
     outerGlow.addColorStop(0.3, `rgba(${r2}, ${g2}, ${b2}, ${orbAlpha * 0.25})`);
@@ -367,8 +368,8 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     ctx.beginPath();
     ctx.arc(0, 0, eyeRadius, 0, Math.PI * 2);
     const scleraGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, eyeRadius);
-    scleraGrad.addColorStop(0, `rgba(220, 220, 230, ${0.12 + bRms * 0.08})`);
-    scleraGrad.addColorStop(0.6, `rgba(180, 180, 200, ${0.08 + bRms * 0.05})`);
+    scleraGrad.addColorStop(0, `rgba(220, 220, 230, ${0.12 + bLowMid * 0.12})`);
+    scleraGrad.addColorStop(0.6, `rgba(180, 180, 200, ${0.08 + bLowMid * 0.08})`);
     scleraGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = scleraGrad;
     ctx.fill();
@@ -378,7 +379,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       relIrisX, relIrisY, pupilRadius * 0.5,
       relIrisX, relIrisY, irisRadius,
     );
-    const irisAlpha = 0.5 + bEnergy * 0.4 + pulse * 0.2;
+    const irisAlpha = 0.5 + bLowMid * 0.5 + pulse * 0.25;
     irisGrad.addColorStop(0, `rgba(${r1}, ${g1}, ${b1}, ${Math.min(1, irisAlpha * 1.2)})`);
     irisGrad.addColorStop(0.3, `rgba(${r1}, ${g1}, ${b1}, ${Math.min(1, irisAlpha)})`);
     irisGrad.addColorStop(0.6, `rgba(${r2}, ${g2}, ${b2}, ${irisAlpha * 0.7})`);
@@ -449,7 +450,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
 
       // Radius oscillation — breathes in and out
       const radiusMod = orb.radius + Math.sin(now * 0.5 + orb.drift) * 0.06;
-      const dist = radiusMod * maxR + bBass * maxR * 0.1 + pulse * maxR * 0.06;
+      const dist = radiusMod * maxR + bLowMid * maxR * 0.14 + pulse * maxR * 0.08;
 
       // Slight vertical wobble for 3D feel
       const wobble = Math.sin(now * 0.7 + orb.angle * 2) * height * 0.03 * (orb.layer + 1);
@@ -457,8 +458,8 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const ox = cx + Math.cos(orb.angle) * dist;
       const oy = cy + Math.sin(orb.angle) * dist * 0.6 + wobble; // elliptical orbit
 
-      const sz = orb.size * devicePixelRatio * (0.8 + bEnergy * 0.8 + pulse * 0.5);
-      const bright = orb.brightness * (0.5 + bEnergy * 0.5 + pulse * 0.4);
+      const sz = orb.size * devicePixelRatio * (0.8 + bLowMid * 1.0 + pulse * 0.6);
+      const bright = orb.brightness * (0.5 + bLowMid * 0.6 + pulse * 0.5);
 
       // Particle glow
       const isAccentParticle = orb.layer < 2;
