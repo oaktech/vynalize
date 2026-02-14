@@ -66,6 +66,8 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
   const beatPulse = useRef(0);
   const gridScroll = useRef(0);
   const smooth = useRef({ rms: 0, bass: 0, mid: 0, high: 0, energy: 0 });
+  const shootingStars = useRef<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number }[]>([]);
+  const lastShootingStar = useRef(0);
 
   const stars = useMemo(() => createStars(STAR_COUNT), []);
   const baseMountain = useMemo(() => createMountain(MOUNTAIN_POINTS), []);
@@ -142,6 +144,67 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, bright * 0.7)})`;
       ctx.fill();
     }
+
+    // ── Shooting stars ──
+    const now = performance.now() / 1000;
+
+    // Spawn one every 3-6 seconds randomly
+    if (now - lastShootingStar.current > 10 + Math.random() * 5) {
+      lastShootingStar.current = now;
+      const startX = Math.random() * width;
+      const startY = Math.random() * horizon * 0.35;
+      // Random direction: downward or sideways, left or right
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      const angle = (0.1 + Math.random() * 0.6) * dir; // varying steepness
+      const speed = width * (0.006 + Math.random() * 0.008);
+      shootingStars.current.push({
+        x: startX, y: startY,
+        vx: Math.cos(angle) * speed * dir,
+        vy: Math.abs(Math.sin(angle)) * speed + speed * 0.2, // always some downward
+        life: 0,
+        maxLife: 20 + Math.random() * 40,
+        size: 1.5 + Math.random() * 1.5,
+      });
+    }
+
+    // Update and draw
+    shootingStars.current = shootingStars.current.filter((ss) => {
+      ss.x += ss.vx;
+      ss.y += ss.vy;
+      ss.life++;
+
+      // Kill if past horizon or fizzled out
+      if (ss.y >= horizon || ss.life >= ss.maxLife) return false;
+
+      const progress = ss.life / ss.maxLife;
+      const alpha = progress < 0.15 ? progress / 0.15 : 1 - (progress - 0.15) / 0.85;
+      const tailLen = 45 * dpr;
+
+      // Tail direction from velocity
+      const vel = Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy) || 1;
+      const tx = -ss.vx / vel * tailLen * alpha;
+      const ty = -ss.vy / vel * tailLen * alpha;
+
+      const grad = ctx.createLinearGradient(ss.x, ss.y, ss.x + tx, ss.y + ty);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.9})`);
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+      ctx.beginPath();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = ss.size * dpr;
+      ctx.lineCap = 'round';
+      ctx.moveTo(ss.x, ss.y);
+      ctx.lineTo(ss.x + tx, ss.y + ty);
+      ctx.stroke();
+
+      // Bright head
+      ctx.beginPath();
+      ctx.arc(ss.x, ss.y, ss.size * dpr * (0.5 + alpha * 0.5), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.fill();
+
+      return true;
+    });
 
     // ── Sun ──
     const sunX = width * 0.5;
