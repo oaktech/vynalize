@@ -5,6 +5,3 @@ buildCommand = "npm install && npm run build"
 startCommand = "node packages/server/dist/index.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 30
-
-[build.nixPacks]
-aptPkgs = ["ffmpeg"]
