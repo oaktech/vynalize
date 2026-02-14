@@ -134,6 +134,8 @@ npm run build        # Production build
 | `2` | Lyrics mode |
 | `3` | Video mode |
 | `4` | ASCII mode |
+| `←` / `→` | Adjust sync offset ±0.2s (lyrics/video) |
+| `↑` / `↓` | Adjust sync offset ±1s (lyrics/video) |
 
 ## Tech Stack
 

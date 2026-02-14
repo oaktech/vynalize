@@ -35,6 +35,9 @@ export default function AppShell() {
     }, CONTROLS_HIDE_DELAY);
   }, [setControlsVisible]);
 
+  const adjustOffset = useStore((s) => s.adjustOffset);
+  const adjustVideoOffset = useStore((s) => s.adjustVideoOffset);
+
   useEffect(() => {
     const handleMove = () => showControls();
     const handleKey = (e: KeyboardEvent) => {
@@ -46,6 +49,16 @@ export default function AppShell() {
       if (e.key === '2') setAppMode('lyrics');
       if (e.key === '3') setAppMode('video');
       if (e.key === '4') setAppMode('ascii');
+
+      // Arrow keys: adjust sync offset in lyrics/video modes
+      const currentMode = useStore.getState().appMode;
+      if (currentMode === 'video' || currentMode === 'lyrics') {
+        const adjust = currentMode === 'video' ? adjustVideoOffset : adjustOffset;
+        if (e.key === 'ArrowRight') { e.preventDefault(); adjust(200); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); adjust(-200); }
+        if (e.key === 'ArrowUp') { e.preventDefault(); adjust(1000); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); adjust(-1000); }
+      }
     };
 
     window.addEventListener('mousemove', handleMove);
@@ -57,7 +70,7 @@ export default function AppShell() {
       window.removeEventListener('keydown', handleKey);
       clearTimeout(hideTimer.current);
     };
-  }, [showControls, isFullscreen, settingsOpen, setAppMode]);
+  }, [showControls, isFullscreen, settingsOpen, setAppMode, adjustOffset, adjustVideoOffset]);
 
   useEffect(() => {
     const handler = () => setFullscreen(!!document.fullscreenElement);
