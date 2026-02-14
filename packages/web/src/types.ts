@@ -27,7 +27,8 @@ export type VisualizerMode =
   | 'radical'
   | 'nebula'
   | 'vitals'
-  | 'synthwave';
+  | 'synthwave'
+  | 'spaceage';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
