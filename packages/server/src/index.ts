@@ -3,7 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: resolve(__dirname, '../../../.env') });
+config({ path: resolve(__dirname, '../../../.env'), override: false });
 
 import express from 'express';
 import cors from 'cors';
@@ -52,6 +52,13 @@ app.get('/api/diag', async (_req, res) => {
   }
 
   res.json(checks);
+});
+
+// Serve the built frontend in production
+const webDist = resolve(__dirname, '../../web/dist');
+app.use(express.static(webDist));
+app.get('*', (_req, res) => {
+  res.sendFile(resolve(webDist, 'index.html'));
 });
 
 app.listen(PORT, () => {
