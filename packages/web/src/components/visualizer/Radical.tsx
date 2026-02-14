@@ -1,6 +1,12 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
 
+/** Compress dynamic range — same approach as SpectrumBars boost().
+ *  Quiet mic signals get amplified, loud signals are tamed. */
+function boost(value: number, gain: number): number {
+  return Math.min(1, Math.pow(value * gain, 0.55));
+}
+
 // ── Neon palette ──────────────────────────────────────────────
 const NEON = [
   '#ff1493', // hot pink
@@ -348,6 +354,7 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
   const outgoingRef = useRef<Scene | null>(null);
   const lastTransitionRef = useRef(0);
   const beatPulseRef = useRef(0);
+  const smooth = useRef({ bass: 0, mid: 0, energy: 0, rms: 0 });
 
   // Canvas resize
   useEffect(() => {
@@ -396,15 +403,31 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
     ctx.clearRect(0, 0, width, height);
 
     const now = performance.now();
-    const bass = audioFeatures?.bass ?? 0;
-    const energy = audioFeatures?.energy ?? 0;
     const cx = width / 2;
     const cy = height / 2;
     const baseR = Math.min(width, height) * 0.38;
 
+    // Smooth audio (fast attack, slow decay — matches SpectrumBars)
+    const s = smooth.current;
+    const rawBass = audioFeatures?.bass ?? 0;
+    const rawMid = audioFeatures?.mid ?? 0;
+    const rawEnergy = audioFeatures?.energy ?? 0;
+    const rawRms = audioFeatures?.rms ?? 0;
+    s.bass += (rawBass - s.bass) * (rawBass > s.bass ? 0.4 : 0.15);
+    s.mid += (rawMid - s.mid) * (rawMid > s.mid ? 0.4 : 0.15);
+    s.energy += (rawEnergy - s.energy) * (rawEnergy > s.energy ? 0.4 : 0.15);
+    s.rms += (rawRms - s.rms) * (rawRms > s.rms ? 0.4 : 0.15);
+
+    // Compressed audio — target lower mids which register strongest on mic
+    const bBass = boost(s.bass, 4.0);
+    const bMid = boost(s.mid, 6.0);
+    const bEnergy = boost(s.energy, 3.0);
+    const bRms = boost(s.rms, 3.0);
+    const bLowMid = boost(s.bass * 0.4 + s.mid * 0.6, 6.0); // blend favoring mids
+
     // Decay beat pulse
-    beatPulseRef.current *= 0.9;
-    const scaleBump = 1 + beatPulseRef.current * 0.15 + bass * 0.1;
+    beatPulseRef.current *= 0.88;
+    const scaleBump = 1 + beatPulseRef.current * 0.4 + bLowMid * 0.5;
 
     // Draw outgoing scene (fading out)
     if (outgoingRef.current) {
@@ -412,7 +435,7 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
       const fadeOut = 1 - Math.min(1, age / CROSSFADE);
 
       if (fadeOut > 0) {
-        outgoingRef.current.rotation += outgoingRef.current.rotationSpeed * (1 + energy * 0.5);
+        outgoingRef.current.rotation += outgoingRef.current.rotationSpeed * (1 + bLowMid * 1.5);
         drawScene(ctx, outgoingRef.current, cx, cy, baseR * scaleBump, fadeOut);
       } else {
         outgoingRef.current = null;
@@ -424,7 +447,7 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
       const age = now - currentRef.current.spawnTime;
       const fadeIn = Math.min(1, age / CROSSFADE);
 
-      currentRef.current.rotation += currentRef.current.rotationSpeed * (1 + energy * 0.5);
+      currentRef.current.rotation += currentRef.current.rotationSpeed * (1 + bLowMid * 1.5);
       drawScene(ctx, currentRef.current, cx, cy, baseR * scaleBump, fadeIn);
     }
   }, [audioFeatures]);
