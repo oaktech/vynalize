@@ -3,20 +3,22 @@ let analyserNode: AnalyserNode | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let mediaStream: MediaStream | null = null;
 
-export async function initAudioCapture(): Promise<{
+export async function initAudioCapture(deviceId?: string): Promise<{
   context: AudioContext;
   analyser: AnalyserNode;
   stream: MediaStream;
 }> {
-  const stream = await navigator.mediaDevices.getUserMedia({
+  const constraints: MediaStreamConstraints = {
     audio: {
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false,
       sampleRate: 44100,
       channelCount: 1,
+      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
     },
-  });
+  };
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
   const context = new AudioContext();
   const source = context.createMediaStreamSource(stream);

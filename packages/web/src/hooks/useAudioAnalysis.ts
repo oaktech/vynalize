@@ -8,6 +8,14 @@ export function useAudioAnalysis() {
   const setAudioFeatures = useStore((s) => s.setAudioFeatures);
   const rafRef = useRef<number>(0);
   const prevSpectrum = useRef<Float32Array | null>(null);
+  const sensitivityRef = useRef(useStore.getState().sensitivityGain);
+
+  // Keep sensitivity ref in sync without causing re-renders
+  useEffect(() => {
+    return useStore.subscribe((state) => {
+      sensitivityRef.current = state.sensitivityGain;
+    });
+  }, []);
 
   useEffect(() => {
     if (!isListening) return;
@@ -51,9 +59,10 @@ export function useAudioAnalysis() {
       for (let i = bassEnd; i < midEnd; i++) midSum += freqData[i];
       for (let i = midEnd; i < binCount; i++) highSum += freqData[i];
 
-      const bass = bassSum / (bassEnd * 255);
-      const mid = midSum / ((midEnd - bassEnd) * 255);
-      const high = highSum / ((binCount - midEnd) * 255);
+      const gain = sensitivityRef.current;
+      const bass = (bassSum / (bassEnd * 255)) * gain;
+      const mid = (midSum / ((midEnd - bassEnd) * 255)) * gain;
+      const high = (highSum / ((binCount - midEnd) * 255)) * gain;
 
       // Spectral centroid
       let weightedSum = 0, magSum = 0;
@@ -84,12 +93,12 @@ export function useAudioAnalysis() {
       zcr /= timeData.length;
 
       const features: AudioFeatures = {
-        rms,
-        energy,
+        rms: rms * gain,
+        energy: energy * gain,
         spectralCentroid,
         spectralFlux: Math.min(flux / 100, 1),
         zcr,
-        loudness: { specific: new Float32Array(0), total: rms },
+        loudness: { specific: new Float32Array(0), total: rms * gain },
         mfcc: [],
         frequencyData: new Uint8Array(freqData),
         timeData: new Uint8Array(timeData),

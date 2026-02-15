@@ -9,6 +9,11 @@ import type {
   PositionState,
 } from './types';
 
+const VISUALIZER_MODES: VisualizerMode[] = [
+  'spectrum', 'waveform', 'radial', 'particles', 'geometric',
+  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight',
+];
+
 interface VinylStore {
   // Audio state
   isListening: boolean;
@@ -65,6 +70,18 @@ interface VinylStore {
   // Accent color from album art
   accentColor: string;
   setAccentColor: (c: string) => void;
+
+  // Audio input device selection
+  audioInputDeviceId: string;
+  setAudioInputDeviceId: (id: string) => void;
+
+  // Sensitivity gain (global multiplier for audio values)
+  sensitivityGain: number;
+  setSensitivityGain: (g: number) => void;
+
+  // Visualizer cycling
+  nextVisualizer: () => void;
+  prevVisualizer: () => void;
 }
 
 const defaultPosition: PositionState = {
@@ -129,4 +146,27 @@ export const useStore = create<VinylStore>((set) => ({
 
   accentColor: '#8b5cf6',
   setAccentColor: (accentColor) => set({ accentColor }),
+
+  audioInputDeviceId: localStorage.getItem('vv-audio-device') || '',
+  setAudioInputDeviceId: (audioInputDeviceId) => {
+    localStorage.setItem('vv-audio-device', audioInputDeviceId);
+    set({ audioInputDeviceId });
+  },
+
+  sensitivityGain: parseFloat(localStorage.getItem('vv-sensitivity') || '1'),
+  setSensitivityGain: (sensitivityGain) => {
+    localStorage.setItem('vv-sensitivity', String(sensitivityGain));
+    set({ sensitivityGain });
+  },
+
+  nextVisualizer: () =>
+    set((state) => {
+      const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
+      return { visualizerMode: VISUALIZER_MODES[(idx + 1) % VISUALIZER_MODES.length] };
+    }),
+  prevVisualizer: () =>
+    set((state) => {
+      const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
+      return { visualizerMode: VISUALIZER_MODES[(idx - 1 + VISUALIZER_MODES.length) % VISUALIZER_MODES.length] };
+    }),
 }));

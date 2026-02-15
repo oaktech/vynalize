@@ -1,3 +1,4 @@
+import { useEffect, useRef, useCallback } from 'react';
 import { useAudioCapture } from './hooks/useAudioCapture';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis';
 import { useBeatDetection } from './hooks/useBeatDetection';
@@ -6,8 +7,10 @@ import { useLyrics } from './hooks/useLyrics';
 import { useVideoSearch } from './hooks/useVideoSearch';
 import { useAutoDisplay } from './hooks/useAutoDisplay';
 import { usePositionTracker } from './hooks/usePositionTracker';
+import { useWsCommands } from './hooks/useWsCommands';
 import { useStore } from './store';
 import AppShell from './components/AppShell';
+import RemoteControl from './components/RemoteControl';
 
 function StartScreen({ onStart }: { onStart: () => void }) {
   return (
@@ -67,7 +70,58 @@ function ActiveApp() {
   return <AppShell />;
 }
 
-export default function App() {
+/** Display route — same as standalone but with WebSocket + auto-hide + auto-fullscreen */
+function DisplayApp() {
+  useWsCommands('display');
+  useAudioAnalysis();
+  useBeatDetection();
+  useSongId();
+  useLyrics();
+  useVideoSearch();
+  useAutoDisplay();
+  usePositionTracker();
+
+  const setControlsVisible = useStore((s) => s.setControlsVisible);
+  const hideTimer = useRef<number>(0);
+
+  // Auto-hide controls after 3s on display route
+  const resetHideTimer = useCallback(() => {
+    setControlsVisible(true);
+    clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => {
+      setControlsVisible(false);
+    }, 3000);
+  }, [setControlsVisible]);
+
+  useEffect(() => {
+    // Auto-fullscreen on display route
+    const tryFullscreen = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    };
+    // Need a user gesture first — fullscreen on first click
+    const handler = () => {
+      tryFullscreen();
+      window.removeEventListener('click', handler);
+    };
+    window.addEventListener('click', handler);
+
+    // Start with controls hidden
+    const t = window.setTimeout(() => setControlsVisible(false), 3000);
+
+    return () => {
+      window.removeEventListener('click', handler);
+      clearTimeout(t);
+      clearTimeout(hideTimer.current);
+    };
+  }, [setControlsVisible, resetHideTimer]);
+
+  return <AppShell />;
+}
+
+/** Standalone app — original `/` route (laptop with mic) */
+function StandaloneApp() {
   const isListening = useStore((s) => s.isListening);
   const { start } = useAudioCapture();
 
@@ -76,4 +130,31 @@ export default function App() {
   }
 
   return <ActiveApp />;
+}
+
+/** Display app — `/display` route (Pi kiosk) */
+function DisplayRoute() {
+  const isListening = useStore((s) => s.isListening);
+  const { start } = useAudioCapture();
+
+  if (!isListening) {
+    return <StartScreen onStart={start} />;
+  }
+
+  return <DisplayApp />;
+}
+
+export default function App() {
+  const path = window.location.pathname;
+
+  if (path === '/remote') {
+    return <RemoteControl />;
+  }
+
+  if (path === '/display') {
+    return <DisplayRoute />;
+  }
+
+  // Default: standalone laptop mode (unchanged)
+  return <StandaloneApp />;
 }

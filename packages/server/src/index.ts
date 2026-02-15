@@ -5,11 +5,13 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../../../.env'), override: false });
 
+import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
 import { identifyRouter } from './routes/identify.js';
 import { videoRouter } from './routes/video.js';
 import { searchRouter } from './routes/search.js';
+import { attachWebSocket } from './wsRelay.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -61,7 +63,10 @@ app.get('*', (_req, res) => {
   res.sendFile(resolve(webDist, 'index.html'));
 });
 
-app.listen(PORT, () => {
+const server = createServer(app);
+attachWebSocket(server);
+
+server.listen(PORT, () => {
   console.log(`[server] Vinyl Visions backend running on port ${PORT}`);
 
   if (!process.env.YOUTUBE_API_KEY) {
