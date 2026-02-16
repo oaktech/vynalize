@@ -17,7 +17,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
     <div className="w-screen h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-6">
         <img
-          src="/vynalize-logo.png"
+          src="/vynalize-logo-transparent.png"
           alt="Vynalize"
           className="w-96 mx-auto mb-8"
         />
