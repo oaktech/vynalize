@@ -16,20 +16,11 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-6">
-        {/* Vinyl record icon */}
-        <div className="relative w-32 h-32 mx-auto mb-8">
-          <div className="absolute inset-0 rounded-full border-2 border-white/10 animate-spin-slow">
-            <div className="absolute inset-[15%] rounded-full border border-white/5" />
-            <div className="absolute inset-[30%] rounded-full border border-white/5" />
-            <div className="absolute inset-[45%] rounded-full bg-white/10" />
-            <div className="absolute inset-[48%] rounded-full bg-black" />
-            <div className="absolute inset-[49%] rounded-full bg-white/20" />
-          </div>
-        </div>
-
-        <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-          Vynalize
-        </h1>
+        <img
+          src="/vynalize-logo.png"
+          alt="Vynalize"
+          className="w-96 mx-auto mb-8"
+        />
         <p className="text-white/40 text-sm mb-8 leading-relaxed">
           A companion display for your analog listening experience.
           Visualizations, lyrics, and music videos — all driven by what's playing.

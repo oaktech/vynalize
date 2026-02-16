@@ -12,6 +12,11 @@
       "src": "/vinyl.svg",
       "sizes": "any",
       "type": "image/svg+xml"
+    },
+    {
+      "src": "/vynalize-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
