@@ -1,6 +1,6 @@
 {
-  "name": "Vinyl Visions",
-  "short_name": "Vinyl Visions",
+  "name": "Vynalize",
+  "short_name": "Vynalize",
   "description": "Analog music visualizer companion",
   "start_url": "/",
   "display": "standalone",

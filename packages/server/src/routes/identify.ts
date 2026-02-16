@@ -6,7 +6,7 @@ import fs from 'fs';
 import { recognizeSong } from '../services/shazam.js';
 
 const upload = multer({
-  dest: path.join(os.tmpdir(), 'vinyl-visions-uploads'),
+  dest: path.join(os.tmpdir(), 'vynalize-uploads'),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
 });
 

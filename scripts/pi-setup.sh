@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# Vinyl Visions — Raspberry Pi 5 Setup
+# Vynalize — Raspberry Pi 5 Setup
 #
 # Turns a fresh Raspberry Pi OS (Trixie) install into a dedicated
 # visualizer appliance:
 #   - Node.js server + built frontend
 #   - Chromium kiosk on /display (auto-starts, full-screen, mic granted)
-#   - mDNS so iPhone can reach http://vinylvisions.local:3001/remote
+#   - mDNS so iPhone can reach http://vynalize.local:3001/remote
 #
 # Prerequisites:
 #   - Raspberry Pi 5 (4GB+) running Raspberry Pi OS Trixie (64-bit)
@@ -16,20 +16,20 @@
 # Usage:
 #   curl -sL <raw-url>/scripts/pi-setup.sh | bash
 #   — or —
-#   git clone <repo> ~/vinyl-visions && ~/vinyl-visions/scripts/pi-setup.sh
+#   git clone <repo> ~/vynalize && ~/vynalize/scripts/pi-setup.sh
 #
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────
-APP_DIR="${APP_DIR:-$HOME/vinyl-visions}"
+APP_DIR="${APP_DIR:-$HOME/vynalize}"
 APP_PORT="${APP_PORT:-3001}"
 KIOSK_URL="http://localhost:${APP_PORT}/display?autostart"
 NODE_MAJOR=22
 SERVICE_USER="$(whoami)"
 
-info()  { echo -e "\033[1;34m[vinyl-visions]\033[0m $*"; }
-warn()  { echo -e "\033[1;33m[vinyl-visions]\033[0m $*"; }
-error() { echo -e "\033[1;31m[vinyl-visions]\033[0m $*" >&2; }
+info()  { echo -e "\033[1;34m[vynalize]\033[0m $*"; }
+warn()  { echo -e "\033[1;33m[vynalize]\033[0m $*"; }
+error() { echo -e "\033[1;31m[vynalize]\033[0m $*" >&2; }
 
 # ── 1. System packages ───────────────────────────────────────
 info "Updating system packages..."
@@ -66,7 +66,7 @@ else
     exit 1
   fi
   info "Cloning repo to ${APP_DIR}..."
-  git clone https://github.com/oaktech/vinyl-visions.git "$APP_DIR"
+  git clone https://github.com/oaktech/vynalize.git "$APP_DIR"
 fi
 
 # ── 4. Build ──────────────────────────────────────────────────
@@ -120,24 +120,24 @@ else
   info ".asoundrc already exists, skipping ALSA config."
 fi
 
-# ── 7. Avahi / mDNS — vinylvisions.local ─────────────────────
-info "Configuring mDNS hostname: vinylvisions.local"
+# ── 7. Avahi / mDNS — vynalize.local ─────────────────────
+info "Configuring mDNS hostname: vynalize.local"
 AVAHI_CONF="/etc/avahi/avahi-daemon.conf"
-if ! grep -q "host-name=vinylvisions" "$AVAHI_CONF" 2>/dev/null; then
-  sudo sed -i "s/^host-name=.*/host-name=vinylvisions/" "$AVAHI_CONF" 2>/dev/null || true
+if ! grep -q "host-name=vynalize" "$AVAHI_CONF" 2>/dev/null; then
+  sudo sed -i "s/^host-name=.*/host-name=vynalize/" "$AVAHI_CONF" 2>/dev/null || true
   # If the line didn't exist, add it under [server]
-  if ! grep -q "host-name=vinylvisions" "$AVAHI_CONF" 2>/dev/null; then
-    sudo sed -i '/^\[server\]/a host-name=vinylvisions' "$AVAHI_CONF"
+  if ! grep -q "host-name=vynalize" "$AVAHI_CONF" 2>/dev/null; then
+    sudo sed -i '/^\[server\]/a host-name=vynalize' "$AVAHI_CONF"
   fi
   sudo systemctl restart avahi-daemon
 fi
-info "iPhone can reach: http://vinylvisions.local:${APP_PORT}/remote"
+info "iPhone can reach: http://vynalize.local:${APP_PORT}/remote"
 
 # ── 8. Systemd service — Node server ─────────────────────────
-info "Creating systemd service: vinyl-visions.service"
-sudo tee /etc/systemd/system/vinyl-visions.service >/dev/null <<SVCEOF
+info "Creating systemd service: vynalize.service"
+sudo tee /etc/systemd/system/vynalize.service >/dev/null <<SVCEOF
 [Unit]
-Description=Vinyl Visions Server
+Description=Vynalize Server
 After=network-online.target
 Wants=network-online.target
 
@@ -158,8 +158,8 @@ WantedBy=multi-user.target
 SVCEOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable vinyl-visions.service
-sudo systemctl restart vinyl-visions.service
+sudo systemctl enable vynalize.service
+sudo systemctl restart vynalize.service
 info "Server running on port ${APP_PORT}."
 
 # ── 9. Chromium kiosk autostart ───────────────────────────────
@@ -227,12 +227,12 @@ fi
 # ── Done ──────────────────────────────────────────────────────
 info ""
 info "============================================"
-info "  Vinyl Visions — setup complete!"
+info "  Vynalize — setup complete!"
 info "============================================"
 info ""
 info "  Server:  http://localhost:${APP_PORT}"
 info "  Display: ${KIOSK_URL}"
-info "  Remote:  http://vinylvisions.local:${APP_PORT}/remote"
+info "  Remote:  http://vynalize.local:${APP_PORT}/remote"
 info ""
 info "  Audio capture starts automatically on the display."
 info ""

@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 const MB_API = 'https://musicbrainz.org/ws/2';
 const CAA_URL = 'https://coverartarchive.org';
-const USER_AGENT = 'VinylVisions/0.1.0 (https://github.com/vinyl-visions)';
+const USER_AGENT = 'Vynalize/0.1.0 (https://github.com/vynalize)';
 
 export const searchRouter = Router();
 

@@ -36,7 +36,7 @@ export async function fetchLyrics(
   });
 
   const res = await fetch(`https://lrclib.net/api/get?${params}`, {
-    headers: { 'User-Agent': 'VinylVisions/0.1.0' },
+    headers: { 'User-Agent': 'Vynalize/0.1.0' },
   });
 
   if (!res.ok) return [];

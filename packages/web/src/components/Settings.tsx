@@ -79,7 +79,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
         {/* About */}
         <div className="pt-4 border-t border-white/5">
           <p className="text-xs text-white/20 text-center">
-            Vinyl Visions v0.1.0 — A companion display for analog listening
+            Vynalize v0.1.0 — A companion display for analog listening
           </p>
         </div>
       </div>

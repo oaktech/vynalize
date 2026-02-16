@@ -28,7 +28,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         </div>
 
         <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-          Vinyl Visions
+          Vynalize
         </h1>
         <p className="text-white/40 text-sm mb-8 leading-relaxed">
           A companion display for your analog listening experience.

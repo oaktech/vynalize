@@ -1,5 +1,5 @@
 {
-  "name": "vinyl-visions",
+  "name": "vynalize",
   "private": true,
   "workspaces": [
     "packages/web",

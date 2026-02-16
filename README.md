@@ -1,6 +1,6 @@
-# Vinyl Visions
+# Vynalize
 
-A companion display for analog listening. Vinyl Visions passively listens to music from your record player (or any speaker) via the device microphone, identifies what's playing, and provides synchronized visual experiences: audio-reactive visualizations, karaoke-style lyrics, and music videos.
+A companion display for analog listening. Vynalize passively listens to music from your record player (or any speaker) via the device microphone, identifies what's playing, and provides synchronized visual experiences: audio-reactive visualizations, karaoke-style lyrics, and music videos.
 
 The app never plays music itself -- it's a visual companion for your analog setup.
 
@@ -32,8 +32,8 @@ Song identification uses Shazam and requires no API key. The app works as a pure
 ### Setup
 
 ```bash
-git clone https://github.com/oaktech/vinyl-visions.git
-cd vinyl-visions
+git clone https://github.com/oaktech/vynalize.git
+cd vynalize
 
 # Install dependencies
 npm install
@@ -51,7 +51,7 @@ npm run dev
 
 ## Raspberry Pi Appliance
 
-Vinyl Visions can run as a self-contained appliance on a Raspberry Pi -- no phone, keyboard, or laptop needed after setup. Plug in power, a USB mic, an HDMI display, and three buttons. It boots straight into the visualizer and starts listening.
+Vynalize can run as a self-contained appliance on a Raspberry Pi -- no phone, keyboard, or laptop needed after setup. Plug in power, a USB mic, an HDMI display, and three buttons. It boots straight into the visualizer and starts listening.
 
 ### Parts
 
@@ -66,14 +66,14 @@ Vinyl Visions can run as a self-contained appliance on a Raspberry Pi -- no phon
 ### Pi Setup
 
 ```bash
-git clone https://github.com/oaktech/vinyl-visions.git ~/vinyl-visions
-~/vinyl-visions/scripts/pi-setup.sh
+git clone https://github.com/oaktech/vynalize.git ~/vynalize
+~/vynalize/scripts/pi-setup.sh
 sudo reboot
 ```
 
-The setup script installs everything: Node.js, Chromium kiosk, systemd service, mDNS (`vinylvisions.local`), and ALSA config for the USB mic.
+The setup script installs everything: Node.js, Chromium kiosk, systemd service, mDNS (`vynalize.local`), and ALSA config for the USB mic.
 
-After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autostart` and audio capture begins automatically. The phone remote is still available at `http://vinylvisions.local:3001/remote`.
+After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autostart` and audio capture begins automatically. The phone remote is still available at `http://vynalize.local:3001/remote`.
 
 ## How It Works
 
@@ -121,7 +121,7 @@ Hands-free mode cycling for TV/cast setups. Two claps within 300--800ms cycles t
 ## Architecture
 
 ```
-vinyl-visions/
+vynalize/
 ├── packages/
 │   ├── web/          # React + TypeScript + Vite frontend
 │   └── server/       # Express + TypeScript backend

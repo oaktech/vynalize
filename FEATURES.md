@@ -119,7 +119,7 @@ Five built-in visualizations, all reactive to live audio:
 - Audio capture auto-starts on boot via `?autostart` query parameter -- no click required
 - Chromium kiosk flags auto-grant microphone access and allow AudioContext without user gesture
 - USB mic auto-detected and configured as default ALSA capture device
-- mDNS hostname `vinylvisions.local` -- phone remote works at `vinylvisions.local:3001/remote`
+- mDNS hostname `vynalize.local` -- phone remote works at `vynalize.local:3001/remote`
 
 ## Planned
 

@@ -1,5 +1,5 @@
 {
-  "name": "@vinyl-visions/server",
+  "name": "@vynalize/server",
   "private": true,
   "version": "0.1.0",
   "type": "module",

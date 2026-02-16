@@ -119,7 +119,7 @@ export default function RemoteControl() {
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-white/90">
-              Vinyl Visions
+              Vynalize
             </h1>
             <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
               Remote
@@ -334,7 +334,7 @@ export default function RemoteControl() {
         {/* ── Footer ── */}
         <footer className="text-center pt-2 pb-4">
           <p className="text-[10px] text-white/15">
-            Vinyl Visions Remote v0.1.0
+            Vynalize Remote v0.1.0
           </p>
         </footer>
       </div>

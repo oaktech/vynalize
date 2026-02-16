@@ -67,7 +67,7 @@ const server = createServer(app);
 attachWebSocket(server);
 
 server.listen(PORT, () => {
-  console.log(`[server] Vinyl Visions backend running on port ${PORT}`);
+  console.log(`[server] Vynalize backend running on port ${PORT}`);
 
   if (!process.env.YOUTUBE_API_KEY) {
     console.warn('[server] WARNING: YOUTUBE_API_KEY not set - video search will not work');
