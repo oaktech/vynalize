@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="packages/web/public/vynalize-logo.png" width="400" alt="Vynalize">
+</p>
+
 # Vynalize
 
 A companion display for analog listening. Vynalize passively listens to music from your record player (or any speaker) via the device microphone, identifies what's playing, and provides synchronized visual experiences: audio-reactive visualizations, karaoke-style lyrics, and music videos.
