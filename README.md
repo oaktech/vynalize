@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="packages/web/public/vynalize-logo-transparent.png" width="400" alt="Vynalize">
+  <img src="packages/web/public/vynalize-logo.png" width="400" alt="Vynalize">
 </p>
 
 # Vynalize
