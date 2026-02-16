@@ -50,6 +50,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 }
 
 function ActiveApp() {
+  useWsCommands('display');
   useAudioAnalysis();
   useBeatDetection();
   useSongId();
