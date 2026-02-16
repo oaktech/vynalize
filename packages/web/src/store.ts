@@ -10,7 +10,7 @@ import type {
 } from './types';
 
 const VISUALIZER_MODES: VisualizerMode[] = [
-  'spectrum', 'waveform', 'radial', 'particles', 'geometric',
+  'spectrum', 'radial', 'particles',
   'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight',
 ];
 

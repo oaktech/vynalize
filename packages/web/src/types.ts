@@ -20,10 +20,8 @@ export interface BeatEvent {
 
 export type VisualizerMode =
   | 'spectrum'
-  | 'waveform'
   | 'radial'
   | 'particles'
-  | 'geometric'
   | 'radical'
   | 'nebula'
   | 'vitals'

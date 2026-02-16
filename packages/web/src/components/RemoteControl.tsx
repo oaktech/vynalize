@@ -45,10 +45,8 @@ const APP_MODES: { id: AppMode; label: string; icon: JSX.Element }[] = [
 
 const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
   { id: 'spectrum', label: 'Spectrum' },
-  { id: 'waveform', label: 'Waveform' },
   { id: 'radial', label: 'Radial' },
   { id: 'particles', label: 'Particles' },
-  { id: 'geometric', label: 'Geometry' },
   { id: 'radical', label: 'Radical' },
   { id: 'nebula', label: 'Nebula' },
   { id: 'vitals', label: 'Vitals' },

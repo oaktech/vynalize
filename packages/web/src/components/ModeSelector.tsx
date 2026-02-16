@@ -10,10 +10,8 @@ const appModes: { id: AppMode; label: string; icon: string }[] = [
 
 const vizModes: { id: VisualizerMode; label: string }[] = [
   { id: 'spectrum', label: 'Spectrum' },
-  { id: 'waveform', label: 'Waveform' },
   { id: 'radial', label: 'Radial' },
   { id: 'particles', label: 'Particles' },
-  { id: 'geometric', label: 'Geometry' },
   { id: 'radical', label: 'Radical' },
   { id: 'nebula', label: 'Nebula' },
   { id: 'vitals', label: 'Vitals' },

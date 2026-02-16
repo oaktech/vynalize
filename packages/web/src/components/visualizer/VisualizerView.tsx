@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { useStore } from '../../store';
 import SpectrumBars from './SpectrumBars';
-import Waveform from './Waveform';
 import RadialSpectrum from './RadialSpectrum';
 import Radical from './Radical';
 import Nebula from './Nebula';
@@ -12,7 +11,6 @@ import StarryNight from './StarryNight';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
-const GeometricShapes = lazy(() => import('./GeometricShapes'));
 
 function ThreeLoading() {
   return (
@@ -40,16 +38,10 @@ export default function VisualizerView() {
       {/* Visualizer */}
       <div className="absolute inset-0">
         {visualizerMode === 'spectrum' && <SpectrumBars accentColor={accentColor} />}
-        {visualizerMode === 'waveform' && <Waveform accentColor={accentColor} />}
         {visualizerMode === 'radial' && <RadialSpectrum accentColor={accentColor} />}
         {visualizerMode === 'particles' && (
           <Suspense fallback={<ThreeLoading />}>
             <ParticleField />
-          </Suspense>
-        )}
-        {visualizerMode === 'geometric' && (
-          <Suspense fallback={<ThreeLoading />}>
-            <GeometricShapes />
           </Suspense>
         )}
         {visualizerMode === 'radical' && <Radical accentColor={accentColor} />}
