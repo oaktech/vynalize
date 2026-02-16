@@ -27,9 +27,17 @@ interface YTPlayer {
   getPlayerState: () => number;
 }
 
-/** Calculate the target video position in seconds */
+/** Calculate the target video position in seconds.
+ *  Prefers checkpoint (saved when video was last unmounted) for accurate resync. */
 function getTargetVideoSec(): number | null {
-  const { position, videoOffsetMs } = useStore.getState();
+  const { position, videoOffsetMs, videoCheckpoint } = useStore.getState();
+
+  // Use checkpoint if available — more accurate on mode switch back
+  if (videoCheckpoint) {
+    const elapsed = (performance.now() - videoCheckpoint.at) / 1000;
+    return videoCheckpoint.timeSec + elapsed;
+  }
+
   if (!position.startedAt) return null;
   const elapsed = performance.now() - position.startedAt;
   return (elapsed + position.offsetMs + videoOffsetMs) / 1000;
@@ -40,6 +48,12 @@ let apiReady = false;
 const readyCallbacks: (() => void)[] = [];
 
 function loadYouTubeAPI(): Promise<void> {
+  // Handle HMR: API script already loaded from previous module instance
+  if (window.YT?.Player) {
+    apiLoaded = true;
+    apiReady = true;
+    return Promise.resolve();
+  }
   if (apiReady) return Promise.resolve();
   return new Promise((resolve) => {
     if (apiLoaded) {
@@ -102,6 +116,8 @@ export default function VideoPlayer() {
               event.target.seekTo(target, true);
               lastSeekRef.current = Date.now();
             }
+            // Clear checkpoint after initial seek — drift correction takes over
+            useStore.getState().setVideoCheckpoint(null);
           },
           onStateChange: (event: { target: YTPlayer; data: number }) => {
             // YT state 0 = ended
@@ -117,6 +133,11 @@ export default function VideoPlayer() {
     return () => {
       if (player) {
         try {
+          // Save the video's actual position so we can resync on return
+          const timeSec = player.getCurrentTime();
+          if (timeSec > 0) {
+            useStore.getState().setVideoCheckpoint({ timeSec, at: performance.now() });
+          }
           player.destroy();
         } catch {}
       }
