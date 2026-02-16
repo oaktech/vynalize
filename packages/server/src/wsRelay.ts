@@ -19,7 +19,7 @@ export function attachWebSocket(server: Server): void {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (req, socket, head) => {
-    if (req.url !== '/ws') {
+    if (!req.url?.startsWith('/ws')) {
       socket.destroy();
       return;
     }
