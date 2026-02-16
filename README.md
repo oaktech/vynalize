@@ -49,6 +49,32 @@ npm run dev
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3001
 
+## Raspberry Pi Appliance
+
+Vinyl Visions can run as a self-contained appliance on a Raspberry Pi -- no phone, keyboard, or laptop needed after setup. Plug in power, a USB mic, an HDMI display, and three buttons. It boots straight into the visualizer and starts listening.
+
+### Parts
+
+| Part | Notes |
+|---|---|
+| Raspberry Pi 5 (4GB+) | Pi 4 works too, but 5 is noticeably smoother |
+| USB mic or audio interface | Any class-compliant USB audio input -- e.g. a cheap USB lavalier or a Behringer UCA222 |
+| HDMI display | TV, monitor, or portable HDMI screen |
+| Micro-SD card (16GB+) | Running Raspberry Pi OS Trixie (64-bit) |
+| USB-C power supply | Official Pi 5 PSU recommended (5V/5A) |
+
+### Pi Setup
+
+```bash
+git clone https://github.com/oaktech/vinyl-visions.git ~/vinyl-visions
+~/vinyl-visions/scripts/pi-setup.sh
+sudo reboot
+```
+
+The setup script installs everything: Node.js, Chromium kiosk, systemd service, mDNS (`vinylvisions.local`), and ALSA config for the USB mic.
+
+After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autostart` and audio capture begins automatically. The phone remote is still available at `http://vinylvisions.local:3001/remote`.
+
 ## How It Works
 
 1. **Listen** -- Grant microphone access and play music from a nearby speaker

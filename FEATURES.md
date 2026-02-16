@@ -112,6 +112,15 @@ Five built-in visualizations, all reactive to live audio:
 - MusicBrainz rate limiting (1 req/sec) built into the server
 - Graceful degradation: app works as a pure visualizer even without API keys
 
+## Raspberry Pi Appliance Mode
+
+- Runs as a headless, self-contained kiosk on Raspberry Pi 5 (or 4)
+- Automated setup via `scripts/pi-setup.sh` (Node.js, Chromium, systemd, mDNS, ALSA)
+- Audio capture auto-starts on boot via `?autostart` query parameter -- no click required
+- Chromium kiosk flags auto-grant microphone access and allow AudioContext without user gesture
+- USB mic auto-detected and configured as default ALSA capture device
+- mDNS hostname `vinylvisions.local` -- phone remote works at `vinylvisions.local:3001/remote`
+
 ## Planned
 
 - Seasonal visualizer screens (e.g. snowfall for winter, cherry blossoms for spring, fireflies for summer, falling leaves for autumn)

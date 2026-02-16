@@ -136,6 +136,13 @@ function StandaloneApp() {
 function DisplayRoute() {
   const isListening = useStore((s) => s.isListening);
   const { start } = useAudioCapture();
+  const autostart = new URLSearchParams(window.location.search).has('autostart');
+
+  useEffect(() => {
+    if (autostart && !isListening) {
+      start();
+    }
+  }, [autostart, isListening, start]);
 
   if (!isListening) {
     return <StartScreen onStart={start} />;

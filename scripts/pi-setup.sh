@@ -2,14 +2,14 @@
 #
 # Vinyl Visions — Raspberry Pi 5 Setup
 #
-# Turns a fresh Raspberry Pi OS (Bookworm) install into a dedicated
+# Turns a fresh Raspberry Pi OS (Trixie) install into a dedicated
 # visualizer appliance:
 #   - Node.js server + built frontend
 #   - Chromium kiosk on /display (auto-starts, full-screen, mic granted)
 #   - mDNS so iPhone can reach http://vinylvisions.local:3001/remote
 #
 # Prerequisites:
-#   - Raspberry Pi 5 (4GB+) running Raspberry Pi OS Bookworm (64-bit)
+#   - Raspberry Pi 5 (4GB+) running Raspberry Pi OS Trixie (64-bit)
 #   - Internet connection (Wi-Fi or Ethernet)
 #   - USB audio interface plugged in
 #
@@ -23,7 +23,7 @@ set -euo pipefail
 # ── Config ────────────────────────────────────────────────────
 APP_DIR="${APP_DIR:-$HOME/vinyl-visions}"
 APP_PORT="${APP_PORT:-3001}"
-KIOSK_URL="http://localhost:${APP_PORT}/display"
+KIOSK_URL="http://localhost:${APP_PORT}/display?autostart"
 NODE_MAJOR=22
 SERVICE_USER="$(whoami)"
 
@@ -96,6 +96,29 @@ echo "────────────────────────�
 info "Your USB audio interface should appear above."
 info "The app selects the input device in the browser (Settings)."
 info ""
+
+# Set USB audio as default ALSA capture device if no .asoundrc exists
+if [[ ! -f "$HOME/.asoundrc" ]]; then
+  USB_CARD=$(arecord -l 2>/dev/null | grep -oP 'card \K[0-9]+' | head -1)
+  if [[ -n "$USB_CARD" ]]; then
+    info "Setting USB audio (card ${USB_CARD}) as default ALSA capture device..."
+    cat > "$HOME/.asoundrc" <<ALSAEOF
+pcm.!default {
+    type asym
+    playback.pcm "hw:0,0"
+    capture.pcm "hw:${USB_CARD},0"
+}
+ctl.!default {
+    type hw
+    card ${USB_CARD}
+}
+ALSAEOF
+  else
+    warn "No USB audio device detected — plug in your USB mic and re-run setup."
+  fi
+else
+  info ".asoundrc already exists, skipping ALSA config."
+fi
 
 # ── 7. Avahi / mDNS — vinylvisions.local ─────────────────────
 info "Configuring mDNS hostname: vinylvisions.local"
@@ -211,8 +234,7 @@ info "  Server:  http://localhost:${APP_PORT}"
 info "  Display: ${KIOSK_URL}"
 info "  Remote:  http://vinylvisions.local:${APP_PORT}/remote"
 info ""
-info "  USB audio: select your interface in the browser"
-info "  after clicking 'Start Listening' on the display."
+info "  Audio capture starts automatically on the display."
 info ""
 info "  To add YouTube video search, edit ~/.env:"
 info "    YOUTUBE_API_KEY=your_key_here"
