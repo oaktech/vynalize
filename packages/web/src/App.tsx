@@ -14,23 +14,23 @@ import RemoteControl from './components/RemoteControl';
 
 function StartScreen({ onStart }: { onStart: () => void }) {
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-black">
-      <div className="text-center max-w-md px-6">
+    <div className="w-screen h-dvh flex items-center justify-center bg-black px-6">
+      <div className="text-center max-w-md w-full">
         <img
           src="/vynalize-logo.png"
           alt="Vynalize"
-          className="w-full max-w-96 mx-auto mb-8"
+          className="w-full max-w-72 sm:max-w-96 mx-auto mb-6 sm:mb-8"
         />
-        <p className="text-white/40 text-sm mb-8 leading-relaxed">
+        <p className="text-white/40 text-sm mb-6 sm:mb-8 leading-relaxed px-2">
           A companion display for your analog listening experience.
           Visualizations, lyrics, and music videos — all driven by what's playing.
         </p>
 
         <button
           onClick={onStart}
-          className="group relative px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl transition-all duration-300"
+          className="group relative px-8 py-4 sm:py-3 bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 hover:border-white/20 rounded-2xl transition-all duration-300 w-full sm:w-auto"
         >
-          <span className="flex items-center gap-3 text-white/80 group-hover:text-white transition-colors">
+          <span className="flex items-center justify-center gap-3 text-white/80 group-hover:text-white transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -75,9 +75,12 @@ function SessionOverlay() {
   if (!sessionId || remoteConnected) return null;
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
-      <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
-      <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
+    <div
+      className="fixed left-1/2 -translate-x-1/2 z-40 px-4 py-2 sm:px-5 sm:py-2.5 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-2 sm:gap-3"
+      style={{ top: `max(3.5rem, calc(env(safe-area-inset-top) + 3rem))` }}
+    >
+      <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wide">Session</span>
+      <span className="text-xl sm:text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
     </div>
   );
 }

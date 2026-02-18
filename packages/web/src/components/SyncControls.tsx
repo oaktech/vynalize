@@ -35,13 +35,13 @@ export default function SyncControls() {
   const firstLyric = lyrics.length > 0 ? lyrics[0] : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-      <span className="text-xs text-white/40 tabular-nums font-mono">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <span className="text-[10px] sm:text-xs text-white/40 tabular-nums font-mono">
         {displayTime}
       </span>
 
       {isVideo && (
-        <span className="text-[10px] text-white/30 uppercase tracking-wider">
+        <span className="text-[9px] sm:text-[10px] text-white/30 uppercase tracking-wider">
           Video
         </span>
       )}
@@ -49,25 +49,25 @@ export default function SyncControls() {
       <div className="flex items-center gap-1">
         <button
           onClick={() => adjust(-1000)}
-          className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
+          className="px-2.5 py-2 sm:px-2 sm:py-1 text-xs text-white/50 hover:text-white active:bg-white/15 active:scale-95 bg-white/5 hover:bg-white/10 rounded-lg sm:rounded transition-all"
         >
           -1s
         </button>
         <button
           onClick={() => adjust(-200)}
-          className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
+          className="px-2.5 py-2 sm:px-2 sm:py-1 text-xs text-white/50 hover:text-white active:bg-white/15 active:scale-95 bg-white/5 hover:bg-white/10 rounded-lg sm:rounded transition-all"
         >
           -0.2s
         </button>
         <button
           onClick={() => adjust(200)}
-          className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
+          className="px-2.5 py-2 sm:px-2 sm:py-1 text-xs text-white/50 hover:text-white active:bg-white/15 active:scale-95 bg-white/5 hover:bg-white/10 rounded-lg sm:rounded transition-all"
         >
           +0.2s
         </button>
         <button
           onClick={() => adjust(1000)}
-          className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
+          className="px-2.5 py-2 sm:px-2 sm:py-1 text-xs text-white/50 hover:text-white active:bg-white/15 active:scale-95 bg-white/5 hover:bg-white/10 rounded-lg sm:rounded transition-all"
         >
           +1s
         </button>
@@ -76,7 +76,7 @@ export default function SyncControls() {
       {!isVideo && firstLyric && (
         <button
           onClick={() => tapSync(firstLyric.timeMs)}
-          className="px-3 py-2.5 sm:px-3 sm:py-1 text-sm sm:text-xs font-medium text-white/70 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          className="px-2.5 py-2 sm:px-3 sm:py-1 text-xs font-medium text-white/70 hover:text-white active:bg-white/15 active:scale-95 bg-white/5 hover:bg-white/10 rounded-lg transition-all"
           title={`Tap when you hear: "${firstLyric.text}"`}
         >
           Tap Sync
@@ -84,7 +84,7 @@ export default function SyncControls() {
       )}
 
       {activeOffsetMs !== 0 && (
-        <span className="text-[10px] text-white/30 tabular-nums">
+        <span className="text-[9px] sm:text-[10px] text-white/30 tabular-nums">
           {isVideo ? 'video ' : ''}offset: {activeOffsetMs > 0 ? '+' : ''}{(activeOffsetMs / 1000).toFixed(1)}s
         </span>
       )}

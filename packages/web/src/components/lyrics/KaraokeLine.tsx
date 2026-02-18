@@ -15,14 +15,14 @@ export default function KaraokeLine({
 }: KaraokeLineProps) {
   return (
     <div
-      className={`relative py-3 transition-all duration-300 ${
+      className={`relative py-2 sm:py-3 transition-all duration-300 ${
         isActive
           ? isChorus
-            ? 'text-2xl sm:text-4xl md:text-6xl font-extrabold scale-105'
-            : 'text-xl sm:text-3xl md:text-5xl font-bold scale-100'
+            ? 'text-xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold scale-105'
+            : 'text-lg sm:text-2xl md:text-4xl lg:text-5xl font-bold scale-100'
           : isPast
-          ? 'text-base sm:text-lg md:text-2xl font-medium opacity-40 scale-95'
-          : 'text-base sm:text-lg md:text-2xl font-medium opacity-60 scale-95'
+          ? 'text-sm sm:text-base md:text-lg lg:text-2xl font-medium opacity-40 scale-95'
+          : 'text-sm sm:text-base md:text-lg lg:text-2xl font-medium opacity-60 scale-95'
       }`}
     >
       {isActive ? (

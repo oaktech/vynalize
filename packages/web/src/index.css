@@ -13,9 +13,20 @@ body,
 #root {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background: #000;
   color: #fff;
+}
+
+/* Dynamic viewport height utility — handles mobile browser chrome */
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Hide scrollbar for lyrics view */
@@ -30,6 +41,12 @@ body,
 button, a, [role="button"] {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+}
+
+/* Prevent iOS overscroll / bounce */
+html {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Smooth transitions for mode switching */
