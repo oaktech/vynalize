@@ -62,7 +62,8 @@ export type WsCommand =
   | { type: 'command'; action: 'setAccentColor'; value: string }
   | { type: 'command'; action: 'adjustSensitivity'; value: number }
   | { type: 'command'; action: 'nextVisualizer' }
-  | { type: 'command'; action: 'prevVisualizer' };
+  | { type: 'command'; action: 'prevVisualizer' }
+  | { type: 'command'; action: 'adjustVideoOffset'; value: number };
 
 export interface WsStateMessage {
   type: 'state';

@@ -56,6 +56,9 @@ export function useWsCommands(role: Role) {
           case 'prevVisualizer':
             store.prevVisualizer();
             break;
+          case 'adjustVideoOffset':
+            store.adjustVideoOffset(msg.value);
+            break;
         }
       };
 
