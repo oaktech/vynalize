@@ -27,19 +27,27 @@ function boost(value: number, gain: number): number {
 }
 
 // ── ECG waveform shape ───────────────────────────────────────
-// Attempt to mimic PQRST complex: flat → small P bump → sharp QRS spike → small T bump → flat
 function ecgShape(t: number): number {
-  // t in 0..1 represents one heartbeat cycle
-  if (t < 0.10) return 0;                                          // baseline
-  if (t < 0.15) return Math.sin((t - 0.10) / 0.05 * Math.PI) * 0.12;  // P wave
-  if (t < 0.20) return 0;                                          // PR segment
-  if (t < 0.22) return -(t - 0.20) / 0.02 * 0.15;                 // Q dip
-  if (t < 0.26) return -0.15 + ((t - 0.22) / 0.04) * 1.15;        // R spike up
-  if (t < 0.30) return 1.0 - ((t - 0.26) / 0.04) * 1.3;           // S dip
-  if (t < 0.35) return -0.3 + ((t - 0.30) / 0.05) * 0.3;          // back to baseline
-  if (t < 0.45) return 0;                                          // ST segment
-  if (t < 0.55) return Math.sin((t - 0.45) / 0.10 * Math.PI) * 0.18; // T wave
-  return 0;                                                         // baseline
+  if (t < 0.10) return 0;
+  if (t < 0.15) return Math.sin((t - 0.10) / 0.05 * Math.PI) * 0.12;
+  if (t < 0.20) return 0;
+  if (t < 0.22) return -(t - 0.20) / 0.02 * 0.15;
+  if (t < 0.26) return -0.15 + ((t - 0.22) / 0.04) * 1.15;
+  if (t < 0.30) return 1.0 - ((t - 0.26) / 0.04) * 1.3;
+  if (t < 0.35) return -0.3 + ((t - 0.30) / 0.05) * 0.3;
+  if (t < 0.45) return 0;
+  if (t < 0.55) return Math.sin((t - 0.45) / 0.10 * Math.PI) * 0.18;
+  return 0;
+}
+
+// ── Capnography (CO₂) waveform shape ────────────────────────
+function co2Shape(t: number): number {
+  if (t < 0.35) return 0;                                // inspiration baseline
+  if (t < 0.45) return (t - 0.35) / 0.10;                // expiratory upstroke
+  if (t < 0.80) return 1.0 + (t - 0.45) * 0.1;           // alveolar plateau (slight rise)
+  const peak = 1.0 + 0.35 * 0.1;
+  if (t < 0.90) return peak * (1 - (t - 0.80) / 0.10);   // inspiratory downstroke
+  return 0;
 }
 
 // ── Component ────────────────────────────────────────────────
@@ -50,12 +58,11 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
   const isBeat = useStore((s) => s.isBeat);
   const bpm = useStore((s) => s.bpm);
 
-  // Scrolling data buffers
+  // Sweep data buffers
   const ecgBuffer = useRef(new Float32Array(HISTORY));
-  const bassBuffer = useRef(new Float32Array(HISTORY));
-  const midBuffer = useRef(new Float32Array(HISTORY));
-  const highBuffer = useRef(new Float32Array(HISTORY));
   const plethBuffer = useRef(new Float32Array(HISTORY));
+  const respBuffer = useRef(new Float32Array(HISTORY));
+  const co2Buffer = useRef(new Float32Array(HISTORY));
   const writeIdx = useRef(0);
 
   // ECG state
@@ -63,17 +70,22 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
   const beatActive = useRef(false);
   const beatStrength = useRef(0);
   const beepFlash = useRef(0);
+  const plethPhase = useRef(1); // 0..1, reset on beat
 
   // Smooth audio for oscillation amplitude
   const smoothAudio = useRef({ bass: 0, mid: 0, high: 0, rms: 0, energy: 0 });
-  const prevRms = useRef(0);
-  const lastEcgTrigger = useRef(0);
+  const prevBassEnergy = useRef(0);
+  const lastTrigger = useRef(0);
+
+  // Phase accumulators for resp & CO₂ (stable, no modulo jumps)
+  const respPhaseRef = useRef(0);
+  const co2PhaseRef = useRef(0.3); // offset from resp
 
   // Smooth values for readouts
   const smoothBpm = useRef(0);
   const smoothSpO2 = useRef(97);
-  const smoothBP = useRef({ sys: 120, dia: 80 });
   const smoothResp = useRef(16);
+  const smoothEtco2 = useRef(38);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,6 +106,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       beatActive.current = true;
       beatStrength.current = 1;
       beepFlash.current = 1;
+      plethPhase.current = -0.08; // small delay for pulse transit time
     }
   }, [isBeat]);
 
@@ -124,21 +137,26 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     const bHigh = boost(sa.high, 5.0);  // highs roll off most, need most gain
     const bRms = boost(sa.rms, 3.0);
 
-    // ── Detect bass/volume spikes directly for ECG trigger ──
-    const rmsDelta = rms - prevRms.current;
-    prevRms.current = rms;
-    const minEcgGap = 250; // ms between triggers
+    // ── Detect beats from raw FFT bins (Guitar Hero approach) ──
+    const freq = audioFeatures.frequencyData;
+    // Sub-bass + bass bins (0-35) with high gain for ambient mic
+    let bassSum = 0;
+    for (let b = 0; b <= 35; b++) bassSum += freq[b] / 255;
+    const bassAvg = bassSum / 36;
+    const bassBoosted = Math.min(1, Math.pow(bassAvg * 5.0, 0.55));
+    const bassDelta = bassBoosted - prevBassEnergy.current;
+    prevBassEnergy.current = bassBoosted;
 
-    if (rmsDelta > 0.01 && now - lastEcgTrigger.current / 1000 > minEcgGap / 1000) {
+    if (bassDelta > 0.03 && bassBoosted > 0.08 && now - lastTrigger.current > 0.18) {
       beatPhase.current = 0;
       beatActive.current = true;
-      beatStrength.current = Math.min(1, rmsDelta * 15);
+      beatStrength.current = Math.min(1, bassDelta * 8);
       beepFlash.current = 1;
-      lastEcgTrigger.current = now;
+      plethPhase.current = -0.08;
+      lastTrigger.current = now;
     }
 
     // ── Advance ECG phase ──
-    // Fixed speed: complete the PQRST in ~400ms regardless of BPM
     if (beatActive.current) {
       beatPhase.current += 0.04;
       if (beatPhase.current >= 1) {
@@ -147,53 +165,46 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       }
     }
 
-    const beatsPerSec = (bpm || 72) / 60;
-
     // ECG: PQRST spike scaled by beat strength + bass-reactive baseline
     const ecgBeat = beatActive.current
       ? ecgShape(beatPhase.current) * (2.0 + beatStrength.current * 3.0)
       : 0;
     const ecgBaseline =
-      Math.sin(now * 1.2) * bBass * 0.5 +
-      Math.sin(now * 3.7) * bBass * 0.25 +
+      Math.sin(now * 1.2) * bBass * 0.3 +
+      Math.sin(now * 3.7) * bBass * 0.15 +
       Math.sin(now * 0.5) * 0.02;
     const ecgVal = ecgBeat + ecgBaseline;
 
-    // Pleth: synthetic pulse wave — sharp rise, slow decay, amplitude from RMS
-    const plethPhase = (now * beatsPerSec) % 1;
-    const plethShape = plethPhase < 0.15
-      ? Math.sin(plethPhase / 0.15 * Math.PI * 0.5) // sharp rise
-      : Math.exp(-(plethPhase - 0.15) * 4) * 0.9 + // exponential decay
-        Math.sin((plethPhase - 0.15) / 0.2 * Math.PI) * 0.15 * Math.exp(-(plethPhase - 0.15) * 3); // dicrotic notch
-    const plethVal = plethShape * (0.3 + bRms * 3);
+    // Pleth: beat-synced pulse wave — triggers after each ECG spike
+    if (plethPhase.current < 1) plethPhase.current += 0.025;
+    const pp = Math.max(0, plethPhase.current);
+    const plethWave = pp < 0.15
+      ? Math.sin(pp / 0.15 * Math.PI * 0.5)
+      : pp < 1 ? Math.exp(-(pp - 0.15) * 3.5) * 0.9 +
+        Math.sin((pp - 0.15) / 0.25 * Math.PI) * 0.15 * Math.exp(-(pp - 0.15) * 2.5)
+      : 0;
+    const plethVal = plethWave * (0.5 + bRms * 2.5);
 
-    // EEG channels: synthetic oscillations at characteristic frequencies
-    // Amplitude driven by compressed band energies — responsive to quiet mic audio
-    // Delta (bass): slow 1-3Hz waves
-    const deltaVal =
-      (Math.sin(now * 1.5 * Math.PI * 2) * 0.5 +
-       Math.sin(now * 2.8 * Math.PI * 2) * 0.3 +
-       Math.sin(now * 0.7 * Math.PI * 2) * 0.2) * (0.05 + bBass * 2.5);
+    // Respiration: audio-reactive sinusoidal via phase accumulator
+    const respRate = 24 + sa.energy * 16; // 24-40 br/min, faster with energy
+    const respAdvance = (respRate / 60) / 60; // per-frame at ~60fps
+    respPhaseRef.current = (respPhaseRef.current + respAdvance) % 1;
+    const rp = respPhaseRef.current;
+    const respVal = (rp < 0.4
+      ? Math.sin(rp / 0.4 * Math.PI * 0.5)
+      : Math.cos((rp - 0.4) / 0.6 * Math.PI * 0.5)
+    ) * (0.8 + bBass * 0.7);
 
-    // Alpha (mid): 8-12Hz waves
-    const alphaVal =
-      (Math.sin(now * 9.5 * Math.PI * 2) * 0.5 +
-       Math.sin(now * 11.2 * Math.PI * 2) * 0.3 +
-       Math.sin(now * 8.1 * Math.PI * 2) * 0.2) * (0.05 + bMid * 2.5);
-
-    // Beta (high): 15-30Hz waves
-    const betaVal =
-      (Math.sin(now * 18 * Math.PI * 2) * 0.4 +
-       Math.sin(now * 24 * Math.PI * 2) * 0.35 +
-       Math.sin(now * 28 * Math.PI * 2) * 0.25) * (0.05 + bHigh * 2.5);
+    // Capnography (CO₂): plateau waveform via phase accumulator
+    co2PhaseRef.current = (co2PhaseRef.current + respAdvance) % 1;
+    const co2Val = co2Shape(co2PhaseRef.current) * (0.8 + bMid * 0.6);
 
     // Push to buffers
     const idx = writeIdx.current % HISTORY;
     ecgBuffer.current[idx] = ecgVal;
     plethBuffer.current[idx] = plethVal;
-    bassBuffer.current[idx] = deltaVal;
-    midBuffer.current[idx] = alphaVal;
-    highBuffer.current[idx] = betaVal;
+    respBuffer.current[idx] = respVal;
+    co2Buffer.current[idx] = co2Val;
     writeIdx.current++;
 
     // Beep flash decay
@@ -203,9 +214,8 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     const targetBpm = bpm || 72;
     smoothBpm.current += (targetBpm - smoothBpm.current) * 0.05;
     smoothSpO2.current += ((95 + energy * 4) - smoothSpO2.current) * 0.02;
-    smoothBP.current.sys += ((110 + rms * 40) - smoothBP.current.sys) * 0.03;
-    smoothBP.current.dia += ((70 + bass * 30) - smoothBP.current.dia) * 0.03;
-    smoothResp.current += ((14 + mid * 8) - smoothResp.current) * 0.02;
+    smoothResp.current += ((14 + sa.energy * 8) - smoothResp.current) * 0.02;
+    smoothEtco2.current += ((35 + energy * 10) - smoothEtco2.current) * 0.02;
 
     // ── Clear ──
     ctx.fillStyle = '#0a0a0a';
@@ -228,16 +238,30 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ctx.stroke();
     }
 
-    // ── Draw traces ──
+    // ── Draw traces (sweep mode) ──
+    const headIdx = (writeIdx.current - 1 + HISTORY) % HISTORY;
+    const eraseSlots = Math.floor(HISTORY * 0.03);
+    const step = width / HISTORY;
+    const filled = Math.min(writeIdx.current, HISTORY);
+    const wrapped = writeIdx.current >= HISTORY;
+
+    // No overlay — the gap in the trace lines provides the sweep break
+
     const traceConfigs = [
-      { buffer: ecgBuffer.current, y: 0.15, h: 0.28, color: `rgb(${r}, ${g}, ${b})`, label: 'II', lineW: 3 },
-      { buffer: plethBuffer.current, y: 0.42, h: 0.12, color: '#00e5ff', label: 'Pleth', lineW: 2 },
-      { buffer: bassBuffer.current, y: 0.58, h: 0.10, color: '#ff4444', label: 'EEG δ', lineW: 1.5 },
-      { buffer: midBuffer.current, y: 0.70, h: 0.10, color: '#ffaa00', label: 'EEG α', lineW: 1.5 },
-      { buffer: highBuffer.current, y: 0.82, h: 0.10, color: '#44ff88', label: 'EEG β', lineW: 1.5 },
+      { buffer: ecgBuffer.current, y: 0.10, h: 0.24, rgb: `${r}, ${g}, ${b}`, label: 'II', lineW: 3 },
+      { buffer: plethBuffer.current, y: 0.36, h: 0.18, rgb: '0, 229, 255', label: 'Pleth', lineW: 2.5 },
+      { buffer: respBuffer.current, y: 0.56, h: 0.18, rgb: '255, 170, 0', label: 'Resp', lineW: 2 },
+      { buffer: co2Buffer.current, y: 0.76, h: 0.18, rgb: '170, 140, 255', label: 'CO₂', lineW: 2 },
     ];
 
-    const count = Math.min(writeIdx.current, HISTORY);
+    const maxAge = wrapped ? HISTORY - eraseSlots : Math.max(filled, 1);
+
+    // Phosphor decay passes: layered dim → medium → bright
+    const phosphorPasses = [
+      { ageFrac: 1.0, alpha: 0.25, glow: 0 },
+      { ageFrac: 0.85, alpha: 0.30, glow: 0 },
+      { ageFrac: 0.80, alpha: 0.40, glow: 8 },
+    ];
 
     for (const trace of traceConfigs) {
       const traceY = height * trace.y;
@@ -245,7 +269,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
 
       // Label
       ctx.font = `${11 * dpr}px monospace`;
-      ctx.fillStyle = trace.color;
+      ctx.fillStyle = `rgb(${trace.rgb})`;
       ctx.globalAlpha = 0.5;
       ctx.fillText(trace.label, 8 * dpr, traceY - 4 * dpr);
       ctx.globalAlpha = 1;
@@ -258,41 +282,59 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ctx.lineTo(width, traceY + traceH + 4 * dpr);
       ctx.stroke();
 
-      // Trace
-      ctx.beginPath();
-      ctx.strokeStyle = trace.color;
-      ctx.lineWidth = trace.lineW * dpr;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
+      // Trace with phosphor decay — 3 passes, each brighter for newer data
+      for (const pass of phosphorPasses) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${trace.rgb}, ${pass.alpha})`;
+        ctx.lineWidth = trace.lineW * dpr;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        if (pass.glow > 0) {
+          ctx.shadowColor = `rgb(${trace.rgb})`;
+          ctx.shadowBlur = pass.glow * dpr;
+        }
 
-      // Glow
-      ctx.shadowColor = trace.color;
-      ctx.shadowBlur = 8 * dpr;
+        let drawing = false;
+        for (let i = 0; i < filled; i++) {
+          if (wrapped) {
+            const distAhead = (i - headIdx + HISTORY) % HISTORY;
+            if (distAhead >= 1 && distAhead <= eraseSlots) {
+              drawing = false;
+              continue;
+            }
+          }
 
-      const step = width / HISTORY;
-      for (let i = 0; i < count; i++) {
-        const bufIdx = (writeIdx.current - count + i + HISTORY) % HISTORY;
-        const val = trace.buffer[bufIdx];
-        const x = (HISTORY - count + i) * step;
-        const y = traceY + traceH * 0.5 - val * traceH * 0.5;
+          const age = (headIdx - i + HISTORY) % HISTORY;
+          if (age > maxAge * pass.ageFrac) {
+            drawing = false;
+            continue;
+          }
 
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+          const val = trace.buffer[i];
+          const x = i * step;
+          const y = traceY + traceH * 0.5 - val * traceH * 0.5;
+
+          if (!drawing) { ctx.moveTo(x, y); drawing = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
       }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
 
-      // Leading dot (bright pixel at write head)
-      if (count > 0) {
-        const lastBufIdx = (writeIdx.current - 1 + HISTORY) % HISTORY;
-        const lastVal = trace.buffer[lastBufIdx];
-        const dotX = (HISTORY - 1) * step;
+      // Leading dot at cursor position
+      if (filled > 0) {
+        const dotIdx = wrapped ? headIdx : filled - 1;
+        const lastVal = trace.buffer[dotIdx];
+        const dotX = dotIdx * step;
         const dotY = traceY + traceH * 0.5 - lastVal * traceH * 0.5;
 
         ctx.beginPath();
-        ctx.arc(dotX, dotY, 3 * dpr, 0, Math.PI * 2);
+        ctx.arc(dotX, dotY, 3.5 * dpr, 0, Math.PI * 2);
         ctx.fillStyle = 'white';
+        ctx.shadowColor = `rgb(${trace.rgb})`;
+        ctx.shadowBlur = 14 * dpr;
         ctx.fill();
+        ctx.shadowBlur = 0;
       }
     }
 
@@ -305,17 +347,17 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
     ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
     ctx.shadowBlur = flash * 20 * dpr;
-    ctx.fillText(Math.round(smoothBpm.current).toString(), panelX, height * 0.15);
+    ctx.fillText(Math.round(smoothBpm.current).toString(), panelX, height * 0.12);
     ctx.shadowBlur = 0;
 
     ctx.font = `${12 * dpr}px monospace`;
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
-    ctx.fillText('HR  bpm', panelX, height * 0.15 + 18 * dpr);
+    ctx.fillText('HR  bpm', panelX, height * 0.12 + 18 * dpr);
 
     // Heart icon that beats
     const heartSize = 14 + flash * 8;
     const heartX = panelX + 140 * dpr;
-    const heartY = height * 0.15 - 20 * dpr;
+    const heartY = height * 0.12 - 20 * dpr;
     ctx.fillStyle = flash > 0.1
       ? `rgba(${r}, ${g}, ${b}, ${0.5 + flash * 0.5})`
       : `rgba(${r}, ${g}, ${b}, 0.3)`;
@@ -330,24 +372,21 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     ctx.fillStyle = 'rgba(0, 229, 255, 0.5)';
     ctx.fillText('SpO₂  %', panelX, height * 0.38 + 18 * dpr);
 
-    // Blood Pressure
-    ctx.font = `bold ${24 * dpr}px monospace`;
-    ctx.fillStyle = '#ff4444';
-    ctx.fillText(
-      `${Math.round(smoothBP.current.sys)}/${Math.round(smoothBP.current.dia)}`,
-      panelX, height * 0.56,
-    );
-    ctx.font = `${12 * dpr}px monospace`;
-    ctx.fillStyle = 'rgba(255, 68, 68, 0.5)';
-    ctx.fillText('NIBP  mmHg', panelX, height * 0.56 + 18 * dpr);
-
     // Resp rate
-    ctx.font = `bold ${24 * dpr}px monospace`;
+    ctx.font = `bold ${28 * dpr}px monospace`;
     ctx.fillStyle = '#ffaa00';
-    ctx.fillText(Math.round(smoothResp.current).toString(), panelX, height * 0.72);
+    ctx.fillText(Math.round(smoothResp.current).toString(), panelX, height * 0.58);
     ctx.font = `${12 * dpr}px monospace`;
     ctx.fillStyle = 'rgba(255, 170, 0, 0.5)';
-    ctx.fillText('RESP  br/min', panelX, height * 0.72 + 18 * dpr);
+    ctx.fillText('RESP  br/min', panelX, height * 0.58 + 18 * dpr);
+
+    // EtCO₂
+    ctx.font = `bold ${28 * dpr}px monospace`;
+    ctx.fillStyle = '#aa8cff';
+    ctx.fillText(Math.round(smoothEtco2.current).toString(), panelX, height * 0.78);
+    ctx.font = `${12 * dpr}px monospace`;
+    ctx.fillStyle = 'rgba(170, 140, 255, 0.5)';
+    ctx.fillText('EtCO₂  mmHg', panelX, height * 0.78 + 18 * dpr);
 
     // ── Beep dot (top right, flashes on beat) ──
     if (flash > 0.05) {
