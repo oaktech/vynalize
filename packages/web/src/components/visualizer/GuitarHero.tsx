@@ -206,7 +206,8 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     // ── Highway geometry ──
     const vanishY = height * 0.22;
     const vanishX = width * 0.5;
-    const bottomY = height * 0.78;
+    const bottomY = height * 0.82;
+    const floorY = height; // lane lines extend to screen bottom
     const laneSpread = width * 0.42;
 
     function getLaneX(lane: number, y01: number): number {
@@ -222,6 +223,8 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     function y01ToCanvas(y01: number): number {
       return vanishY + y01 * (bottomY - vanishY);
     }
+
+    const y01Floor = (height - vanishY) / (bottomY - vanishY);
 
     const beatsPerSec = (bpm || 120) / 60;
     gridScroll.current += beatsPerSec * 0.012;
@@ -256,7 +259,10 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
 
     for (const note of notesRef.current) {
       if (!note.active) continue;
-      note.y += noteSpeed;
+      // Hit notes stop; missed notes keep scrolling past
+      if (note.hitResult === '' || note.hitResult === 'miss') {
+        note.y += noteSpeed;
+      }
 
       if (note.y >= 0.97 && note.hitResult === '') {
         if (Math.random() > 0.07) {
@@ -327,9 +333,12 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       }
     }
 
-    notesRef.current = notesRef.current.filter(
-      (n) => n.active && (n.hitResult === '' || now - n.hitTime < 300),
-    );
+    notesRef.current = notesRef.current.filter((n) => {
+      if (!n.active) return false;
+      if (n.hitResult === '') return true; // still scrolling
+      if (n.hitResult === 'miss') return n.y < y01Floor; // missed: keep until off-screen
+      return now - n.hitTime < 300; // hit: fade out
+    });
 
     if (particlesRef.current.length > 300) particlesRef.current = particlesRef.current.slice(-300);
 
@@ -547,8 +556,8 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     ctx.beginPath();
     ctx.moveTo(getLaneX(-0.5, 0), y01ToCanvas(0));
     ctx.lineTo(getLaneX(NUM_LANES - 0.5, 0), y01ToCanvas(0));
-    ctx.lineTo(getLaneX(NUM_LANES - 0.5, 1), y01ToCanvas(1));
-    ctx.lineTo(getLaneX(-0.5, 1), y01ToCanvas(1));
+    ctx.lineTo(getLaneX(NUM_LANES - 0.5, y01Floor), floorY);
+    ctx.lineTo(getLaneX(-0.5, y01Floor), floorY);
     ctx.closePath();
     const hwGrad = ctx.createLinearGradient(0, y01ToCanvas(0), 0, y01ToCanvas(1));
     hwGrad.addColorStop(0, 'rgba(15, 10, 25, 0.7)');
@@ -560,7 +569,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     for (let i = 0; i <= NUM_LANES; i++) {
       const laneIdx = i - 0.5;
       const topX = getLaneX(laneIdx, 0);
-      const botX = getLaneX(laneIdx, 1);
+      const botX = getLaneX(laneIdx, y01Floor);
 
       let flashA = 0;
       if (i > 0) flashA = Math.max(flashA, laneFlash.current[i - 1]);
@@ -580,7 +589,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       ctx.lineWidth = (i === 0 || i === NUM_LANES ? 2.5 : 1.5) * dpr;
       ctx.beginPath();
       ctx.moveTo(topX, y01ToCanvas(0));
-      ctx.lineTo(botX, y01ToCanvas(1));
+      ctx.lineTo(botX, floorY);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
@@ -600,9 +609,10 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
 
     // ── 4. Notes ──
     for (const note of notesRef.current) {
-      if (note.hitResult !== '' && now - note.hitTime > 250) continue;
+      if (note.hitResult !== '' && note.hitResult !== 'miss' && now - note.hitTime > 250) continue;
+      if (note.y > y01Floor) continue;
 
-      const y01 = Math.min(note.y, 1.05);
+      const y01 = note.y;
       const canvasY = y01ToCanvas(y01);
       const cx = getLaneX(note.lane, y01);
       const scale = getScale(y01);
@@ -617,7 +627,9 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
         alpha = 1 - el / 250;
         extraS = 1 + el / 200;
       } else if (note.hitResult === 'miss') {
-        alpha = 1 - (now - note.hitTime) / 200;
+        // Fade out as it scrolls past strikeline toward bottom
+        const pastStrike = Math.max(0, note.y - 1.0) / (y01Floor - 1.0);
+        alpha = 1 - pastStrike;
       }
       if (alpha <= 0) continue;
 
