@@ -184,6 +184,14 @@ export default function AsciiWords({ accentColor }: { accentColor: string }) {
     return () => clearInterval(id);
   }, [updateWord]);
 
+  if (!currentSong) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-white/40 text-lg">Waiting for song identification...</p>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}

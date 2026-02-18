@@ -70,9 +70,11 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
     onJoin(trimmed);
   };
 
+  const accentColor = '#8b5cf6';
+
   return (
     <div
-      className="min-h-screen bg-black text-white flex items-center justify-center"
+      className="min-h-screen bg-black text-white overflow-y-auto overscroll-y-contain"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -80,41 +82,88 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      <div className="w-full max-w-sm px-6 text-center">
-        <h1 className="text-xl font-semibold tracking-tight mb-2">Vynalize Remote</h1>
-        <p className="text-sm text-white/40 mb-8">
-          Enter the session code shown on your display
-        </p>
+      {/* Ambient glow */}
+      <div
+        className="fixed inset-0 pointer-events-none opacity-[0.07]"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${accentColor}, transparent 70%)`,
+        }}
+      />
 
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-          placeholder="A3K9X2"
-          maxLength={6}
-          className="w-full text-center text-3xl font-mono tracking-[0.3em] bg-white/5 border border-white/10 rounded-xl py-4 px-6 text-white placeholder:text-white/15 focus:outline-none focus:border-white/30 transition-colors"
-          autoFocus
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-        />
+      <div className="relative z-10 px-5 py-6 max-w-lg mx-auto flex flex-col min-h-screen">
+        {/* Header — matches RemoteUI */}
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight text-white/90">
+              Vynalize
+            </h1>
+            <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
+              Remote
+            </p>
+          </div>
+        </header>
 
-        {error && (
-          <p className="text-red-400/80 text-xs mt-3">{error}</p>
-        )}
+        {/* Centered content */}
+        <div className="flex-1 flex flex-col items-center justify-center -mt-12">
+          {/* Link icon */}
+          <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/30">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </div>
 
-        <button
-          onClick={handleSubmit}
-          className="w-full mt-6 py-3.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-sm font-medium transition-all active:scale-95"
-        >
-          Connect
-        </button>
+          <p className="text-[11px] text-white/30 tracking-wide uppercase mb-4">
+            Session Code
+          </p>
 
-        <p className="text-[10px] text-white/20 mt-8">
-          Open your display at <span className="text-white/30">/display</span> to get a session code
-        </p>
+          <input
+            type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            placeholder="A3K9X2"
+            maxLength={6}
+            className="w-full max-w-[280px] text-center text-3xl font-mono tracking-[0.3em] py-4 px-6 text-white placeholder:text-white/10 focus:outline-none transition-colors rounded-2xl border"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              borderColor: code.length > 0 ? `${accentColor}40` : 'rgba(255,255,255,0.06)',
+            }}
+            autoFocus
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+
+          {error && (
+            <p className="text-red-400/70 text-xs mt-3">{error}</p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            className="mt-6 px-10 py-3.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
+            style={{
+              backgroundColor: code.length >= 4 ? `${accentColor}25` : 'rgba(255,255,255,0.04)',
+              borderWidth: 1,
+              borderColor: code.length >= 4 ? `${accentColor}50` : 'rgba(255,255,255,0.06)',
+              color: code.length >= 4 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
+            }}
+          >
+            Connect
+          </button>
+
+          <p className="text-[10px] text-white/15 mt-8 text-center leading-relaxed">
+            Enter the code shown on your display to connect
+          </p>
+        </div>
+
+        {/* Footer — matches RemoteUI */}
+        <footer className="text-center pt-2 pb-4">
+          <p className="text-[10px] text-white/15">
+            Vynalize Remote v0.1.0
+          </p>
+        </footer>
       </div>
     </div>
   );
@@ -139,9 +188,12 @@ function RemoteUI({ sessionId }: { sessionId: string }) {
 
   const setVisualizerMode = useCallback(
     (mode: VisualizerMode) => {
+      if (appMode !== 'visualizer') {
+        send({ type: 'command', action: 'setAppMode', value: 'visualizer' });
+      }
       send({ type: 'command', action: 'setVisualizerMode', value: mode });
     },
-    [send],
+    [send, appMode],
   );
 
   const cyclePrev = useCallback(() => {
