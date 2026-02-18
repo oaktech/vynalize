@@ -19,6 +19,8 @@ const vizModes: { id: VisualizerMode; label: string }[] = [
   { id: 'spaceage', label: 'Space Age' },
   { id: 'starrynight', label: 'Starry Night' },
   { id: 'guitarhero', label: 'Guitar Hero' },
+  { id: 'vynalize', label: 'Vynalize' },
+  { id: 'beatsaber', label: 'Beat Saber' },
 ];
 
 export default function ModeSelector() {

@@ -54,6 +54,7 @@ const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
   { id: 'spaceage', label: 'Space Age' },
   { id: 'starrynight', label: 'Starry Night' },
   { id: 'guitarhero', label: 'Guitar Hero' },
+  { id: 'beatsaber', label: 'Beat Saber' },
 ];
 
 function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {

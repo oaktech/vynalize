@@ -9,6 +9,8 @@ import Synthwave from './Synthwave';
 import SpaceAge from './SpaceAge';
 import StarryNight from './StarryNight';
 import GuitarHero from './GuitarHero';
+import VynalizeLogo from './VynalizeLogo';
+import BeatSaber from './BeatSaber';
 
 // Lazy-load 3D visualizers (avoids loading Three.js until needed)
 const ParticleField = lazy(() => import('./ParticleField'));
@@ -52,6 +54,8 @@ export default function VisualizerView() {
         {visualizerMode === 'spaceage' && <SpaceAge accentColor={accentColor} />}
         {visualizerMode === 'starrynight' && <StarryNight accentColor={accentColor} />}
         {visualizerMode === 'guitarhero' && <GuitarHero accentColor={accentColor} />}
+        {visualizerMode === 'vynalize' && <VynalizeLogo accentColor={accentColor} />}
+        {visualizerMode === 'beatsaber' && <BeatSaber accentColor={accentColor} />}
       </div>
     </div>
   );
