@@ -20,12 +20,12 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
+      <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Settings</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-2.5 sm:p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
@@ -52,28 +52,47 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
           </select>
         </div>
 
-        {/* Keyboard Shortcuts */}
+        {/* Keyboard Shortcuts / Touch Hints */}
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-white/60 mb-3">Keyboard Shortcuts</h3>
-          <div className="space-y-2 text-xs">
-            {[
-              ['F', 'Toggle fullscreen'],
-              ['Esc', 'Exit fullscreen'],
-              ['1', 'Visualizer mode'],
-              ['2', 'Lyrics mode'],
-              ['3', 'Video mode'],
-              ['4', 'ASCII mode'],
-              ['← / →', 'Adjust sync offset ±0.2s'],
-              ['↑ / ↓', 'Adjust sync offset ±1s'],
-            ].map(([key, desc]) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-white/40">{desc}</span>
-                <kbd className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-white/60 font-mono">
-                  {key}
-                </kbd>
-              </div>
-            ))}
-          </div>
+          <h3 className="text-sm font-medium text-white/60 mb-3">
+            {'ontouchstart' in window ? 'Touch Controls' : 'Keyboard Shortcuts'}
+          </h3>
+          {'ontouchstart' in window ? (
+            <div className="space-y-2 text-xs">
+              {[
+                ['Tap screen', 'Show/hide controls'],
+                ['Swipe mode bar', 'Switch visualizer modes'],
+                ['Sync buttons', 'Adjust lyrics/video timing'],
+              ].map(([action, desc]) => (
+                <div key={action} className="flex items-center justify-between">
+                  <span className="text-white/40">{desc}</span>
+                  <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-white/60 text-[11px]">
+                    {action}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2 text-xs">
+              {[
+                ['F', 'Toggle fullscreen'],
+                ['Esc', 'Exit fullscreen'],
+                ['1', 'Visualizer mode'],
+                ['2', 'Lyrics mode'],
+                ['3', 'Video mode'],
+                ['4', 'ASCII mode'],
+                ['← / →', 'Adjust sync offset ±0.2s'],
+                ['↑ / ↓', 'Adjust sync offset ±1s'],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-white/40">{desc}</span>
+                  <kbd className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-white/60 font-mono">
+                    {key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* About */}

@@ -18,11 +18,11 @@ export default function KaraokeLine({
       className={`relative py-3 transition-all duration-300 ${
         isActive
           ? isChorus
-            ? 'text-4xl md:text-6xl font-extrabold scale-105'
-            : 'text-3xl md:text-5xl font-bold scale-100'
+            ? 'text-2xl sm:text-4xl md:text-6xl font-extrabold scale-105'
+            : 'text-xl sm:text-3xl md:text-5xl font-bold scale-100'
           : isPast
-          ? 'text-lg md:text-2xl font-medium opacity-40 scale-95'
-          : 'text-lg md:text-2xl font-medium opacity-60 scale-95'
+          ? 'text-base sm:text-lg md:text-2xl font-medium opacity-40 scale-95'
+          : 'text-base sm:text-lg md:text-2xl font-medium opacity-60 scale-95'
       }`}
     >
       {isActive ? (

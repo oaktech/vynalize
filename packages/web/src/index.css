@@ -22,6 +22,15 @@ body,
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+/* Touch-friendly tap targets */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
 
 /* Smooth transitions for mode switching */
 .mode-transition {

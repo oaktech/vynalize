@@ -77,15 +77,15 @@ export default function NowPlaying() {
   if (!currentSong) return null;
 
   return (
-    <div className="flex items-center gap-5 max-w-2xl">
+    <div className="flex items-center gap-3 sm:gap-5 max-w-2xl">
       {currentSong.albumArtUrl ? (
         <img
           src={currentSong.albumArtUrl}
           alt={currentSong.album}
-          className="w-20 h-20 md:w-24 md:h-24 rounded-xl shadow-2xl object-cover flex-shrink-0 ring-1 ring-white/10"
+          className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl shadow-2xl object-cover flex-shrink-0 ring-1 ring-white/10"
         />
       ) : (
-        <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+        <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/40">
             <circle cx="12" cy="12" r="10" />
             <circle cx="12" cy="12" r="3" />
@@ -93,10 +93,10 @@ export default function NowPlaying() {
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-xl md:text-2xl font-bold text-white truncate leading-tight">
+        <p className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate leading-tight">
           {currentSong.title}
         </p>
-        <p className="text-base md:text-lg text-white/70 truncate mt-1">
+        <p className="text-sm sm:text-base md:text-lg text-white/70 truncate mt-1">
           {currentSong.artist}
         </p>
         {currentSong.album && (

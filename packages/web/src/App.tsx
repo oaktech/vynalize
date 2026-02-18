@@ -19,7 +19,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
         <img
           src="/vynalize-logo.png"
           alt="Vynalize"
-          className="w-96 mx-auto mb-8"
+          className="w-full max-w-96 mx-auto mb-8"
         />
         <p className="text-white/40 text-sm mb-8 leading-relaxed">
           A companion display for your analog listening experience.

@@ -68,36 +68,40 @@ export default function ManualSearch() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <input
-        type="text"
-        placeholder="Artist"
-        value={artist}
-        onChange={(e) => setArtist(e.target.value)}
-        className="w-28 px-2 py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"
-        autoFocus
-      />
-      <input
-        type="text"
-        placeholder="Song title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-36 px-2 py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="px-2 py-1 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/15 rounded-md transition-colors disabled:opacity-40"
-      >
-        {loading ? '...' : 'Set'}
-      </button>
-      <button
-        type="button"
-        onClick={() => setIsOpen(false)}
-        className="px-1.5 py-1 text-xs text-white/30 hover:text-white/60 transition-colors"
-      >
-        Cancel
-      </button>
-    </form>
+    <div className="relative">
+      <form onSubmit={handleSubmit} className="absolute right-0 top-full mt-2 sm:static sm:mt-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-black/90 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none rounded-lg sm:rounded-none p-3 sm:p-0 border border-white/10 sm:border-0 min-w-[240px] sm:min-w-0">
+        <input
+          type="text"
+          placeholder="Artist"
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
+          className="w-full sm:w-28 px-3 py-2 sm:px-2 sm:py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"
+          autoFocus
+        />
+        <input
+          type="text"
+          placeholder="Song title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full sm:w-36 px-3 py-2 sm:px-2 sm:py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 sm:flex-initial px-3 py-2 sm:px-2 sm:py-1 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/15 rounded-md transition-colors disabled:opacity-40"
+          >
+            {loading ? '...' : 'Set'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="flex-1 sm:flex-initial px-3 py-2 sm:px-1.5 sm:py-1 text-xs text-white/30 hover:text-white/60 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
