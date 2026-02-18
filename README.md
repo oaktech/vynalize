@@ -95,32 +95,28 @@ After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autost
 | Video | Muted YouTube music video, synced to your playback |
 | ASCII | Song title and lyrics rendered as ASCII art |
 
-Switch modes with keyboard shortcuts, the mode selector, or a hands-free double-clap.
+Switch modes with keyboard shortcuts or the mode selector.
 
 ## Visualizers
 
 | # | Name | Description |
 |---|---|---|
 | 1 | Spectrum Bars | 64-bar frequency spectrum with reflections and beat flash |
-| 2 | Waveform | Oscilloscope-style time-domain display with glow |
-| 3 | Radial Spectrum | 128-bar circular display with BPM-driven rotation |
-| 4 | Particle Field | 2,000 particles in 3D, driven by bass/mid/high bands |
-| 5 | Geometric Shapes | Wireframe polyhedra responding to frequency bands |
-| 6 | Radical | -- |
-| 7 | Nebula | -- |
-| 8 | Vitals | ECG-style visualizer |
-| 9 | Synthwave | Retro 80s aesthetic |
-| 10 | Space Age | -- |
+| 2 | Radial Spectrum | 128-bar circular display with BPM-driven rotation |
+| 3 | Particle Field | 2,000 particles in 3D, driven by bass/mid/high bands |
+| 4 | Radical | Neon kaleidoscopic patterns with color-shifting starburst and ring shapes |
+| 5 | Nebula | Cosmic eye with animated iris, star field, aurora ribbons, and orbiting particles |
+| 6 | Vitals | Hospital ECG monitor with scrolling traces and digital biometric readouts |
+| 7 | Synthwave | Retro 80s landscape with perspective grid, mountains, and scan-line sun |
+| 8 | Space Age | Four-panel sci-fi diorama: rocket launch, comet, eclipse, and black hole |
+| 9 | Starry Night | Van Gogh-inspired scene with swirling brushstrokes, star halos, and cypress tree |
+| 10 | Guitar Hero | Simulated rhythm game with 5-lane highway, note gems, combo flames, and scoring |
 
-3D visualizers (Particle Field, Geometric Shapes) are lazy-loaded to keep the main bundle small (~33KB gzipped).
+The 3D visualizer (Particle Field) is lazy-loaded to keep the main bundle small (~33KB gzipped).
 
 ## Beat Detection
 
 Real-time onset detection using spectral flux with BPM estimation from a rolling 30-beat window. Beat events drive visual effects across all visualizers. BPM is displayed in the control overlay.
-
-## Double-Clap Mode Switching
-
-Hands-free mode cycling for TV/cast setups. Two claps within 300--800ms cycles through Visualizer, Lyrics, Video, and ASCII modes. A 3-second cooldown prevents rapid cycling, and a visual flash confirms detection.
 
 ## Architecture
 

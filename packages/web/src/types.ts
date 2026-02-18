@@ -27,7 +27,8 @@ export type VisualizerMode =
   | 'vitals'
   | 'synthwave'
   | 'spaceage'
-  | 'starrynight';
+  | 'starrynight'
+  | 'guitarhero';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 

@@ -21,17 +21,12 @@
 
 ## Visualizer Modes
 
-Five built-in visualizations, all reactive to live audio:
+Ten built-in visualizations, all reactive to live audio:
 
 ### Spectrum Bars
 - 64-bar frequency spectrum with rounded tops
 - Accent color gradients with beat-triggered flash
 - Subtle reflection effect below the bars
-
-### Waveform
-- Oscilloscope-style time-domain display
-- Glow effect intensifies on beat events
-- Mirrored secondary trace for depth
 
 ### Radial Spectrum
 - 128-bar circular frequency display
@@ -45,11 +40,45 @@ Five built-in visualizations, all reactive to live audio:
 - Beat events cause burst expansion
 - Particles colored by accent color with additive blending
 
-### Geometric Shapes (3D)
-- Three wireframe polyhedra: icosahedron, octahedron, dodecahedron
-- Each shape responds to a different frequency band (bass, mid, high)
-- Scale, rotation speed, and emissive glow modulated by audio energy
-- Beat-triggered scaling pulse
+### Radical
+- Neon kaleidoscopic patterns: starburst, rings, zigzag, diamond, grid, and bolt shapes
+- Color-shifting transitions with hypnotic rotation on beat
+- Glow intensifies with audio energy
+
+### Nebula
+- Cosmic eye-like entity with animated iris and responsive pupil dilation
+- Star field background with aurora ribbons and orbiting particles
+- Parallax depth effect driven by audio features
+
+### Vitals
+- Hospital ECG monitor aesthetic with multi-line scrolling traces
+- ECG, plethysmography, and EEG (delta/alpha/beta) channels
+- Digital biometric readouts (HR, SpO2, BP, respiration) modulated by audio
+
+### Synthwave
+- Retro 80s landscape with perspective grid floor
+- Jagged mountain silhouettes and shooting stars
+- Sun with horizontal scan lines rising above the horizon
+
+### Space Age
+- Four-panel sci-fi diorama layout
+- Rocket launch with particle exhaust, comet with satellite dishes
+- Eclipse with corona rays, black hole with accretion disk and jets
+
+### Starry Night
+- Van Gogh-inspired impressionist scene
+- Swirling vortex brushstrokes and concentric star halos
+- Crescent moon, rolling hills, village buildings, and cypress tree
+
+### Guitar Hero
+- Simulated rhythm game with 5-lane perspective highway
+- Frequency bands drive note spawning across sub-bass, bass, mid, high-mid, and treble lanes
+- Notes scroll toward a strikeline with simulated hit detection and scoring
+- Combo system with multiplier milestones (2x/3x/4x) and celebration effects
+- Per-lane combo flames that intensify with streak length
+- Note trails, hit particles, and ambient background glow reactive to audio energy
+- Lane colors derived from accent color via hue-shifting
+- Star power bar fills during sustained streaks
 
 ## Beat Detection
 
@@ -96,7 +125,7 @@ Five built-in visualizations, all reactive to live audio:
 ## UI & Controls
 
 - Four app modes: Visualizer, Lyrics, Video, ASCII
-- Five visualizer sub-modes selectable from bottom bar
+- Ten visualizer sub-modes selectable from bottom bar
 - Fullscreen toggle via button or keyboard (F key)
 - Keyboard shortcuts: 1/2/3/4 for mode switching, F for fullscreen, Esc to exit
 - Settings panel with microphone input device selection
@@ -106,7 +135,7 @@ Five built-in visualizations, all reactive to live audio:
 ## Technical
 
 - Monorepo with npm workspaces (`packages/web` + `packages/server`)
-- 3D visualizers lazy-loaded to avoid loading Three.js (~970KB) until needed
+- 3D visualizer (Particle Field) lazy-loaded to avoid loading Three.js until needed
 - Main app bundle only ~33KB gzipped
 - All API keys kept server-side, never exposed to the browser
 - MusicBrainz rate limiting (1 req/sec) built into the server
