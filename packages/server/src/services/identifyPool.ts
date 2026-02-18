@@ -8,7 +8,9 @@ import type { ShazamResult } from './shazam.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const POOL_SIZE = parseInt(process.env.IDENTIFY_WORKERS || '', 10) || Math.max(2, os.cpus().length - 1);
+// Default to 2 workers — os.cpus() can over-report on containerized platforms (Railway, etc.)
+// Scale up explicitly via IDENTIFY_WORKERS env var if you have the memory headroom
+const POOL_SIZE = parseInt(process.env.IDENTIFY_WORKERS || '', 10) || 2;
 const MAX_QUEUE = 50;
 
 interface PendingJob {
