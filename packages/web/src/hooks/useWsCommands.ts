@@ -4,9 +4,11 @@ import type { WsCommand, WsMessage, WsStateMessage, WsSongMessage, WsBeatMessage
 
 type Role = 'controller' | 'display';
 
-function getWsUrl(role: Role): string {
+function getWsUrl(role: Role, sessionId?: string | null): string {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${proto}://${location.host}/ws?role=${role}`;
+  let url = `${proto}://${location.host}/ws?role=${role}`;
+  if (sessionId) url += `&session=${encodeURIComponent(sessionId)}`;
+  return url;
 }
 
 /**
@@ -15,7 +17,7 @@ function getWsUrl(role: Role): string {
  * - `display` role: listens for commands from controller, pushes state/song/beat back.
  * - `controller` role: sends commands, receives state/song/beat updates.
  */
-export function useWsCommands(role: Role) {
+export function useWsCommands(role: Role, sessionId?: string | null) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<number>(0);
 
@@ -24,16 +26,30 @@ export function useWsCommands(role: Role) {
     if (role !== 'display') return;
 
     function connect() {
-      const ws = new WebSocket(getWsUrl('display'));
+      const existingSessionId = useStore.getState().sessionId;
+      const ws = new WebSocket(getWsUrl('display', existingSessionId));
       wsRef.current = ws;
 
       ws.onmessage = (e) => {
-        let msg: WsCommand;
+        let msg: WsMessage;
         try {
           msg = JSON.parse(e.data);
         } catch {
           return;
         }
+
+        // Handle session assignment from server
+        if (msg.type === 'session') {
+          useStore.getState().setSessionId(msg.sessionId);
+          return;
+        }
+
+        // Handle remote connection status
+        if (msg.type === 'remoteStatus') {
+          useStore.getState().setRemoteConnected(msg.connected);
+          return;
+        }
+
         if (msg.type !== 'command') return;
 
         const store = useStore.getState();
@@ -120,7 +136,7 @@ export function useWsCommands(role: Role) {
     if (role !== 'controller') return;
 
     function connect() {
-      const ws = new WebSocket(getWsUrl('controller'));
+      const ws = new WebSocket(getWsUrl('controller', sessionId));
       wsRef.current = ws;
 
       ws.onmessage = (e) => {
@@ -157,7 +173,7 @@ export function useWsCommands(role: Role) {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [role]);
+  }, [role, sessionId]);
 
   // Return a send function for the controller to dispatch commands
   const send = (cmd: WsCommand) => {

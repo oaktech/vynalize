@@ -12,6 +12,8 @@ import { identifyRouter } from './routes/identify.js';
 import { videoRouter } from './routes/video.js';
 import { searchRouter } from './routes/search.js';
 import { attachWebSocket } from './wsRelay.js';
+import { connectRedis, redisAvailable } from './services/redis.js';
+import { initPool, getQueueDepth, getPoolSize } from './services/identifyPool.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,19 +32,19 @@ app.post('/api/log', (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+  res.json({
+    status: 'ok',
+    timestamp: Date.now(),
+    redis: redisAvailable,
+  });
 });
 
 app.get('/api/diag', async (_req, res) => {
-  const checks: Record<string, string> = {};
+  const checks: Record<string, string | number | boolean> = {};
 
-  // 1. Shazam (no API key needed)
   checks.shazam = 'node-shazam (no API key required)';
-
-  // 2. YouTube API key
   checks.youtube_key = process.env.YOUTUBE_API_KEY ? `set (${process.env.YOUTUBE_API_KEY.length} chars)` : 'MISSING';
 
-  // 3. ffmpeg (needed for audio format conversion)
   const { execFile } = await import('child_process');
   const { promisify } = await import('util');
   const exec = promisify(execFile);
@@ -52,6 +54,11 @@ app.get('/api/diag', async (_req, res) => {
   } catch {
     checks.ffmpeg = 'NOT FOUND - install with: brew install ffmpeg';
   }
+
+  checks.redis = redisAvailable;
+  checks.workerPoolSize = getPoolSize();
+  checks.identifyQueueDepth = getQueueDepth();
+  checks.pid = process.pid;
 
   res.json(checks);
 });
@@ -63,13 +70,27 @@ app.get('*', (_req, res) => {
   res.sendFile(resolve(webDist, 'index.html'));
 });
 
-const server = createServer(app);
-attachWebSocket(server);
+async function start() {
+  // Connect to Redis (no-op if REDIS_URL not set)
+  await connectRedis();
 
-server.listen(PORT, () => {
-  console.log(`[server] Vynalize backend running on port ${PORT}`);
+  // Start the identify worker thread pool
+  await initPool();
 
-  if (!process.env.YOUTUBE_API_KEY) {
-    console.warn('[server] WARNING: YOUTUBE_API_KEY not set - video search will not work');
-  }
+  const server = createServer(app);
+  attachWebSocket(server);
+
+  server.listen(PORT, () => {
+    console.log(`[server] Vynalize backend running on port ${PORT} (pid: ${process.pid})`);
+    console.log(`[server] Redis: ${redisAvailable ? 'connected' : 'not available (local-only mode)'}`);
+
+    if (!process.env.YOUTUBE_API_KEY) {
+      console.warn('[server] WARNING: YOUTUBE_API_KEY not set - video search will not work');
+    }
+  });
+}
+
+start().catch((err) => {
+  console.error('[server] Failed to start:', err);
+  process.exit(1);
 });

@@ -59,7 +59,27 @@ function ActiveApp() {
   useAutoDisplay();
   usePositionTracker();
 
-  return <AppShell />;
+  return (
+    <>
+      <SessionOverlay />
+      <AppShell />
+    </>
+  );
+}
+
+/** Session code overlay — shown until a remote connects, reappears if it disconnects */
+function SessionOverlay() {
+  const sessionId = useStore((s) => s.sessionId);
+  const remoteConnected = useStore((s) => s.remoteConnected);
+
+  if (!sessionId || remoteConnected) return null;
+
+  return (
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
+      <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
+      <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
+    </div>
+  );
 }
 
 /** Display route — same as standalone but with WebSocket + auto-hide + auto-fullscreen */
@@ -109,7 +129,12 @@ function DisplayApp() {
     };
   }, [setControlsVisible, resetHideTimer]);
 
-  return <AppShell />;
+  return (
+    <>
+      <SessionOverlay />
+      <AppShell />
+    </>
+  );
 }
 
 /** Standalone app — original `/` route (laptop with mic) */

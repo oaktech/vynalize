@@ -116,7 +116,8 @@ Ten built-in visualizations, all reactive to live audio:
 - Automatic search for official music video via YouTube Data API
 - YouTube IFrame embed, always muted (your record player provides the audio)
 - Seeks to estimated position based on elapsed time and sync offset
-- 24-hour server-side cache to minimize YouTube API quota usage
+- 7-day Redis-backed cache (falls back to in-memory LRU) to minimize YouTube API quota usage
+- Daily YouTube API quota tracking with automatic rejection above 9,000 calls/day
 - Aspect-ratio-preserving display
 
 ## Visual Design
@@ -138,13 +139,27 @@ Ten built-in visualizations, all reactive to live audio:
 - Responsive layout for phone, tablet, desktop, and TV displays
 - PWA manifest for "install to home screen" on mobile
 
+## Phone Remote & Sessions
+
+- Session-based WebSocket rooms — each display gets a unique 6-character code
+- Phone remote at `/remote` prompts for session code entry (or accepts `?session=CODE` query param)
+- Controllers only affect the display they're paired with — full multi-user isolation
+- Remote shows session code in header, provides all controls: mode, visualizer, sensitivity
+- Redis pub/sub enables cross-instance message routing for multi-server deployments
+- New controllers receive cached display state/song/beat on connect
+
 ## Technical
 
 - Monorepo with npm workspaces (`packages/web` + `packages/server`)
 - 3D visualizer (Particle Field) lazy-loaded to avoid loading Three.js until needed
 - Main app bundle only ~33KB gzipped
 - All API keys kept server-side, never exposed to the browser
-- MusicBrainz rate limiting (1 req/sec) built into the server
+- MusicBrainz rate limiting (1 req/1.1s) coordinated across instances via Redis
+- Redis-backed caching for MusicBrainz and YouTube API results (7-day TTL)
+- Per-IP rate limiting on all API endpoints (Redis sorted set sliding window, in-memory fallback)
+- Worker thread pool for song identification — offloads ffmpeg+Shazam from the event loop
+- Production clustering via Node.js `cluster` module (configurable via `WEB_CONCURRENCY`)
+- Graceful degradation: server runs without Redis in local dev — falls back to in-memory state for sessions, caching, and rate limiting
 - Graceful degradation: app works as a pure visualizer even without API keys
 
 ## Raspberry Pi Appliance Mode

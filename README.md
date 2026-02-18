@@ -118,17 +118,31 @@ The 3D visualizer (Particle Field) is lazy-loaded to keep the main bundle small 
 
 Real-time onset detection using spectral flux with BPM estimation from a rolling 30-beat window. Beat events drive visual effects across all visualizers. BPM is displayed in the control overlay.
 
+## Phone Remote & Sessions
+
+Each display generates a unique 6-character session code (shown in the top-right corner on `/display`). Open the remote at `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
+
+The remote supports all controls: display mode, visualizer selection, and sensitivity adjustment.
+
 ## Architecture
 
 ```
 vynalize/
 ├── packages/
-│   ├── web/          # React + TypeScript + Vite frontend
-│   └── server/       # Express + TypeScript backend
-└── package.json      # npm workspaces root
+│   ├── web/              # React + TypeScript + Vite frontend
+│   └── server/           # Express + TypeScript backend
+│       └── src/
+│           ├── routes/       # HTTP endpoints (identify, search, video)
+│           ├── services/     # Redis, session manager, cache, identify pool, Shazam
+│           ├── middleware/   # Rate limiting
+│           ├── workers/      # Worker threads for song identification
+│           ├── wsRelay.ts    # Session-based WebSocket relay
+│           ├── cluster.ts    # Production multi-process entry point
+│           └── index.ts      # Express app entry point
+└── package.json          # npm workspaces root
 ```
 
-**Why a backend?** Song identification via Shazam requires server-side audio processing, and the YouTube Data API key is kept out of the browser.
+**Why a backend?** Song identification via Shazam requires server-side ffmpeg + audio processing, and the YouTube Data API key is kept out of the browser. The backend also manages session-based WebSocket routing so multiple users can share a single server without interference.
 
 ### External Services
 
@@ -140,14 +154,16 @@ vynalize/
 | lrclib.net | Synced lyrics (LRC) | None |
 | YouTube Data API | Video search | API key (server-side) |
 | YouTube IFrame API | Video embed | None |
+| Redis (optional) | Session sharing, caching, rate limiting | `REDIS_URL` env var |
 
 ## Scripts
 
 ```bash
-npm run dev          # Start both frontend and backend
-npm run dev:web      # Frontend only
-npm run dev:server   # Backend only
-npm run build        # Production build
+npm run dev              # Start both frontend and backend
+npm run dev:web          # Frontend only
+npm run dev:server       # Backend only
+npm run build            # Production build
+npm run start:production # Clustered production server (in packages/server)
 ```
 
 ## Keyboard Shortcuts
@@ -166,7 +182,7 @@ npm run build        # Production build
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Three.js / React Three Fiber
-- **Backend:** Express, TypeScript, node-shazam
+- **Backend:** Express, TypeScript, node-shazam, ioredis, worker_threads
 - **Audio:** Web Audio API, AnalyserNode for real-time FFT (2048-point at 60fps)
 
 Installable as a PWA on mobile via the browser's "Add to Home Screen" option.

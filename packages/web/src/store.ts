@@ -81,6 +81,12 @@ interface VinylStore {
   sensitivityGain: number;
   setSensitivityGain: (g: number) => void;
 
+  // Session
+  sessionId: string | null;
+  setSessionId: (id: string | null) => void;
+  remoteConnected: boolean;
+  setRemoteConnected: (v: boolean) => void;
+
   // Visualizer cycling
   nextVisualizer: () => void;
   prevVisualizer: () => void;
@@ -162,6 +168,11 @@ export const useStore = create<VinylStore>((set) => ({
     localStorage.setItem('vv-sensitivity', String(sensitivityGain));
     set({ sensitivityGain });
   },
+
+  sessionId: null,
+  setSessionId: (sessionId) => set({ sessionId }),
+  remoteConnected: false,
+  setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
 
   nextVisualizer: () =>
     set((state) => {

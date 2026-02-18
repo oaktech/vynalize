@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useStore } from '../store';
 import { useWsCommands } from '../hooks/useWsCommands';
 import type { AppMode, VisualizerMode } from '../types';
@@ -56,8 +56,72 @@ const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
   { id: 'guitarhero', label: 'Guitar Hero' },
 ];
 
-export default function RemoteControl() {
-  const { send } = useWsCommands('controller');
+function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = () => {
+    const trimmed = code.trim().toUpperCase();
+    if (trimmed.length < 4) {
+      setError('Enter the code shown on your display');
+      return;
+    }
+    setError('');
+    onJoin(trimmed);
+  };
+
+  return (
+    <div
+      className="min-h-screen bg-black text-white flex items-center justify-center"
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+      }}
+    >
+      <div className="w-full max-w-sm px-6 text-center">
+        <h1 className="text-xl font-semibold tracking-tight mb-2">Vynalize Remote</h1>
+        <p className="text-sm text-white/40 mb-8">
+          Enter the session code shown on your display
+        </p>
+
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+          onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+          placeholder="A3K9X2"
+          maxLength={6}
+          className="w-full text-center text-3xl font-mono tracking-[0.3em] bg-white/5 border border-white/10 rounded-xl py-4 px-6 text-white placeholder:text-white/15 focus:outline-none focus:border-white/30 transition-colors"
+          autoFocus
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+        />
+
+        {error && (
+          <p className="text-red-400/80 text-xs mt-3">{error}</p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          className="w-full mt-6 py-3.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-sm font-medium transition-all active:scale-95"
+        >
+          Connect
+        </button>
+
+        <p className="text-[10px] text-white/20 mt-8">
+          Open your display at <span className="text-white/30">/display</span> to get a session code
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RemoteUI({ sessionId }: { sessionId: string }) {
+  const { send } = useWsCommands('controller', sessionId);
 
   const currentSong = useStore((s) => s.currentSong);
   const bpm = useStore((s) => s.bpm);
@@ -105,7 +169,7 @@ export default function RemoteControl() {
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      {/* ── Ambient glow from accent color ── */}
+      {/* Ambient glow */}
       <div
         className="fixed inset-0 pointer-events-none opacity-[0.07]"
         style={{
@@ -114,14 +178,14 @@ export default function RemoteControl() {
       />
 
       <div className="relative z-10 px-5 py-6 max-w-lg mx-auto flex flex-col gap-7">
-        {/* ── Header ── */}
+        {/* Header */}
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-white/90">
               Vynalize
             </h1>
             <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
-              Remote
+              Remote &middot; {sessionId}
             </p>
           </div>
           {bpm && (
@@ -137,9 +201,8 @@ export default function RemoteControl() {
           )}
         </header>
 
-        {/* ── Now Playing ── */}
+        {/* Now Playing */}
         <section className="relative rounded-2xl overflow-hidden">
-          {/* Album art backdrop */}
           {currentSong?.albumArtUrl && (
             <div
               className="absolute inset-0 bg-cover bg-center opacity-20 blur-2xl scale-125"
@@ -160,15 +223,7 @@ export default function RemoteControl() {
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                    <svg
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-white/25"
-                    >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/25">
                       <circle cx="12" cy="12" r="10" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
@@ -191,15 +246,7 @@ export default function RemoteControl() {
             ) : (
               <div className="flex items-center gap-4 py-2">
                 <div className="w-20 h-20 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-white/15"
-                  >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/15">
                     <circle cx="12" cy="12" r="10" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
@@ -215,7 +262,7 @@ export default function RemoteControl() {
           </div>
         </section>
 
-        {/* ── App Mode Selector ── */}
+        {/* App Mode Selector */}
         <section>
           <p className="text-[11px] text-white/30 tracking-wide uppercase mb-3 px-0.5">
             Display Mode
@@ -248,7 +295,7 @@ export default function RemoteControl() {
           </div>
         </section>
 
-        {/* ── Visualizer Modes ── */}
+        {/* Visualizer Modes */}
         <section>
           <div className="flex items-center justify-between mb-3 px-0.5">
             <p className="text-[11px] text-white/30 tracking-wide uppercase">
@@ -294,7 +341,7 @@ export default function RemoteControl() {
           </div>
         </section>
 
-        {/* ── Sensitivity ── */}
+        {/* Sensitivity */}
         <section>
           <div className="flex items-center justify-between mb-3 px-0.5">
             <p className="text-[11px] text-white/30 tracking-wide uppercase">
@@ -321,7 +368,6 @@ export default function RemoteControl() {
                 } as React.CSSProperties
               }
             />
-            {/* Track labels */}
             <div className="flex justify-between px-0.5 -mt-1">
               <span className="text-[10px] text-white/20">Line-in</span>
               <span className="text-[10px] text-white/20">Mic</span>
@@ -330,7 +376,7 @@ export default function RemoteControl() {
           </div>
         </section>
 
-        {/* ── Footer ── */}
+        {/* Footer */}
         <footer className="text-center pt-2 pb-4">
           <p className="text-[10px] text-white/15">
             Vynalize Remote v0.1.0
@@ -338,7 +384,7 @@ export default function RemoteControl() {
         </footer>
       </div>
 
-      {/* ── Slider styles ── */}
+      {/* Slider styles */}
       <style>{`
         input[type="range"]::-webkit-slider-runnable-track {
           height: 4px;
@@ -371,4 +417,16 @@ export default function RemoteControl() {
       `}</style>
     </div>
   );
+}
+
+export default function RemoteControl() {
+  // Check for session code in URL query params
+  const urlSession = new URLSearchParams(window.location.search).get('session');
+  const [sessionId, setSessionId] = useState<string | null>(urlSession);
+
+  if (!sessionId) {
+    return <SessionEntry onJoin={setSessionId} />;
+  }
+
+  return <RemoteUI sessionId={sessionId} />;
 }
