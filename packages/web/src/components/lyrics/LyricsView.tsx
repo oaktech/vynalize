@@ -119,7 +119,7 @@ export default function LyricsView() {
         className="absolute inset-0 overflow-y-auto scrollbar-hide"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-8 py-[40vh]">
+        <div className="min-h-full flex flex-col items-center justify-center px-3 sm:px-6 md:px-8 py-[30vh] sm:py-[40vh]">
           {lyrics.map((line, i) => (
             <div
               key={`${line.timeMs}-${i}`}

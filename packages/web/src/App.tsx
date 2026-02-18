@@ -22,14 +22,14 @@ function StartScreen({ onStart }: { onStart: () => void }) {
   const micError = useStore((s) => s.micError);
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-black">
-      <div className="text-center max-w-md px-6">
+    <div className="w-screen h-dvh flex items-center justify-center bg-black px-6">
+      <div className="text-center max-w-md w-full">
         <img
           src="/vynalize-logo.png"
           alt="Vynalize"
-          className="w-full max-w-96 mx-auto mb-8"
+          className="w-full max-w-72 sm:max-w-96 mx-auto mb-6 sm:mb-8"
         />
-        <p className="text-white/40 text-sm mb-6 leading-relaxed">
+        <p className="text-white/40 text-sm mb-6 leading-relaxed px-2">
           Play music near your device. Vynalize creates synchronized visualizations,
           lyrics, and music videos — all driven by what's playing in the room.
         </p>
@@ -57,9 +57,9 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 
         <button
           onClick={onStart}
-          className="group relative px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl transition-all duration-300"
+          className="group relative px-8 py-4 sm:py-3 bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/10 hover:border-white/20 rounded-2xl transition-all duration-300 w-full sm:w-auto"
         >
-          <span className="flex items-center gap-3 text-white/80 group-hover:text-white transition-colors">
+          <span className="flex items-center justify-center gap-3 text-white/80 group-hover:text-white transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -129,7 +129,10 @@ function SessionOverlay() {
   if (!sessionId || remoteConnected || dismissed || reconnectGrace) return null;
 
   return (
-    <div className="fixed top-16 right-8 z-50 px-5 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3">
+    <div
+      className="fixed top-16 right-4 sm:right-8 z-50 px-4 py-3 sm:px-5 sm:py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3"
+      style={{ top: `max(4rem, calc(env(safe-area-inset-top) + 3rem))` }}
+    >
       <button
         onClick={() => setDismissed(true)}
         className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 flex items-center justify-center text-xs transition-colors"
@@ -137,9 +140,9 @@ function SessionOverlay() {
       >
         ✕
       </button>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-white/40 uppercase tracking-wide">Remote Code</span>
-        <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wide">Remote Code</span>
+        <span className="text-xl sm:text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
       </div>
       <QRPairing sessionId={sessionId} />
     </div>
