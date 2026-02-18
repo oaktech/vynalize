@@ -110,7 +110,7 @@ Switch modes with keyboard shortcuts or the mode selector.
 | 7 | Synthwave | Retro 80s landscape with perspective grid, mountains, and scan-line sun |
 | 8 | Space Age | Four-panel sci-fi diorama: rocket launch, comet, eclipse, and black hole |
 | 9 | Starry Night | Van Gogh-inspired scene with swirling brushstrokes, star halos, and cypress tree |
-| 10 | Guitar Hero | Simulated rhythm game with 5-lane highway, note gems, combo flames, and scoring |
+| 10 | Guitar Hero | Simulated rhythm game with 5-lane highway, note gems, combo flames, stage effects, and scoring |
 
 The 3D visualizer (Particle Field) is lazy-loaded to keep the main bundle small (~33KB gzipped).
 

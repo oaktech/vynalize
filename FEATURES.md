@@ -73,12 +73,18 @@ Ten built-in visualizations, all reactive to live audio:
 ### Guitar Hero
 - Simulated rhythm game with 5-lane perspective highway
 - Frequency bands drive note spawning across sub-bass, bass, mid, high-mid, and treble lanes
+- Per-lane gain compensation for spectral rolloff so all lanes feel equally active
 - Notes scroll toward a strikeline with simulated hit detection and scoring
-- Combo system with multiplier milestones (2x/3x/4x) and celebration effects
+- Missed notes scroll past the strikeline and fade out; hit notes freeze and burst
+- Note streak (every hit) and combo (every 5 hits) system with multiplier milestones (2x/3x/4x)
+- Longest streak tracker persists per song
 - Per-lane combo flames that intensify with streak length
-- Note trails, hit particles, and ambient background glow reactive to audio energy
-- Lane colors derived from accent color via hue-shifting
-- Star power bar fills during sustained streaks
+- Hit beams — colored laser columns shoot upward on successful hits
+- Note trails, hit particles, and celebration effects on multiplier milestones
+- Classic Guitar Hero lane colors: green, red, yellow, blue, orange
+- Star power bar fills during sustained streaks (10+ notes)
+- Stage effects: sweeping spotlights, wash lights, speaker stacks, lens flares, haze, and starfield
+- Score resets automatically when a new song is identified
 
 ## Beat Detection
 
