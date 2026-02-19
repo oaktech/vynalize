@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { useAudioCapture } from './hooks/useAudioCapture';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis';
 import { useBeatDetection } from './hooks/useBeatDetection';
@@ -98,15 +98,28 @@ function ActiveApp() {
   );
 }
 
-/** Session code overlay — shown until a remote connects, reappears if it disconnects */
+/** Session code overlay — shown until a remote connects or the user dismisses it */
 function SessionOverlay() {
   const sessionId = useStore((s) => s.sessionId);
   const remoteConnected = useStore((s) => s.remoteConnected);
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!sessionId || remoteConnected) return null;
+  // Reset dismissed state when remote disconnects so overlay reappears
+  useEffect(() => {
+    if (!remoteConnected) setDismissed(false);
+  }, [remoteConnected]);
+
+  if (!sessionId || remoteConnected || dismissed) return null;
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3">
+    <div className="fixed top-16 right-8 z-50 px-5 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3">
+      <button
+        onClick={() => setDismissed(true)}
+        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 flex items-center justify-center text-xs transition-colors"
+        aria-label="Dismiss"
+      >
+        ✕
+      </button>
       <div className="flex items-center gap-3">
         <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
         <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
