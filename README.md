@@ -196,6 +196,14 @@ npm run start:production # Clustered production server (in packages/server)
 
 Installable as a PWA with offline support via service worker (auto-updating, precached app shell, runtime-cached fonts and API config).
 
+## Privacy
+
+Vynalize collects **no personal information, accounts, cookies, or tracking identifiers**. When a song is identified, we store only the song metadata (title, artist, album) and an approximate location (city/country) derived from your IP address — the IP itself is never stored.
+
+Short audio samples (5 seconds) are sent to the Vynalize server and forwarded to Shazam for song matching, then immediately discarded. Song title and artist are shared with YouTube, MusicBrainz, Cover Art Archive, and lrclib.net to fetch videos, metadata, artwork, and lyrics. UI preferences and song history are kept in your browser's localStorage and never leave your device.
+
+Full details are available in the app at [`/privacy`](packages/web/src/components/Privacy.tsx).
+
 ## License
 
 MIT

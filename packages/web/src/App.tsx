@@ -9,11 +9,13 @@ import { useAutoDisplay } from './hooks/useAutoDisplay';
 import { usePositionTracker } from './hooks/usePositionTracker';
 import { useWsCommands } from './hooks/useWsCommands';
 import { useAutoCycle } from './hooks/useAutoCycle';
+import { useAuth } from './hooks/useAuth';
 import { useStore } from './store';
 import AppShell from './components/AppShell';
 import RemoteControl from './components/RemoteControl';
 import ServerSettings from './components/ServerSettings';
 import QRPairing from './components/QRPairing';
+import LoginPage from './components/LoginPage';
 
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const Privacy = lazy(() => import('./components/Privacy'));
@@ -72,7 +74,8 @@ function StartScreen({ onStart }: { onStart: () => void }) {
 
         <p className="text-white/20 text-xs mt-4 leading-relaxed">
           Microphone listens for music to identify songs.
-          <br />Audio stays on your device — nothing is recorded.
+          <br />Short audio samples are sent for identification and immediately discarded.
+          <br /><a href="/privacy" className="underline hover:text-white/40 transition-colors">Privacy Policy</a>
         </p>
       </div>
     </div>
@@ -224,13 +227,30 @@ function KioskRoute() {
   return <KioskApp />;
 }
 
-export default function App() {
-  const path = window.location.pathname;
+/** Auth-gated wrapper for routes that require login when REQUIRE_AUTH=true */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const authRequired = useStore((s) => s.authRequired);
+  const authLoading = useStore((s) => s.authLoading);
+  const authUser = useStore((s) => s.authUser);
 
-  if (path === '/settings') {
-    return <ServerSettings />;
+  // Black screen while checking auth (no flash)
+  if (authLoading) {
+    return <div className="w-screen h-screen bg-black" />;
   }
 
+  // Auth required but not logged in — show login page
+  if (authRequired && !authUser) {
+    return <LoginPage />;
+  }
+
+  return <>{children}</>;
+}
+
+export default function App() {
+  useAuth();
+  const path = window.location.pathname;
+
+  // Routes that never require auth
   if (path === '/remote') {
     return <RemoteControl />;
   }
@@ -255,6 +275,19 @@ export default function App() {
     );
   }
 
-  // Default: standalone laptop mode (unchanged)
-  return <StandaloneApp />;
+  // Routes gated by auth
+  if (path === '/settings') {
+    return (
+      <AuthGate>
+        <ServerSettings />
+      </AuthGate>
+    );
+  }
+
+  // Default: standalone laptop mode
+  return (
+    <AuthGate>
+      <StandaloneApp />
+    </AuthGate>
+  );
 }
