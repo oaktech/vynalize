@@ -4,7 +4,8 @@
 
 - Microphone-based audio capture via Web Audio API (`getUserMedia`)
 - Raw audio mode: echo cancellation, noise suppression, and auto gain all disabled for faithful signal
-- Real-time FFT frequency analysis (2048-point) at 60fps
+- Real-time FFT frequency analysis (2048-point), throttled to ~30fps to reduce CPU/GC pressure
+- Reuses typed arrays across frames to minimize garbage collection
 - Extracted features: RMS, energy, spectral centroid, spectral flux, zero crossing rate, bass/mid/high band energies
 
 ## Song Identification
@@ -147,19 +148,27 @@ Twelve built-in visualizations, all reactive to live audio:
 - Twelve visualizer sub-modes selectable from bottom bar
 - Fullscreen toggle via button or keyboard (F key)
 - Keyboard shortcuts: 1/2/3/4 for mode switching, F for fullscreen, Esc to exit
-- Settings panel with microphone input device selection
+- Visualizer favorites: star toggle on each visualizer mode, persisted across sessions
+- Auto-cycle mode: automatically rotates through favorited (or all) visualizers at 15s/30s/60s intervals
+- Visualizer descriptions: hover tooltip on each mode showing a short tag (e.g. "Retro grid", "Note highway")
+- Settings panel with microphone input device selection and auto-cycle controls
 - Server settings page at `/settings` for configuring YouTube API key and session code behavior
 - Settings persist to `settings.json` and take effect immediately without a server restart
 - Responsive layout for phone, tablet, desktop, and TV displays
-- PWA manifest for "install to home screen" on mobile
+- PWA with service worker (via vite-plugin-pwa): auto-updating, precached app shell, runtime-cached Google Fonts and API config
+- Custom PWA install prompt: intercepts `beforeinstallprompt`, shows branded UI on both display and remote pages, dismissible with persisted state
+- Share/screenshot: captures visualizer canvas with song info overlay and "Visualized with Vynalize" watermark; uses Web Share API on mobile, falls back to image download on desktop
+- Song history: logs last 50 identified songs with timestamps, accessible from the controls overlay; deduplicates by title+artist; persisted to localStorage
 
 ## Phone Remote & Sessions
 
 - Session-based WebSocket rooms — each display gets a unique 6-character code
+- QR code pairing: session overlay shows a scannable QR code linking directly to `/remote?session=CODE`
 - Phone remote at `/remote` prompts for session code entry (or accepts `?session=CODE` query param)
 - Controllers only affect the display they're paired with — full multi-user isolation
 - Remote shows session code in header, provides all controls: mode, visualizer, sensitivity
 - Open mode (`REQUIRE_CODE=false`): disables session codes so remotes connect without a code
+- WebSocket reconnection with exponential backoff (3s → 30s cap, max 10 retries), connection status tracked in store
 - Redis pub/sub enables cross-instance message routing for multi-server deployments
 - New controllers receive cached display state/song/beat on connect
 
@@ -176,17 +185,27 @@ Twelve built-in visualizations, all reactive to live audio:
 ## Technical
 
 - Monorepo with npm workspaces (`packages/web` + `packages/server`)
-- 3D visualizer (Particle Field) lazy-loaded to avoid loading Three.js until needed
-- Leaderboard and Privacy pages lazy-loaded to keep the main bundle small
-- Main app bundle only ~33KB gzipped
+- All 12 visualizers lazy-loaded with `React.lazy` to keep the main bundle small (~34KB gzipped)
+- Leaderboard and Privacy pages also lazy-loaded
+- React error boundary wraps the entire app with a reload prompt on uncaught errors
+- Zustand persist middleware saves user preferences (appMode, visualizerMode, sensitivityGain, audioInputDeviceId, accentColor, songHistory, favorites, auto-cycle settings) to localStorage
+- Offline detection via `useNetworkStatus` hook with banner in the UI when connectivity is lost
+- API request timeouts with AbortController (15s identify, 8s lyrics/video) and automatic retry with 1s backoff
+- Microphone permission denial detected with browser-specific guidance (iOS Safari, Chrome, Firefox) and retry button
+- AudioContext lifecycle: closes old context before creating new on device change; visibility handler suspends/resumes on iOS background
 - All API keys kept server-side, never exposed to the browser
-- Security headers via helmet with Content Security Policy
+- Security headers via helmet with Content Security Policy (YouTube, Google Fonts, lrclib.net, ws:/wss:, blob:, data:)
+- CORS restricted to origin allowlist: localhost, 127.0.0.1, ::1, vynalize.local, and RFC 1918 private IPs
 - Local-only middleware restricts `/api/settings` and `/api/diag` to loopback and private IPs
+- `/api/log` endpoint secured with rate limiting (30/min), type validation, and log-injection prevention
+- WebSocket message validation: 50KB size limit, type allowlist
 - MusicBrainz rate limiting (1 req/1.1s) coordinated across instances via Redis
 - Redis-backed caching for MusicBrainz and YouTube API results (7-day TTL)
-- Per-IP rate limiting on all API endpoints (Redis sorted set sliding window, in-memory fallback)
+- Per-IP rate limiting on all API endpoints (Redis sorted set sliding window, in-memory fallback with periodic cleanup and 10K key cap)
+- Trust proxy configuration via `TRUST_PROXY` env var for correct client IP behind reverse proxies
+- Multer audio upload validation: MIME type allowlist (webm, ogg, wav, mpeg, mp4), 3MB file size limit
 - Worker thread pool for song identification — offloads ffmpeg+Shazam from the event loop
-- Production clustering via Node.js `cluster` module (configurable via `WEB_CONCURRENCY`)
+- Production clustering via Node.js `cluster` module (configurable via `WEB_CONCURRENCY`) with exponential respawn backoff (1s → 30s) and crash loop detection (5 crashes in 60s stops respawning)
 - PostgreSQL for persistent song play tracking with auto-created schema on startup
 - Graceful degradation: server runs without Redis in local dev — falls back to in-memory state for sessions, caching, and rate limiting
 - Graceful degradation: server runs without PostgreSQL — play tracking silently disabled

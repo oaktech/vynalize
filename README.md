@@ -115,7 +115,7 @@ Switch modes with keyboard shortcuts or the mode selector.
 | 11 | Vynalize | Animated logo with reactive eyes, sparkle particles, and beat-driven ripples |
 | 12 | Beat Saber | 3D corridor with color-coded blocks, directional arrows, and perspective fog |
 
-The 3D visualizer (Particle Field) is lazy-loaded to keep the main bundle small (~33KB gzipped).
+All 12 visualizers are lazy-loaded to keep the main bundle small (~34KB gzipped). Hover over a visualizer name in the mode selector to see a short description.
 
 ## Beat Detection
 
@@ -123,11 +123,11 @@ Real-time onset detection using spectral flux with BPM estimation from a rolling
 
 ## Phone Remote & Sessions
 
-Each display generates a unique 6-character session code (shown at the top center on `/display`). Open the remote at `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
+Each display generates a unique 6-character session code with a QR code (shown at the top center on `/display`). Scan the QR code or open `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
 
 Session codes can be disabled (open mode) via the settings page or by setting `REQUIRE_CODE=false` in `.env`. In open mode, remotes connect without a code -- useful for standalone Pi setups.
 
-The remote supports all controls: display mode, visualizer selection, and sensitivity adjustment.
+The remote supports all controls: display mode, visualizer selection, and sensitivity adjustment. On qualifying browsers, a custom "Add to Home Screen" prompt appears for quick access.
 
 ## Architecture
 
@@ -192,9 +192,9 @@ npm run start:production # Clustered production server (in packages/server)
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Three.js / React Three Fiber
 - **Backend:** Express, TypeScript, node-shazam, ioredis, pg, geoip-lite, helmet, worker_threads
-- **Audio:** Web Audio API, AnalyserNode for real-time FFT (2048-point at 60fps)
+- **Audio:** Web Audio API, AnalyserNode for real-time FFT (2048-point, throttled to ~30fps)
 
-Installable as a PWA on mobile via the browser's "Add to Home Screen" option.
+Installable as a PWA with offline support via service worker (auto-updating, precached app shell, runtime-cached fonts and API config).
 
 ## License
 
