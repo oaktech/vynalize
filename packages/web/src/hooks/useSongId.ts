@@ -8,6 +8,7 @@ const IDENTIFY_INTERVAL_MS = 20000;
 
 export function useSongId() {
   const isListening = useStore((s) => s.isListening);
+  const sessionId = useStore((s) => s.sessionId);
   const setCurrentSong = useStore((s) => s.setCurrentSong);
   const setIdentifying = useStore((s) => s.setIdentifying);
   const setPosition = useStore((s) => s.setPosition);
@@ -109,7 +110,7 @@ export function useSongId() {
   }, [setCurrentSong, setIdentifying, setPosition]);
 
   useEffect(() => {
-    if (!isListening) return;
+    if (!isListening || !sessionId) return;
 
     // First identification after a short delay
     const initialTimeout = setTimeout(captureAndIdentify, 2000);
@@ -121,5 +122,5 @@ export function useSongId() {
       clearTimeout(initialTimeout);
       clearInterval(intervalId);
     };
-  }, [isListening, captureAndIdentify]);
+  }, [isListening, sessionId, captureAndIdentify]);
 }
