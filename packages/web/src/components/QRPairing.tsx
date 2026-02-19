@@ -45,7 +45,7 @@ export default function QRPairing({ sessionId }: QRPairingProps) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <img src={dataUrl} alt="Scan to connect remote" width={120} height={120} className="rounded-lg" />
-      <p className="text-[11px] text-white/50 text-center leading-snug max-w-[160px]">
+      <p className="text-sm text-white/50 text-center leading-snug max-w-[160px]">
         Scan to look up<br />music videos &amp; lyrics
       </p>
     </div>

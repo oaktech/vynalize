@@ -98,7 +98,7 @@ function ActiveApp() {
   );
 }
 
-/** Session code overlay — shown until a remote connects or the user dismisses it */
+/** Remote code overlay — shown until a remote connects or the user dismisses it */
 function SessionOverlay() {
   const sessionId = useStore((s) => s.sessionId);
   const remoteConnected = useStore((s) => s.remoteConnected);
@@ -137,7 +137,7 @@ function SessionOverlay() {
         ✕
       </button>
       <div className="flex items-center gap-3">
-        <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
+        <span className="text-xs text-white/40 uppercase tracking-wide">Remote Code</span>
         <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
       </div>
       <QRPairing sessionId={sessionId} />
