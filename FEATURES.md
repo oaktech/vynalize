@@ -17,11 +17,10 @@
 - Album artwork from Shazam or Cover Art Archive (manual search)
 - Periodic re-identification to detect track changes
 - Animated listening indicator that pulses with audio energy
-- Future: RapidAPI Shazam (apidojo) integration for higher accuracy and richer metadata
 
 ## Visualizer Modes
 
-Ten built-in visualizations, all reactive to live audio:
+Twelve built-in visualizations, all reactive to live audio:
 
 ### Spectrum Bars
 - 64-bar frequency spectrum with rounded tops
@@ -52,8 +51,8 @@ Ten built-in visualizations, all reactive to live audio:
 
 ### Vitals
 - Hospital ECG monitor aesthetic with multi-line scrolling traces
-- ECG, plethysmography, and EEG (delta/alpha/beta) channels
-- Digital biometric readouts (HR, SpO2, BP, respiration) modulated by audio
+- ECG, plethysmography, respiration, and capnography (CO₂) channels
+- Digital biometric readouts (HR, SpO₂, RESP, EtCO₂) modulated by audio
 
 ### Synthwave
 - Retro 80s landscape with perspective grid floor
@@ -86,6 +85,19 @@ Ten built-in visualizations, all reactive to live audio:
 - Stage effects: sweeping spotlights, wash lights, speaker stacks, lens flares, haze, and starfield
 - Score resets automatically when a new song is identified
 
+### Vynalize
+- Animated logo with dual reactive eyes and head-bob motion
+- Pupil dilation, lid openness, and brow bounce driven by beats
+- Sparkle particles burst on beats, ripple rings expand outward
+- Iris rotation and wave burst effects tied to audio energy
+
+### Beat Saber
+- 3D corridor with perspective projection and atmospheric fog
+- 4-column, 3-row block grid with red/blue color-coded cubes
+- Directional arrows (up/down/left/right) on block faces
+- Frequency-band-driven block spawning with per-column gain compensation
+- Neon arch frames and grid floor/ceiling for depth
+
 ## Beat Detection
 
 - Real-time onset detection using spectral flux differential
@@ -117,7 +129,7 @@ Ten built-in visualizations, all reactive to live audio:
 - YouTube IFrame embed, always muted (your record player provides the audio)
 - Seeks to estimated position based on elapsed time and sync offset
 - 7-day Redis-backed cache (falls back to in-memory LRU) to minimize YouTube API quota usage
-- Daily YouTube API quota tracking with automatic rejection above 9,000 calls/day
+- YouTube API quota tracking (48-hour rolling window) with automatic rejection above 9,000 calls
 - Aspect-ratio-preserving display
 
 ## Visual Design
@@ -132,10 +144,12 @@ Ten built-in visualizations, all reactive to live audio:
 ## UI & Controls
 
 - Four app modes: Visualizer, Lyrics, Video, ASCII
-- Ten visualizer sub-modes selectable from bottom bar
+- Twelve visualizer sub-modes selectable from bottom bar
 - Fullscreen toggle via button or keyboard (F key)
 - Keyboard shortcuts: 1/2/3/4 for mode switching, F for fullscreen, Esc to exit
 - Settings panel with microphone input device selection
+- Server settings page at `/settings` for configuring YouTube API key and session code behavior
+- Settings persist to `settings.json` and take effect immediately without a server restart
 - Responsive layout for phone, tablet, desktop, and TV displays
 - PWA manifest for "install to home screen" on mobile
 
@@ -145,6 +159,7 @@ Ten built-in visualizations, all reactive to live audio:
 - Phone remote at `/remote` prompts for session code entry (or accepts `?session=CODE` query param)
 - Controllers only affect the display they're paired with — full multi-user isolation
 - Remote shows session code in header, provides all controls: mode, visualizer, sensitivity
+- Open mode (`REQUIRE_CODE=false`): disables session codes so remotes connect without a code
 - Redis pub/sub enables cross-instance message routing for multi-server deployments
 - New controllers receive cached display state/song/beat on connect
 
@@ -171,6 +186,15 @@ Ten built-in visualizations, all reactive to live audio:
 - USB mic auto-detected and configured as default ALSA capture device
 - mDNS hostname `vynalize.local` -- phone remote works at `vynalize.local:3001/remote`
 
+## 3D-Printable Enclosure
+
+- Parametric OpenSCAD design in `hardware/puck/` for a two-piece (base + lid) appliance case
+- Houses Pi 5 and Adafruit Mini USB Mic (#3367) fully enclosed
+- Mic grille in right wall for ambient audio pickup
+- Exposed ports: USB-C power, 2× micro-HDMI, Ethernet, SD card
+- ~105 × 62 × 30 mm, prints without supports in PLA or PETG
+
 ## Planned
 
+- RapidAPI Shazam (apidojo) integration for higher accuracy and richer metadata
 - Seasonal visualizer screens (e.g. snowfall for winter, cherry blossoms for spring, fireflies for summer, falling leaves for autumn)

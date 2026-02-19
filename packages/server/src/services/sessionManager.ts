@@ -24,6 +24,18 @@ export function createSession(): string {
   return id;
 }
 
+/** Create the session only if it doesn't already exist (used for open mode). */
+export async function ensureSession(id: string): Promise<void> {
+  if (await sessionExists(id)) return;
+  const redis = getRedis();
+  if (redis) {
+    redis.hset(`ws:session:${id}`, 'createdAt', Date.now().toString());
+    redis.expire(`ws:session:${id}`, SESSION_TTL);
+  } else {
+    localSessions.set(id, { createdAt: Date.now() });
+  }
+}
+
 export async function sessionExists(id: string): Promise<boolean> {
   const redis = getRedis();
   if (redis) {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { useWsCommands } from '../hooks/useWsCommands';
 import type { AppMode, VisualizerMode } from '../types';
@@ -170,7 +170,7 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
   );
 }
 
-function RemoteUI({ sessionId }: { sessionId: string }) {
+function RemoteUI({ sessionId }: { sessionId: string | null }) {
   const { send } = useWsCommands('controller', sessionId);
 
   const currentSong = useStore((s) => s.currentSong);
@@ -238,7 +238,7 @@ function RemoteUI({ sessionId }: { sessionId: string }) {
               Vynalize
             </h1>
             <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
-              Remote &middot; {sessionId}
+              Remote{sessionId ? ` · ${sessionId}` : ''}
             </p>
           </div>
           {bpm && (
@@ -476,8 +476,21 @@ export default function RemoteControl() {
   // Check for session code in URL query params
   const urlSession = new URLSearchParams(window.location.search).get('session');
   const [sessionId, setSessionId] = useState<string | null>(urlSession);
+  const [requireCode, setRequireCode] = useState(true);
+  const [loading, setLoading] = useState(!urlSession);
 
-  if (!sessionId) {
+  useEffect(() => {
+    if (urlSession) return; // already have a session from the URL
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((cfg) => setRequireCode(cfg.requireCode))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [urlSession]);
+
+  if (loading) return null;
+
+  if (!sessionId && requireCode) {
     return <SessionEntry onJoin={setSessionId} />;
   }
 

@@ -42,9 +42,10 @@ cd vynalize
 # Install dependencies
 npm install
 
-# Configure API keys
+# Configure API keys (option A: .env file)
 cp .env.example .env
 # Edit .env and add your YouTube API key
+# Or configure later via the browser at http://localhost:3001/settings
 
 # Start development servers (frontend + backend)
 npm run dev
@@ -55,7 +56,7 @@ npm run dev
 
 ## Raspberry Pi Appliance
 
-Vynalize can run as a self-contained appliance on a Raspberry Pi -- no phone, keyboard, or laptop needed after setup. Plug in power, a USB mic, an HDMI display, and three buttons. It boots straight into the visualizer and starts listening.
+Vynalize can run as a self-contained appliance on a Raspberry Pi -- no phone, keyboard, or laptop needed after setup. Plug in power, a USB mic, and an HDMI display. It boots straight into the visualizer and starts listening.
 
 ### Parts
 
@@ -83,14 +84,14 @@ After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autost
 
 1. **Listen** -- Grant microphone access and play music from a nearby speaker
 2. **Identify** -- The app captures audio snippets and identifies them using Shazam's audio fingerprinting
-3. **Visualize** -- Choose from 10 visualization modes, synced karaoke lyrics, ASCII art, or a muted music video
+3. **Visualize** -- Choose from 12 visualization modes, synced karaoke lyrics, ASCII art, or a muted music video
 4. **Sync** -- Use tap-to-sync and offset controls to align lyrics and video with your playback
 
 ## Display Modes
 
 | Mode | Description |
 |---|---|
-| Visualizer | 10 audio-reactive visualizations (see below) |
+| Visualizer | 12 audio-reactive visualizations (see below) |
 | Lyrics | Karaoke-style synced lyrics from lrclib.net |
 | Video | Muted YouTube music video, synced to your playback |
 | ASCII | Song title and lyrics rendered as ASCII art |
@@ -111,6 +112,8 @@ Switch modes with keyboard shortcuts or the mode selector.
 | 8 | Space Age | Four-panel sci-fi diorama: rocket launch, comet, eclipse, and black hole |
 | 9 | Starry Night | Van Gogh-inspired scene with swirling brushstrokes, star halos, and cypress tree |
 | 10 | Guitar Hero | Simulated rhythm game with 5-lane highway, note gems, combo flames, stage effects, and scoring |
+| 11 | Vynalize | Animated logo with reactive eyes, sparkle particles, and beat-driven ripples |
+| 12 | Beat Saber | 3D corridor with color-coded blocks, directional arrows, and perspective fog |
 
 The 3D visualizer (Particle Field) is lazy-loaded to keep the main bundle small (~33KB gzipped).
 
@@ -120,7 +123,9 @@ Real-time onset detection using spectral flux with BPM estimation from a rolling
 
 ## Phone Remote & Sessions
 
-Each display generates a unique 6-character session code (shown in the top-right corner on `/display`). Open the remote at `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
+Each display generates a unique 6-character session code (shown at the top center on `/display`). Open the remote at `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
+
+Session codes can be disabled (open mode) via the settings page or by setting `REQUIRE_CODE=false` in `.env`. In open mode, remotes connect without a code -- useful for standalone Pi setups.
 
 The remote supports all controls: display mode, visualizer selection, and sensitivity adjustment.
 
@@ -132,13 +137,15 @@ vynalize/
 │   ├── web/              # React + TypeScript + Vite frontend
 │   └── server/           # Express + TypeScript backend
 │       └── src/
-│           ├── routes/       # HTTP endpoints (identify, search, video)
-│           ├── services/     # Redis, session manager, cache, identify pool, Shazam
+│           ├── routes/       # HTTP endpoints (identify, search, video, settings)
+│           ├── services/     # Redis, session manager, cache, identify pool, Shazam, settings
 │           ├── middleware/   # Rate limiting
 │           ├── workers/      # Worker threads for song identification
 │           ├── wsRelay.ts    # Session-based WebSocket relay
 │           ├── cluster.ts    # Production multi-process entry point
 │           └── index.ts      # Express app entry point
+├── hardware/             # 3D-printable enclosure designs (OpenSCAD)
+├── scripts/              # Raspberry Pi setup script
 └── package.json          # npm workspaces root
 ```
 
