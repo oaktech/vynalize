@@ -11,9 +11,13 @@ const PERIOD_FILTERS: Record<string, string> = {
   all: '1=1',
 };
 
+const CATEGORIES = new Set(['songs', 'artists', 'genres']);
+
 leaderboardRouter.get('/', async (req, res) => {
+  const category = String(req.query.category || 'songs');
+
   if (!dbAvailable) {
-    res.json({ period: req.query.period || 'all', songs: [] });
+    res.json({ period: req.query.period || 'all', [category]: [] });
     return;
   }
 
@@ -26,43 +30,101 @@ leaderboardRouter.get('/', async (req, res) => {
     return;
   }
 
+  if (!CATEGORIES.has(category)) {
+    res.status(400).json({ error: 'Invalid category. Use: songs, artists, genres' });
+    return;
+  }
+
   const pool = getPool();
   if (!pool) {
-    res.json({ period, songs: [] });
+    res.json({ period, [category]: [] });
     return;
   }
 
   try {
-    const { rows } = await pool.query(
-      `SELECT
-         title,
-         artist,
-         MAX(album) AS album,
-         MAX(album_art_url) AS album_art_url,
-         COUNT(*)::int AS play_count,
-         MODE() WITHIN GROUP (ORDER BY city) AS top_city,
-         MODE() WITHIN GROUP (ORDER BY country_code) AS top_country
-       FROM song_plays
-       WHERE ${whereClause}
-       GROUP BY title, artist
-       ORDER BY play_count DESC, MAX(played_at) DESC
-       LIMIT $1`,
-      [limit],
-    );
+    if (category === 'artists') {
+      const { rows } = await pool.query(
+        `SELECT
+           artist,
+           COUNT(*)::int AS play_count,
+           COUNT(DISTINCT title)::int AS song_count,
+           MAX(album_art_url) AS album_art_url,
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+         FROM song_plays
+         WHERE ${whereClause}
+         GROUP BY artist
+         ORDER BY play_count DESC, MAX(played_at) DESC
+         LIMIT $1`,
+        [limit],
+      );
 
-    res.json({
-      period,
-      songs: rows.map((row, i) => ({
-        rank: i + 1,
-        title: row.title,
-        artist: row.artist,
-        album: row.album,
-        albumArtUrl: row.album_art_url,
-        playCount: row.play_count,
-        topCity: row.top_city,
-        topCountry: row.top_country,
-      })),
-    });
+      res.json({
+        period,
+        artists: rows.map((row, i) => ({
+          rank: i + 1,
+          artist: row.artist,
+          playCount: row.play_count,
+          songCount: row.song_count,
+          albumArtUrl: row.album_art_url,
+          topCountry: row.top_country,
+        })),
+      });
+    } else if (category === 'genres') {
+      const { rows } = await pool.query(
+        `SELECT
+           genre,
+           COUNT(*)::int AS play_count,
+           COUNT(DISTINCT artist)::int AS artist_count,
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+         FROM song_plays
+         WHERE ${whereClause} AND genre IS NOT NULL
+         GROUP BY genre
+         ORDER BY play_count DESC, MAX(played_at) DESC
+         LIMIT $1`,
+        [limit],
+      );
+
+      res.json({
+        period,
+        genres: rows.map((row, i) => ({
+          rank: i + 1,
+          genre: row.genre,
+          playCount: row.play_count,
+          artistCount: row.artist_count,
+          topCountry: row.top_country,
+        })),
+      });
+    } else {
+      // Default: songs
+      const { rows } = await pool.query(
+        `SELECT
+           title,
+           artist,
+           MAX(album) AS album,
+           MAX(album_art_url) AS album_art_url,
+           COUNT(*)::int AS play_count,
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+         FROM song_plays
+         WHERE ${whereClause}
+         GROUP BY title, artist
+         ORDER BY play_count DESC, MAX(played_at) DESC
+         LIMIT $1`,
+        [limit],
+      );
+
+      res.json({
+        period,
+        songs: rows.map((row, i) => ({
+          rank: i + 1,
+          title: row.title,
+          artist: row.artist,
+          album: row.album,
+          albumArtUrl: row.album_art_url,
+          playCount: row.play_count,
+          topCountry: row.top_country,
+        })),
+      });
+    }
   } catch (err) {
     console.error('[leaderboard] Query failed:', err);
     res.status(500).json({ error: 'Leaderboard query failed' });

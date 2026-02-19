@@ -7,38 +7,46 @@ interface SongData {
   title: string;
   artist: string;
   album?: string | null;
+  genre?: string | null;
   albumArtUrl?: string | null;
 }
 
-export function recordPlay(ip: string, song: SongData): void {
+export function recordPlay(ip: string, headers: Record<string, string | string[] | undefined>, song: SongData): void {
   if (!dbAvailable) return;
 
   // Fire-and-forget — errors logged but never thrown
-  doRecord(ip, song).catch((err) => {
+  doRecord(ip, headers, song).catch((err) => {
     console.error('[plays] Failed to record play:', err);
   });
 }
 
-async function doRecord(ip: string, song: SongData): Promise<void> {
+/** Best-effort client IP for geo lookup (not security-sensitive) */
+function clientIp(ip: string, headers: Record<string, string | string[] | undefined>): string {
+  const xff = headers['x-forwarded-for'];
+  if (xff) {
+    const first = (Array.isArray(xff) ? xff[0] : xff).split(',')[0].trim();
+    if (first) return first;
+  }
+  return ip;
+}
+
+async function doRecord(ip: string, headers: Record<string, string | string[] | undefined>, song: SongData): Promise<void> {
   const dedupKey = `play:${createHash('sha256').update(ip + song.title.toLowerCase() + song.artist.toLowerCase()).digest('hex')}`;
 
   const existing = await cacheGet(dedupKey);
   if (existing) return; // Already counted within the 5-minute window
 
-  // Geolocate IP (returns null for private/localhost IPs)
-  const geo = geoip.lookup(ip);
-  const city = geo?.city || null;
-  const region = geo?.region || null;
+  const realIp = clientIp(ip, headers);
+  const geo = geoip.lookup(realIp);
   const country = geo?.country || null;
-  const countryCode = geo?.country || null;
 
   const pool = getPool();
   if (!pool) return;
 
   await pool.query(
-    `INSERT INTO song_plays (title, artist, album, album_art_url, city, region, country, country_code)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [song.title, song.artist, song.album || null, song.albumArtUrl || null, city, region, country, countryCode],
+    `INSERT INTO song_plays (title, artist, album, genre, album_art_url, country)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [song.title, song.artist, song.album || null, song.genre || null, song.albumArtUrl || null, country],
   );
 
   await cacheSet(dedupKey, '1', 300); // 5-minute TTL

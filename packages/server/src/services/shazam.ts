@@ -10,6 +10,7 @@ export interface ShazamResult {
   title: string;
   artist: string;
   album: string;
+  genre: string | null;
   albumArtUrl: string | null;
   offsetMs: number;
 }
@@ -84,6 +85,9 @@ export async function recognizeSong(
       }
     }
 
+    // Get genre from track
+    const genre: string | null = track.genres?.primary || null;
+
     // Get album art from track images
     const albumArtUrl = track.images?.coverart || track.images?.background || null;
 
@@ -93,7 +97,7 @@ export async function recognizeSong(
 
     console.log(`[shazam] Match: "${title}" by ${artist} (album: ${album}, offset: ${offsetSec}s)`);
 
-    return { title, artist, album, albumArtUrl, offsetMs };
+    return { title, artist, album, genre, albumArtUrl, offsetMs };
   } catch (err) {
     console.error('[shazam] Recognition error:', err);
     throw err;

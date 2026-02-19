@@ -71,10 +71,11 @@ identifyRouter.post(
 
       console.log(`[identify] Match: "${result.title}" by ${result.artist}`);
 
-      recordPlay(req.ip ?? '127.0.0.1', {
+      recordPlay(req.ip ?? '127.0.0.1', req.headers, {
         title: result.title,
         artist: result.artist,
         album: result.album,
+        genre: result.genre,
         albumArtUrl: result.albumArtUrl,
       });
 

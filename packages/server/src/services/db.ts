@@ -11,11 +11,9 @@ CREATE TABLE IF NOT EXISTS song_plays (
   title         TEXT NOT NULL,
   artist        TEXT NOT NULL,
   album         TEXT,
+  genre         TEXT,
   album_art_url TEXT,
-  city          TEXT,
-  region        TEXT,
-  country       TEXT,
-  country_code  CHAR(2),
+  country       CHAR(2),
   played_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
