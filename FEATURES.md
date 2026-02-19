@@ -10,7 +10,7 @@
 ## Song Identification
 
 - Shazam-powered recognition via node-shazam -- designed for ambient/room audio
-- Automatic identification from microphone capture every 30 seconds
+- Automatic identification from microphone capture every 20 seconds
 - Returns title, artist, album, and album art directly from Shazam
 - No API key required for song identification
 - Manual search fallback via MusicBrainz (type artist + title directly)
@@ -163,18 +163,33 @@ Twelve built-in visualizations, all reactive to live audio:
 - Redis pub/sub enables cross-instance message routing for multi-server deployments
 - New controllers receive cached display state/song/beat on connect
 
+## Song Play Tracking & Leaderboard
+
+- Every successful Shazam match is recorded to a PostgreSQL database (fire-and-forget, never slows the identify response)
+- Cache-based deduplication: same song from the same source within 5 minutes counts as one play (handles the 20-second re-identification cycle)
+- Approximate geolocation (city, region, country) derived from IP via bundled MaxMind GeoLite2 database — IP is never stored
+- Leaderboard API at `/api/leaderboard` with time period filtering (today, week, month, year, all time)
+- Leaderboard UI at `/leaderboard` with period tabs, album art, play counts, and country flags
+- Privacy policy at `/privacy` documenting all data practices
+- Graceful degradation: play tracking silently disabled when `DATABASE_URL` is not set
+
 ## Technical
 
 - Monorepo with npm workspaces (`packages/web` + `packages/server`)
 - 3D visualizer (Particle Field) lazy-loaded to avoid loading Three.js until needed
+- Leaderboard and Privacy pages lazy-loaded to keep the main bundle small
 - Main app bundle only ~33KB gzipped
 - All API keys kept server-side, never exposed to the browser
+- Security headers via helmet with Content Security Policy
+- Local-only middleware restricts `/api/settings` and `/api/diag` to loopback and private IPs
 - MusicBrainz rate limiting (1 req/1.1s) coordinated across instances via Redis
 - Redis-backed caching for MusicBrainz and YouTube API results (7-day TTL)
 - Per-IP rate limiting on all API endpoints (Redis sorted set sliding window, in-memory fallback)
 - Worker thread pool for song identification — offloads ffmpeg+Shazam from the event loop
 - Production clustering via Node.js `cluster` module (configurable via `WEB_CONCURRENCY`)
+- PostgreSQL for persistent song play tracking with auto-created schema on startup
 - Graceful degradation: server runs without Redis in local dev — falls back to in-memory state for sessions, caching, and rate limiting
+- Graceful degradation: server runs without PostgreSQL — play tracking silently disabled
 - Graceful degradation: app works as a pure visualizer even without API keys
 
 ## Raspberry Pi Appliance Mode

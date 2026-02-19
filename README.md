@@ -137,9 +137,9 @@ vynalize/
 │   ├── web/              # React + TypeScript + Vite frontend
 │   └── server/           # Express + TypeScript backend
 │       └── src/
-│           ├── routes/       # HTTP endpoints (identify, search, video, settings)
-│           ├── services/     # Redis, session manager, cache, identify pool, Shazam, settings
-│           ├── middleware/   # Rate limiting
+│           ├── routes/       # HTTP endpoints (identify, search, video, settings, leaderboard)
+│           ├── services/     # Redis, Postgres, session manager, cache, identify pool, Shazam, plays, settings
+│           ├── middleware/   # Rate limiting, local-only IP restriction
 │           ├── workers/      # Worker threads for song identification
 │           ├── wsRelay.ts    # Session-based WebSocket relay
 │           ├── cluster.ts    # Production multi-process entry point
@@ -161,6 +161,8 @@ vynalize/
 | lrclib.net | Synced lyrics (LRC) | None |
 | YouTube Data API | Video search | API key (server-side) |
 | YouTube IFrame API | Video embed | None |
+| PostgreSQL (optional) | Song play tracking, leaderboard | `DATABASE_URL` env var |
+| MaxMind GeoLite2 (via geoip-lite) | Approximate geolocation from IP (bundled, no API calls) | None |
 | Redis (optional) | Session sharing, caching, rate limiting | `REDIS_URL` env var |
 
 ## Scripts
@@ -189,7 +191,7 @@ npm run start:production # Clustered production server (in packages/server)
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Three.js / React Three Fiber
-- **Backend:** Express, TypeScript, node-shazam, ioredis, worker_threads
+- **Backend:** Express, TypeScript, node-shazam, ioredis, pg, geoip-lite, helmet, worker_threads
 - **Audio:** Web Audio API, AnalyserNode for real-time FFT (2048-point at 60fps)
 
 Installable as a PWA on mobile via the browser's "Add to Home Screen" option.
