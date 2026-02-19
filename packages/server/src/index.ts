@@ -6,6 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../../../.env'), override: false });
 
 import { createServer } from 'http';
+import { networkInterfaces } from 'os';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -38,7 +39,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "https://www.youtube.com", "https://s.ytimg.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://i.ytimg.com", "https://*.googleusercontent.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://i.ytimg.com", "https://*.googleusercontent.com", "https://*.mzstatic.com", "https://coverartarchive.org", "https://*.archive.org"],
       frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
       connectSrc: ["'self'", "ws:", "wss:", "https://lrclib.net"],
       mediaSrc: ["'self'", "blob:"],
@@ -97,8 +98,15 @@ app.post('/api/log', logRateLimit, (req, res) => {
 });
 
 app.get('/api/config', (_req, res) => {
+  // Find first non-internal IPv4 address for QR code in local dev
+  let lanHost: string | undefined;
+  for (const addrs of Object.values(networkInterfaces())) {
+    const match = addrs?.find((a) => a.family === 'IPv4' && !a.internal);
+    if (match) { lanHost = match.address; break; }
+  }
   res.json({
     requireCode: getSettings().requireCode,
+    ...(lanHost && { lanHost }),
   });
 });
 

@@ -9,12 +9,35 @@ export default function QRPairing({ sessionId }: QRPairingProps) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const remoteUrl = `${window.location.origin}/remote?session=${sessionId}`;
-    QRCode.toDataURL(remoteUrl, {
-      width: 160,
-      margin: 1,
-      color: { dark: '#ffffffdd', light: '#00000000' },
-    }).then(setDataUrl).catch(() => {});
+    let cancelled = false;
+
+    async function generate() {
+      let origin = window.location.origin;
+
+      // localhost URLs aren't reachable from a phone — swap in the LAN IP
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        try {
+          const res = await fetch('/api/config');
+          const cfg = await res.json();
+          if (cfg.lanHost) {
+            origin = `${window.location.protocol}//${cfg.lanHost}:${window.location.port}`;
+          }
+        } catch { /* fall through to localhost URL */ }
+      }
+
+      if (cancelled) return;
+      const remoteUrl = `${origin}/remote?session=${sessionId}`;
+      const url = await QRCode.toDataURL(remoteUrl, {
+        width: 160,
+        margin: 1,
+        color: { dark: '#ffffffdd', light: '#00000000' },
+      });
+      if (!cancelled) setDataUrl(url);
+    }
+
+    generate();
+    return () => { cancelled = true; };
   }, [sessionId]);
 
   if (!dataUrl) return null;
