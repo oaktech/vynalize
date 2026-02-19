@@ -11,6 +11,7 @@ import { useWsCommands } from './hooks/useWsCommands';
 import { useStore } from './store';
 import AppShell from './components/AppShell';
 import RemoteControl from './components/RemoteControl';
+import ServerSettings from './components/ServerSettings';
 
 function StartScreen({ onStart }: { onStart: () => void }) {
   return (
@@ -170,6 +171,10 @@ function DisplayRoute() {
 
 export default function App() {
   const path = window.location.pathname;
+
+  if (path === '/settings') {
+    return <ServerSettings />;
+  }
 
   if (path === '/remote') {
     return <RemoteControl />;

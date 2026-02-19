@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { cacheGet, cacheSet, cacheIncr } from '../services/cache.js';
 import { createRateLimit } from '../middleware/rateLimit.js';
+import { getSettings } from '../services/settings.js';
 
 const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -30,7 +31,7 @@ videoRouter.get(
       return;
     }
 
-    const apiKey = process.env.YOUTUBE_API_KEY;
+    const apiKey = getSettings().youtubeApiKey;
     if (!apiKey) {
       res.status(500).json({ error: 'YOUTUBE_API_KEY not configured' });
       return;

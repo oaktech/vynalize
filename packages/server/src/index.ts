@@ -11,9 +11,11 @@ import cors from 'cors';
 import { identifyRouter } from './routes/identify.js';
 import { videoRouter } from './routes/video.js';
 import { searchRouter } from './routes/search.js';
+import { settingsRouter } from './routes/settings.js';
 import { attachWebSocket } from './wsRelay.js';
 import { connectRedis, redisAvailable } from './services/redis.js';
 import { initPool, getQueueDepth, getPoolSize } from './services/identifyPool.js';
+import { loadSettings, getSettings } from './services/settings.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,11 +26,18 @@ app.use(express.json());
 app.use('/api/identify', identifyRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/settings', settingsRouter);
 
 app.post('/api/log', (req, res) => {
   const { tag, msg } = req.body ?? {};
   if (tag && msg) console.log(`[${tag}] ${msg}`);
   res.sendStatus(204);
+});
+
+app.get('/api/config', (_req, res) => {
+  res.json({
+    requireCode: getSettings().requireCode,
+  });
 });
 
 app.get('/api/health', (_req, res) => {
@@ -43,7 +52,8 @@ app.get('/api/diag', async (_req, res) => {
   const checks: Record<string, string | number | boolean> = {};
 
   checks.shazam = 'node-shazam (no API key required)';
-  checks.youtube_key = process.env.YOUTUBE_API_KEY ? `set (${process.env.YOUTUBE_API_KEY.length} chars)` : 'MISSING';
+  const ytKey = getSettings().youtubeApiKey;
+  checks.youtube_key = ytKey ? `set (${ytKey.length} chars)` : 'MISSING';
 
   const { execFile } = await import('child_process');
   const { promisify } = await import('util');
@@ -74,6 +84,9 @@ async function start() {
   // Connect to Redis (no-op if REDIS_URL not set)
   await connectRedis();
 
+  // Load settings (settings.json overrides .env)
+  await loadSettings();
+
   // Start the identify worker thread pool
   await initPool();
 
@@ -81,10 +94,14 @@ async function start() {
   attachWebSocket(server);
 
   server.listen(PORT, () => {
+    const settings = getSettings();
     console.log(`[server] Vynalize backend running on port ${PORT} (pid: ${process.pid})`);
     console.log(`[server] Redis: ${redisAvailable ? 'connected' : 'not available (local-only mode)'}`);
+    if (!settings.requireCode) {
+      console.log('[server] Session codes DISABLED (open mode) — remote connects without a code');
+    }
 
-    if (!process.env.YOUTUBE_API_KEY) {
+    if (!settings.youtubeApiKey) {
       console.warn('[server] WARNING: YOUTUBE_API_KEY not set - video search will not work');
     }
   });

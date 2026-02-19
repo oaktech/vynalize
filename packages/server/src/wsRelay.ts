@@ -5,10 +5,14 @@ import { getRedis, getSubscriber } from './services/redis.js';
 import {
   createSession,
   sessionExists,
+  ensureSession,
   cacheState,
   getState,
   touchSession,
 } from './services/sessionManager.js';
+import { getSettings } from './services/settings.js';
+
+const OPEN_SESSION = '__open__';
 
 type ClientRole = 'controller' | 'display';
 
@@ -236,7 +240,11 @@ export function attachWebSocket(server: Server): void {
     (async () => {
       let sessionId: string;
 
-      if (role === 'display') {
+      if (!getSettings().requireCode) {
+        // No code required — everyone shares a single session
+        await ensureSession(OPEN_SESSION);
+        sessionId = OPEN_SESSION;
+      } else if (role === 'display') {
         if (sessionParam && (await sessionExists(sessionParam))) {
           sessionId = sessionParam;
         } else {

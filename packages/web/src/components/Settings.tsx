@@ -95,6 +95,23 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
           )}
         </div>
 
+        {/* Server Settings link */}
+        <div className="mb-6">
+          <a
+            href="/settings"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-white/60 hover:text-white transition-colors"
+          >
+            <span>Server Settings</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
+        </div>
+
         {/* About */}
         <div className="pt-4 border-t border-white/5">
           <p className="text-xs text-white/20 text-center">
