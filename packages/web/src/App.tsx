@@ -103,13 +103,29 @@ function SessionOverlay() {
   const sessionId = useStore((s) => s.sessionId);
   const remoteConnected = useStore((s) => s.remoteConnected);
   const [dismissed, setDismissed] = useState(false);
+  const hadConnection = useRef(false);
+  const [reconnectGrace, setReconnectGrace] = useState(false);
 
-  // Reset dismissed state when remote disconnects so overlay reappears
   useEffect(() => {
-    if (!remoteConnected) setDismissed(false);
+    if (remoteConnected) {
+      hadConnection.current = true;
+      setReconnectGrace(false);
+      return;
+    }
+    // If we previously had a connection, give a grace period before re-showing
+    // the overlay — the phone may just be asleep and will reconnect shortly.
+    if (hadConnection.current) {
+      setReconnectGrace(true);
+      const timer = setTimeout(() => {
+        setReconnectGrace(false);
+        setDismissed(false);
+      }, 10_000);
+      return () => clearTimeout(timer);
+    }
+    setDismissed(false);
   }, [remoteConnected]);
 
-  if (!sessionId || remoteConnected || dismissed) return null;
+  if (!sessionId || remoteConnected || dismissed || reconnectGrace) return null;
 
   return (
     <div className="fixed top-16 right-8 z-50 px-5 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3">

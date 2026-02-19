@@ -36,6 +36,11 @@ const rooms = new Map<string, Set<TaggedSocket>>();
 // Track cleanup timers for empty rooms
 const roomCleanupTimers = new Map<string, NodeJS.Timeout>();
 
+// Grace period before notifying display that all controllers are gone.
+// Phones going to sleep kill the TCP connection but reconnect quickly on wake.
+const DISCONNECT_GRACE_MS = 15_000;
+const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
+
 // Track Redis channel subscriptions
 const subscribedChannels = new Set<string>();
 
@@ -128,6 +133,31 @@ function cancelRoomCleanup(sessionId: string): void {
   if (timer) {
     clearTimeout(timer);
     roomCleanupTimers.delete(sessionId);
+  }
+}
+
+function scheduleDisconnectGrace(sessionId: string): void {
+  // Already have a pending grace timer — let it run
+  if (disconnectGraceTimers.has(sessionId)) return;
+
+  const timer = setTimeout(() => {
+    disconnectGraceTimers.delete(sessionId);
+    const remaining = countRole(sessionId, 'controller');
+    sendToRole(sessionId, 'display', JSON.stringify({
+      type: 'remoteStatus',
+      connected: remaining > 0,
+      controllers: remaining,
+    }));
+  }, DISCONNECT_GRACE_MS);
+
+  disconnectGraceTimers.set(sessionId, timer);
+}
+
+function cancelDisconnectGrace(sessionId: string): void {
+  const timer = disconnectGraceTimers.get(sessionId);
+  if (timer) {
+    clearTimeout(timer);
+    disconnectGraceTimers.delete(sessionId);
   }
 }
 
@@ -234,11 +264,19 @@ export function attachWebSocket(server: Server): void {
         // Notify displays when a controller disconnects
         if (role === 'controller') {
           const remaining = countRole(resolvedSessionId, 'controller');
-          sendToRole(resolvedSessionId, 'display', JSON.stringify({
-            type: 'remoteStatus',
-            connected: remaining > 0,
-            controllers: remaining,
-          }));
+          if (remaining > 0) {
+            // Still have controllers — update count immediately
+            cancelDisconnectGrace(resolvedSessionId);
+            sendToRole(resolvedSessionId, 'display', JSON.stringify({
+              type: 'remoteStatus',
+              connected: true,
+              controllers: remaining,
+            }));
+          } else {
+            // Last controller left — start grace period before notifying display.
+            // Phones going to sleep drop the TCP connection but reconnect on wake.
+            scheduleDisconnectGrace(resolvedSessionId);
+          }
         }
 
         if (room.size === 0) {
@@ -286,6 +324,9 @@ export function attachWebSocket(server: Server): void {
 
       // Send cached state to new controllers
       if (role === 'controller') {
+        // Cancel any pending disconnect grace — controller is (re)connecting
+        cancelDisconnectGrace(sessionId);
+
         try {
           const cached = await getState(sessionId);
           if (cached.state) ws.send(cached.state);
