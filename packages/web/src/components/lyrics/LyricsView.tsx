@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useStore } from '../../store';
 import KaraokeLine from './KaraokeLine';
+import QRPrompt from '../QRPrompt';
 
 function findCurrentIndex(lyrics: { timeMs: number }[], posMs: number): number {
   // Binary search for the last line where timeMs <= posMs
@@ -23,6 +24,7 @@ export default function LyricsView() {
   const lyrics = useStore((s) => s.lyrics);
   const currentSong = useStore((s) => s.currentSong);
   const accentColor = useStore((s) => s.accentColor);
+  const remoteConnected = useStore((s) => s.remoteConnected);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -78,6 +80,7 @@ export default function LyricsView() {
   }, [currentIndex]);
 
   if (lyrics.length === 0) {
+    if (!remoteConnected) return <QRPrompt />;
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">

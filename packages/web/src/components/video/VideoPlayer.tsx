@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../../store';
+import QRPrompt from '../QRPrompt';
 
 declare global {
   interface Window {
@@ -80,6 +81,7 @@ export default function VideoPlayer() {
   const videoId = useStore((s) => s.videoId);
   const videoOffsetMs = useStore((s) => s.videoOffsetMs);
   const setAppMode = useStore((s) => s.setAppMode);
+  const remoteConnected = useStore((s) => s.remoteConnected);
   const playerRef = useRef<YTPlayer | null>(null);
   const containerIdRef = useRef(`yt-player-${Date.now()}`);
   const lastSeekRef = useRef(0);
@@ -182,6 +184,7 @@ export default function VideoPlayer() {
   }, [videoId]);
 
   if (!videoId) {
+    if (!remoteConnected) return <QRPrompt />;
     return (
       <div className="w-full h-full flex items-center justify-center">
         <p className="text-white/40 text-lg">

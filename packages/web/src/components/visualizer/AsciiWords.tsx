@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useStore } from '../../store';
+import QRPrompt from '../QRPrompt';
 
 const RAMP = ' .·:;+=xX$@';
 const RAMP_LAST = RAMP.length - 1;
@@ -106,6 +107,7 @@ function hexToHsl(hex: string): [number, number, number] {
 export default function AsciiWords({ accentColor }: { accentColor: string }) {
   const currentSong = useStore((s) => s.currentSong);
   const isBeat = useStore((s) => s.isBeat);
+  const remoteConnected = useStore((s) => s.remoteConnected);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [asciiData, setAsciiData] = useState(EMPTY);
@@ -185,6 +187,7 @@ export default function AsciiWords({ accentColor }: { accentColor: string }) {
   }, [updateWord]);
 
   if (!currentSong) {
+    if (!remoteConnected) return <QRPrompt />;
     return (
       <div className="w-full h-full flex items-center justify-center">
         <p className="text-white/40 text-lg">Waiting for song identification...</p>
