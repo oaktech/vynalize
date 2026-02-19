@@ -1,47 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { useWsCommands } from '../hooks/useWsCommands';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import type { AppMode, VisualizerMode } from '../types';
 
-const APP_MODES: { id: AppMode; label: string; icon: JSX.Element }[] = [
-  {
-    id: 'visualizer',
-    label: 'Visual',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M9 19V6l12-3v13M9 19c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2zm12-3c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'lyrics',
-    label: 'Lyrics',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M4 6h16M4 10h16M4 14h10M4 18h7" />
-      </svg>
-    ),
-  },
-  {
-    id: 'video',
-    label: 'Video',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        <circle cx="12" cy="12" r="9" />
-      </svg>
-    ),
-  },
-  {
-    id: 'ascii',
-    label: 'ASCII',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
-      </svg>
-    ),
-  },
+const APP_MODES: { id: AppMode; label: string }[] = [
+  { id: 'visualizer', label: 'Visual' },
+  { id: 'lyrics', label: 'Lyrics' },
+  { id: 'video', label: 'Video' },
+  { id: 'ascii', label: 'ASCII' },
 ];
 
 const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
@@ -57,6 +24,10 @@ const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
   { id: 'guitarhero', label: 'Guitar Hero' },
   { id: 'beatsaber', label: 'Beat Saber' },
 ];
+
+const VIZ_COUNT = VIZ_MODES.length;
+
+/* ─── Session Entry ─── */
 
 function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
   const [code, setCode] = useState('');
@@ -76,61 +47,49 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
 
   return (
     <div
-      className="min-h-screen bg-black text-white overflow-y-auto overscroll-y-contain"
+      className="min-h-screen text-white overflow-y-auto overscroll-y-contain"
       style={{
+        backgroundColor: '#000',
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      {/* Ambient glow */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.07]"
-        style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${accentColor}, transparent 70%)`,
-        }}
-      />
+      <div className="relative z-10 px-5 max-w-lg mx-auto flex flex-col min-h-screen">
+        {/* Header — logo */}
+        <div className="flex justify-center pt-16 mb-2">
+          <img
+            src="/vynalize-logo.png"
+            alt="Vynalize"
+            className="h-[100px] w-auto object-contain"
+          />
+        </div>
+        <p className="text-center text-[15px] text-white/70 mb-10">
+          Remote Control
+        </p>
 
-      <div className="relative z-10 px-5 py-6 max-w-lg mx-auto flex flex-col min-h-screen">
-        {/* Header — matches RemoteUI */}
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-white/90">
-              Vynalize
-            </h1>
-            <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
-              Remote
-            </p>
-          </div>
-        </header>
-
-        {/* Centered content */}
-        <div className="flex-1 flex flex-col items-center justify-center -mt-12">
-          {/* Link icon */}
-          <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-6">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-white/30">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </svg>
-          </div>
-
-          <p className="text-[11px] text-white/30 tracking-wide uppercase mb-4">
-            Session Code
+        {/* Code section */}
+        <div className="mb-7">
+          <p className="text-[11px] text-white/70 tracking-[1px] font-semibold mb-3 px-1">
+            VYNALIZE.COM CODE
           </p>
-
           <input
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            placeholder="A3K9X2"
+            placeholder="ENTER CODE"
             maxLength={6}
             aria-label="Session code"
-            className="w-full max-w-[280px] text-center text-3xl font-mono tracking-[0.3em] py-4 px-6 text-white placeholder:text-white/10 focus:outline-none transition-colors rounded-2xl border"
+            className="w-full text-center text-2xl py-4 px-4 text-white placeholder:text-white/45 focus:outline-none transition-colors"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              borderColor: code.length > 0 ? `${accentColor}40` : 'rgba(255,255,255,0.06)',
+              height: 56,
+              borderRadius: 14,
+              border: '1px solid rgba(255,255,255,0.25)',
+              backgroundColor: 'rgba(255,255,255,0.12)',
+              fontFamily: 'Menlo, monospace',
+              letterSpacing: '8px',
             }}
             autoFocus
             autoComplete="off"
@@ -138,41 +97,56 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
             autoCapitalize="characters"
             spellCheck={false}
           />
-
-          {error && (
-            <p className="text-red-400/70 text-xs mt-3">{error}</p>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            className="mt-6 px-10 py-3.5 rounded-2xl text-sm font-medium transition-all active:scale-95"
-            style={{
-              backgroundColor: code.length >= 4 ? `${accentColor}25` : 'rgba(255,255,255,0.04)',
-              borderWidth: 1,
-              borderColor: code.length >= 4 ? `${accentColor}50` : 'rgba(255,255,255,0.06)',
-              color: code.length >= 4 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
-            }}
-          >
-            Connect
-          </button>
-
-          <p className="text-[10px] text-white/15 mt-8 text-center leading-relaxed">
-            Enter the code shown on your display to connect
-          </p>
         </div>
 
-        {/* Footer — matches RemoteUI */}
+        {/* Error */}
+        {error && (
+          <div
+            className="mb-5 p-3 text-[13px]"
+            style={{
+              backgroundColor: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 12,
+              color: '#ef4444',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Connect button */}
+        <button
+          onClick={handleSubmit}
+          className="w-full py-3.5 text-[15px] font-semibold text-white transition-all active:scale-95"
+          style={{
+            height: 48,
+            borderRadius: 12,
+            backgroundColor: code.length >= 4 ? accentColor : 'rgba(255,255,255,0.04)',
+            opacity: code.length >= 4 ? 1 : 0.4,
+          }}
+        >
+          Connect
+        </button>
+
+        {/* Spacer + footer */}
+        <div className="flex-1" />
         <footer className="text-center pt-2 pb-4">
-          <p className="text-[10px] text-white/15">
-            Vynalize Remote v0.1.0
-          </p>
+          <p className="text-[10px] text-white/15">Vynalize Remote v0.1.0</p>
         </footer>
       </div>
     </div>
   );
 }
 
-function RemoteUI({ sessionId }: { sessionId: string | null }) {
+/* ─── Remote UI ─── */
+
+function RemoteUI({
+  sessionId,
+  onDisconnect,
+}: {
+  sessionId: string | null;
+  onDisconnect: () => void;
+}) {
   const { send } = useWsCommands('controller', sessionId);
 
   const currentSong = useStore((s) => s.currentSong);
@@ -181,6 +155,7 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
   const visualizerMode = useStore((s) => s.visualizerMode);
   const accentColor = useStore((s) => s.accentColor);
   const sensitivityGain = useStore((s) => s.sensitivityGain);
+  const wsStatus = useStore((s) => s.wsStatus);
 
   const setAppMode = useCallback(
     (mode: AppMode) => {
@@ -214,181 +189,178 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
     [send],
   );
 
+  // Video sync
+  const [syncFlash, setSyncFlash] = useState<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const adjustVideoOffset = useCallback(
+    (deltaMs: number) => {
+      send({ type: 'command', action: 'adjustVideoOffset', value: deltaMs });
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      setSyncFlash(deltaMs < 0 ? '\u22120.2s' : '+0.2s');
+      syncTimerRef.current = setTimeout(() => setSyncFlash(null), 700);
+    },
+    [send],
+  );
+
+  // Visualizer chip scrolling
+  const chipScrollRef = useRef<HTMLDivElement>(null);
+  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    const idx = VIZ_MODES.findIndex((m) => m.id === visualizerMode);
+    const chip = chipRefs.current[idx];
+    if (chip && chipScrollRef.current) {
+      const container = chipScrollRef.current;
+      const scrollLeft = chip.offsetLeft - 80;
+      container.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'smooth' });
+    }
+  }, [visualizerMode]);
+
+  const activeVizLabel =
+    VIZ_MODES.find((m) => m.id === visualizerMode)?.label ?? visualizerMode;
+
   return (
     <div
-      className="min-h-screen bg-black text-white overflow-y-auto overscroll-y-contain"
+      className="min-h-screen text-white overflow-y-auto overscroll-y-contain"
       style={{
+        backgroundColor: '#050505',
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      {/* Ambient glow */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.07]"
-        style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${accentColor}, transparent 70%)`,
-        }}
-      />
+      <div className="relative z-10 px-6 max-w-lg mx-auto flex flex-col">
+        {/* 1. Header — Logo */}
+        <div className="flex justify-center pt-3 mb-2">
+          <img
+            src="/vynalize-logo.png"
+            alt="Vynalize"
+            className="h-[80px] w-auto object-contain"
+          />
+        </div>
 
-      <div className="relative z-10 px-5 py-6 max-w-lg mx-auto flex flex-col gap-7">
-        {/* Header */}
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight text-white/90">
-              Vynalize
-            </h1>
-            <p className="text-[11px] text-white/30 tracking-wide uppercase mt-0.5">
-              Remote{sessionId ? ` · ${sessionId}` : ''}
-            </p>
-          </div>
-          {bpm && (
-            <div className="flex items-center gap-2">
+        {/* Status row */}
+        <div className="flex items-center justify-end gap-3 mb-5">
+          {wsStatus !== 'connected' && (
+            <span
+              className="text-[11px] font-semibold px-2 py-1 rounded-md"
+              style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+            >
+              Reconnecting...
+            </span>
+          )}
+          {bpm != null && (
+            <div className="flex items-center gap-1.5">
               <span
                 className="block w-1.5 h-1.5 rounded-full animate-pulse"
                 style={{ backgroundColor: accentColor }}
               />
-              <span className="text-sm font-mono tabular-nums text-white/50">
+              <span className="text-[13px] tabular-nums text-white/50" style={{ fontFamily: 'Menlo, monospace' }}>
                 {bpm} <span className="text-[10px] text-white/30">BPM</span>
               </span>
             </div>
           )}
-        </header>
+        </div>
 
-        {/* Now Playing */}
-        <section className="relative rounded-2xl overflow-hidden">
-          {currentSong?.albumArtUrl && (
-            <div
-              className="absolute inset-0 bg-cover bg-center opacity-20 blur-2xl scale-125"
-              style={{ backgroundImage: `url(${currentSong.albumArtUrl})` }}
-            />
-          )}
-          <div
-            className="relative p-5 rounded-2xl border border-white/[0.06]"
-            style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-          >
-            {currentSong ? (
-              <div className="flex items-center gap-4">
-                {currentSong.albumArtUrl ? (
-                  <img
-                    src={currentSong.albumArtUrl}
-                    alt={currentSong.album}
-                    className="w-20 h-20 rounded-xl shadow-lg object-cover flex-shrink-0 ring-1 ring-white/10"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-xl bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/25">
-                      <circle cx="12" cy="12" r="10" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  </div>
+        {/* 2. Now Playing Hero */}
+        <section
+          className="mb-7 p-4"
+          style={{
+            borderRadius: 14,
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderTopWidth: 3,
+            borderTopColor: accentColor,
+            backgroundColor: `${accentColor}08`,
+          }}
+        >
+          {currentSong ? (
+            <div className="flex items-center gap-4">
+              {currentSong.albumArtUrl ? (
+                <img
+                  src={currentSong.albumArtUrl}
+                  alt={currentSong.album}
+                  className="w-[88px] h-[88px] rounded-2xl shadow-lg object-cover flex-shrink-0"
+                />
+              ) : (
+                <div
+                  className="w-[88px] h-[88px] rounded-2xl flex items-center justify-center flex-shrink-0 text-[32px] text-white/20"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                >
+                  {'\u266B'}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-[18px] font-bold text-white truncate leading-snug">
+                  {currentSong.title}
+                </p>
+                <p className="text-[15px] text-white/60 truncate mt-0.5">
+                  {currentSong.artist}
+                </p>
+                {currentSong.album && (
+                  <p className="text-[13px] text-white/30 truncate mt-1">
+                    {currentSong.album}
+                  </p>
                 )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-base font-semibold text-white truncate leading-snug">
-                    {currentSong.title}
-                  </p>
-                  <p className="text-sm text-white/60 truncate mt-0.5">
-                    {currentSong.artist}
-                  </p>
-                  {currentSong.album && (
-                    <p className="text-xs text-white/30 truncate mt-1">
-                      {currentSong.album}
-                    </p>
-                  )}
-                </div>
               </div>
-            ) : (
-              <div className="flex items-center gap-4 py-2">
-                <div className="w-20 h-20 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/15">
-                    <circle cx="12" cy="12" r="10" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-white/25">Waiting for music...</p>
-                  <p className="text-xs text-white/15 mt-1">
-                    Play a record on the connected display
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-6">
+              <p className="text-[16px] text-white/25 font-medium">Listening...</p>
+            </div>
+          )}
         </section>
 
-        {/* App Mode Selector */}
-        <section>
-          <p className="text-[11px] text-white/30 tracking-wide uppercase mb-3 px-0.5">
-            Display Mode
-          </p>
-          <div className="grid grid-cols-4 gap-2">
+        {/* Video Sync — rewind / fast-forward */}
+        {appMode === 'video' && currentSong && (
+          <div className="flex items-center justify-center gap-4 -mt-3 mb-7">
+            <button
+              onClick={() => adjustVideoOffset(-200)}
+              className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-[24px] font-light active:scale-90 transition-transform"
+              style={{ backgroundColor: `${accentColor}14`, color: accentColor }}
+            >
+              {'\u2039\u2039'}
+            </button>
+            <span
+              className="text-[15px] font-medium transition-colors"
+              style={{ color: syncFlash != null ? accentColor : 'rgba(255,255,255,0.25)' }}
+            >
+              {syncFlash ?? 'Video sync'}
+            </span>
+            <button
+              onClick={() => adjustVideoOffset(200)}
+              className="w-[52px] h-[52px] rounded-full flex items-center justify-center text-[24px] font-light active:scale-90 transition-transform"
+              style={{ backgroundColor: `${accentColor}14`, color: accentColor }}
+            >
+              {'\u203A\u203A'}
+            </button>
+          </div>
+        )}
+
+        {/* 3. Display Mode — Segmented Control */}
+        <section className="mb-7">
+          <p className="text-[12px] text-white/40 font-medium mb-3">Display mode</p>
+          <div
+            className="flex p-[3px]"
+            style={{
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
             {APP_MODES.map((mode) => {
               const active = appMode === mode.id;
               return (
                 <button
                   key={mode.id}
                   onClick={() => setAppMode(mode.id)}
-                  className="flex flex-col items-center gap-1.5 py-3.5 rounded-xl border transition-all active:scale-95"
+                  className="flex-1 flex items-center justify-center text-[14px] font-semibold transition-all active:scale-95"
                   style={{
-                    borderColor: active ? `${accentColor}55` : 'rgba(255,255,255,0.06)',
-                    backgroundColor: active ? `${accentColor}18` : 'rgba(255,255,255,0.02)',
-                  }}
-                >
-                  <span style={{ color: active ? accentColor : 'rgba(255,255,255,0.4)' }}>
-                    {mode.icon}
-                  </span>
-                  <span
-                    className="text-[11px] font-medium"
-                    style={{ color: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)' }}
-                  >
-                    {mode.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Visualizer Modes */}
-        <section>
-          <div className="flex items-center justify-between mb-3 px-0.5">
-            <p className="text-[11px] text-white/30 tracking-wide uppercase">
-              Visualizer
-            </p>
-            <div className="flex gap-1.5">
-              <button
-                onClick={cyclePrev}
-                aria-label="Previous visualizer"
-                className="w-11 h-11 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-              </button>
-              <button
-                onClick={cycleNext}
-                aria-label="Next visualizer"
-                className="w-11 h-11 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {VIZ_MODES.map((mode) => {
-              const active = visualizerMode === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  onClick={() => setVisualizerMode(mode.id)}
-                  className="py-3 px-2 rounded-xl border text-[12px] font-medium transition-all active:scale-95"
-                  style={{
-                    borderColor: active ? `${accentColor}55` : 'rgba(255,255,255,0.06)',
-                    backgroundColor: active ? `${accentColor}18` : 'rgba(255,255,255,0.02)',
-                    color: active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
+                    borderRadius: 20,
+                    backgroundColor: active ? accentColor : 'transparent',
+                    color: active ? '#fff' : 'rgba(255,255,255,0.4)',
                   }}
                 >
                   {mode.label}
@@ -398,52 +370,97 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
           </div>
         </section>
 
-        {/* Sensitivity */}
-        <section>
-          <div className="flex items-center justify-between mb-3 px-0.5">
-            <p className="text-[11px] text-white/30 tracking-wide uppercase">
-              Sensitivity
-            </p>
-            <span className="text-xs font-mono tabular-nums text-white/40">
-              {sensitivityGain.toFixed(1)}x
+        {/* 4. Visualizer Picker */}
+        <section className="mb-7">
+          <p className="text-[12px] text-white/40 font-medium mb-3">Visualizer</p>
+
+          {/* Nav row — arrows + current name */}
+          <div className="flex items-center justify-center gap-5 mb-3.5">
+            <button
+              onClick={cyclePrev}
+              aria-label="Previous visualizer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[24px] font-light text-white/50 active:scale-90 transition-transform"
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            >
+              {'\u2039'}
+            </button>
+            <span className="text-[16px] font-semibold text-white min-w-[100px] text-center">
+              {activeVizLabel}
             </span>
+            <button
+              onClick={cycleNext}
+              aria-label="Next visualizer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-[24px] font-light text-white/50 active:scale-90 transition-transform"
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+            >
+              {'\u203A'}
+            </button>
           </div>
-          <div className="relative">
-            <input
-              type="range"
-              min="0.1"
-              max="2.0"
-              step="0.05"
-              value={sensitivityGain}
-              onChange={(e) => setSensitivity(parseFloat(e.target.value))}
-              aria-label="Audio sensitivity"
-              className="w-full h-12 appearance-none bg-transparent cursor-pointer touch-none"
-              style={
-                {
-                  '--track-color': 'rgba(255,255,255,0.06)',
-                  '--fill-color': accentColor,
-                  WebkitAppearance: 'none',
-                } as React.CSSProperties
-              }
-            />
-            <div className="flex justify-between px-0.5 -mt-1">
-              <span className="text-[10px] text-white/20">Line-in</span>
-              <span className="text-[10px] text-white/20">Mic</span>
-              <span className="text-[10px] text-white/20">Boost</span>
-            </div>
+
+          {/* Horizontal chip scroll */}
+          <div
+            ref={chipScrollRef}
+            className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide"
+            style={{ scrollBehavior: 'smooth' }}
+          >
+            {VIZ_MODES.map((mode, i) => {
+              const active = visualizerMode === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  ref={(el) => { chipRefs.current[i] = el; }}
+                  onClick={() => setVisualizerMode(mode.id)}
+                  className="flex-shrink-0 flex items-center justify-center px-4 text-[13px] font-medium transition-all active:scale-95"
+                  style={{
+                    height: 36,
+                    borderRadius: 22,
+                    backgroundColor: active ? accentColor : 'rgba(255,255,255,0.08)',
+                    color: active ? '#fff' : 'rgba(255,255,255,0.4)',
+                  }}
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
           </div>
         </section>
 
-        {/* Install prompt + Footer */}
+        {/* 5. Sensitivity Slider */}
+        <section className="mb-7">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[12px] text-white/40 font-medium">Sensitivity</p>
+            <span
+              className="text-[13px] tabular-nums text-white/40"
+              style={{ fontFamily: 'Menlo, monospace' }}
+            >
+              {sensitivityGain.toFixed(1)}x
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="2.0"
+            step="0.05"
+            value={sensitivityGain}
+            onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+            aria-label="Audio sensitivity"
+            className="w-full h-11 appearance-none bg-transparent cursor-pointer touch-none"
+          />
+        </section>
+
+        {/* Install prompt */}
         <InstallBanner />
-        <footer className="text-center pt-2 pb-4">
-          <p className="text-[10px] text-white/15">
-            Vynalize Remote v0.1.0
-          </p>
-        </footer>
+
+        {/* 6. Disconnect */}
+        <button
+          onClick={onDisconnect}
+          className="self-center py-3 px-6 mb-4 text-[14px] font-medium text-white/30 active:text-white/50 transition-colors"
+        >
+          Disconnect
+        </button>
       </div>
 
-      {/* Slider styles */}
+      {/* Slider + scrollbar styles */}
       <style>{`
         input[type="range"]::-webkit-slider-runnable-track {
           height: 4px;
@@ -478,30 +495,42 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
   );
 }
 
+/* ─── Install Banner ─── */
+
 function InstallBanner() {
   const { canShow, promptInstall, dismiss } = useInstallPrompt();
   if (!canShow) return null;
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.08] bg-white/[0.03]">
+    <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.08] bg-white/[0.03] mb-4">
       <div className="flex-1">
         <p className="text-sm font-medium text-white/80">Add to Home Screen</p>
         <p className="text-[11px] text-white/35 mt-0.5">Quick access to the remote</p>
       </div>
-      <button onClick={promptInstall} className="px-4 py-2 text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors">Install</button>
-      <button onClick={dismiss} className="p-1.5 text-white/25 hover:text-white/50" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
+      <button
+        onClick={promptInstall}
+        className="px-4 py-2 text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors"
+      >
+        Install
+      </button>
+      <button onClick={dismiss} className="p-1.5 text-white/25 hover:text-white/50" aria-label="Dismiss">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   );
 }
 
+/* ─── Root ─── */
+
 export default function RemoteControl() {
-  // Check for session code in URL query params
   const urlSession = new URLSearchParams(window.location.search).get('session');
   const [sessionId, setSessionId] = useState<string | null>(urlSession);
   const [requireCode, setRequireCode] = useState(true);
   const [loading, setLoading] = useState(!urlSession);
 
   useEffect(() => {
-    if (urlSession) return; // already have a session from the URL
+    if (urlSession) return;
     fetch('/api/config')
       .then((r) => r.json())
       .then((cfg) => setRequireCode(cfg.requireCode))
@@ -509,11 +538,19 @@ export default function RemoteControl() {
       .finally(() => setLoading(false));
   }, [urlSession]);
 
+  const handleDisconnect = useCallback(() => {
+    setSessionId(null);
+    // Clear session from URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('session');
+    window.history.replaceState({}, '', url.toString());
+  }, []);
+
   if (loading) return null;
 
   if (!sessionId && requireCode) {
     return <SessionEntry onJoin={setSessionId} />;
   }
 
-  return <RemoteUI sessionId={sessionId} />;
+  return <RemoteUI sessionId={sessionId} onDisconnect={handleDisconnect} />;
 }
