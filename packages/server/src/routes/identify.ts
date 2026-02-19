@@ -6,9 +6,26 @@ import { submitJob } from '../services/identifyPool.js';
 import { createRateLimit } from '../middleware/rateLimit.js';
 import { recordPlay } from '../services/plays.js';
 
+const ALLOWED_AUDIO_MIMES = new Set([
+  'audio/webm',
+  'audio/ogg',
+  'audio/wav',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/x-wav',
+  'audio/wave',
+]);
+
 const upload = multer({
   dest: path.join(os.tmpdir(), 'vynalize-uploads'),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_AUDIO_MIMES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only audio files are accepted.`));
+    }
+  },
 });
 
 export const identifyRouter = Router();
@@ -16,7 +33,23 @@ export const identifyRouter = Router();
 identifyRouter.post(
   '/',
   createRateLimit({ keyPrefix: 'identify', windowMs: 60_000, maxRequests: 5 }),
-  upload.single('audio'),
+  (req, res, next) => {
+    upload.single('audio')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          res.status(400).json({ error: 'File too large. Maximum size is 3MB.' });
+          return;
+        }
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      if (err) {
+        res.status(400).json({ error: err.message });
+        return;
+      }
+      next();
+    });
+  },
   async (req, res) => {
     if (!req.file) {
       res.status(400).json({ error: 'No audio file provided' });

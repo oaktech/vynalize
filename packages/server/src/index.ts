@@ -25,6 +25,11 @@ import { createRateLimit } from './middleware/rateLimit.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy for correct req.ip behind reverse proxies (Railway, nginx, etc.)
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? true : process.env.TRUST_PROXY);
+}
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {

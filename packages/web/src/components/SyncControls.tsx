@@ -49,24 +49,28 @@ export default function SyncControls() {
       <div className="flex items-center gap-1">
         <button
           onClick={() => adjust(-1000)}
+          aria-label="Shift sync back 1 second"
           className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
         >
           -1s
         </button>
         <button
           onClick={() => adjust(-200)}
+          aria-label="Shift sync back 0.2 seconds"
           className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
         >
           -0.2s
         </button>
         <button
           onClick={() => adjust(200)}
+          aria-label="Shift sync forward 0.2 seconds"
           className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
         >
           +0.2s
         </button>
         <button
           onClick={() => adjust(1000)}
+          aria-label="Shift sync forward 1 second"
           className="px-3 py-2.5 sm:px-2 sm:py-1 text-sm sm:text-xs text-white/50 hover:text-white active:bg-white/15 bg-white/5 hover:bg-white/10 rounded transition-colors"
         >
           +1s

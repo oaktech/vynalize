@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useStore } from '../store';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import NowPlaying from './NowPlaying';
 import ListeningPulse from './ListeningPulse';
 import ModeSelector from './ModeSelector';
@@ -13,7 +14,12 @@ import AsciiWords from './visualizer/AsciiWords';
 
 const CONTROLS_HIDE_DELAY = 5000;
 
+// iPhone/iPod Safari does not support the Fullscreen API (iPad does)
+const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
+const supportsFullscreen = !!document.documentElement.requestFullscreen && !isIPhone;
+
 export default function AppShell() {
+  useNetworkStatus();
   const appMode = useStore((s) => s.appMode);
   const setAppMode = useStore((s) => s.setAppMode);
   const isFullscreen = useStore((s) => s.isFullscreen);
@@ -23,6 +29,7 @@ export default function AppShell() {
   const accentColor = useStore((s) => s.accentColor);
   const isListening = useStore((s) => s.isListening);
   const bpm = useStore((s) => s.bpm);
+  const isOnline = useStore((s) => s.isOnline);
   const hideTimer = useRef<number>(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -80,6 +87,7 @@ export default function AppShell() {
   }, [setFullscreen]);
 
   function toggleFullscreen() {
+    if (!supportsFullscreen) return;
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
     } else {
@@ -141,6 +149,7 @@ export default function AppShell() {
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Settings"
               title="Settings"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -148,21 +157,23 @@ export default function AppShell() {
                 <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
               </svg>
             </button>
-            <button
-              onClick={toggleFullscreen}
-              className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-            >
-              {isFullscreen ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-              )}
-            </button>
+            {supportsFullscreen && (
+              <button
+                onClick={toggleFullscreen}
+                className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+              >
+                {isFullscreen ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                  </svg>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -179,6 +190,13 @@ export default function AppShell() {
           </div>
         </div>
       </div>
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-600/90 text-white text-xs text-center py-1.5 px-4">
+          You're offline — some features are unavailable
+        </div>
+      )}
 
       {/* Settings modal */}
       <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

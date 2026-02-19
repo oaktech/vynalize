@@ -125,6 +125,7 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="A3K9X2"
             maxLength={6}
+            aria-label="Session code"
             className="w-full max-w-[280px] text-center text-3xl font-mono tracking-[0.3em] py-4 px-6 text-white placeholder:text-white/10 focus:outline-none transition-colors rounded-2xl border"
             style={{
               backgroundColor: 'rgba(255,255,255,0.03)',
@@ -357,7 +358,8 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
             <div className="flex gap-1.5">
               <button
                 onClick={cyclePrev}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
+                aria-label="Previous visualizer"
+                className="w-11 h-11 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M15 18l-6-6 6-6" />
@@ -365,7 +367,8 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
               </button>
               <button
                 onClick={cycleNext}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
+                aria-label="Next visualizer"
+                className="w-11 h-11 flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-white/50 active:scale-90 active:bg-white/[0.08] transition-all"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M9 18l6-6-6-6" />
@@ -412,6 +415,7 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
               step="0.05"
               value={sensitivityGain}
               onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+              aria-label="Audio sensitivity"
               className="w-full h-12 appearance-none bg-transparent cursor-pointer touch-none"
               style={
                 {

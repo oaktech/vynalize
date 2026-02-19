@@ -38,6 +38,8 @@ export default function ModeSelector() {
           <button
             key={mode.id}
             onClick={() => setAppMode(mode.id)}
+            aria-label={`${mode.label} mode`}
+            aria-pressed={appMode === mode.id}
             className={`flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
               appMode === mode.id
                 ? 'text-white shadow-sm'
@@ -73,6 +75,8 @@ export default function ModeSelector() {
             <button
               key={mode.id}
               onClick={() => setVisualizerMode(mode.id)}
+              aria-label={`${mode.label} visualizer`}
+              aria-pressed={visualizerMode === mode.id}
               className={`px-3 py-2 sm:px-2.5 sm:py-1 rounded-md text-xs sm:text-[11px] font-medium transition-all flex-shrink-0 whitespace-nowrap ${
                 visualizerMode === mode.id
                   ? 'text-white bg-white/10'

@@ -60,6 +60,7 @@ export default function ManualSearch() {
       <button
         onClick={() => setIsOpen(true)}
         className="px-3 py-1.5 text-xs text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+        aria-label="Manually enter song info"
         title="Manually enter song info"
       >
         {currentSong ? 'Wrong song?' : 'Enter song'}
@@ -73,6 +74,7 @@ export default function ManualSearch() {
         <input
           type="text"
           placeholder="Artist"
+          aria-label="Artist name"
           value={artist}
           onChange={(e) => setArtist(e.target.value)}
           className="w-full sm:w-28 px-3 py-2 sm:px-2 sm:py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"
@@ -81,6 +83,7 @@ export default function ManualSearch() {
         <input
           type="text"
           placeholder="Song title"
+          aria-label="Song title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full sm:w-36 px-3 py-2 sm:px-2 sm:py-1 text-xs bg-black border border-white/15 rounded-md text-white placeholder-white/25 focus:outline-none focus:border-white/40"

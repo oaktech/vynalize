@@ -4,11 +4,19 @@ import type { WsCommand, WsMessage, WsStateMessage, WsSongMessage, WsBeatMessage
 
 type Role = 'controller' | 'display';
 
+const MAX_RETRIES = 10;
+const BASE_DELAY = 3000;
+const MAX_DELAY = 30000;
+
 function getWsUrl(role: Role, sessionId?: string | null): string {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   let url = `${proto}://${location.host}/ws?role=${role}`;
   if (sessionId) url += `&session=${encodeURIComponent(sessionId)}`;
   return url;
+}
+
+function backoffDelay(attempt: number): number {
+  return Math.min(BASE_DELAY * 2 ** attempt, MAX_DELAY);
 }
 
 /**
@@ -20,15 +28,24 @@ function getWsUrl(role: Role, sessionId?: string | null): string {
 export function useWsCommands(role: Role, sessionId?: string | null) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<number>(0);
+  const retriesRef = useRef(0);
 
   // Display role: apply incoming commands to the store
   useEffect(() => {
     if (role !== 'display') return;
 
+    let unsub: (() => void) | null = null;
+
     function connect() {
+      useStore.getState().setWsStatus('connecting');
       const existingSessionId = useStore.getState().sessionId;
       const ws = new WebSocket(getWsUrl('display', existingSessionId));
       wsRef.current = ws;
+
+      ws.onopen = () => {
+        retriesRef.current = 0;
+        useStore.getState().setWsStatus('connected');
+      };
 
       ws.onmessage = (e) => {
         let msg: WsMessage;
@@ -80,14 +97,20 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
 
       ws.onclose = () => {
         wsRef.current = null;
-        reconnectTimer.current = window.setTimeout(connect, 3000);
+        useStore.getState().setWsStatus('disconnected');
+
+        if (retriesRef.current < MAX_RETRIES) {
+          const delay = backoffDelay(retriesRef.current);
+          retriesRef.current++;
+          reconnectTimer.current = window.setTimeout(connect, delay);
+        }
       };
     }
 
     connect();
 
     // Push state changes to controllers
-    const unsub = useStore.subscribe((state, prev) => {
+    unsub = useStore.subscribe((state, prev) => {
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -124,7 +147,9 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
     });
 
     return () => {
-      unsub();
+      unsub?.();
+      unsub = null;
+      retriesRef.current = MAX_RETRIES; // Prevent onclose from scheduling reconnect
       clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
       wsRef.current = null;
@@ -136,8 +161,14 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
     if (role !== 'controller') return;
 
     function connect() {
+      useStore.getState().setWsStatus('connecting');
       const ws = new WebSocket(getWsUrl('controller', sessionId));
       wsRef.current = ws;
+
+      ws.onopen = () => {
+        retriesRef.current = 0;
+        useStore.getState().setWsStatus('connected');
+      };
 
       ws.onmessage = (e) => {
         let msg: WsMessage;
@@ -162,13 +193,20 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
 
       ws.onclose = () => {
         wsRef.current = null;
-        reconnectTimer.current = window.setTimeout(connect, 3000);
+        useStore.getState().setWsStatus('disconnected');
+
+        if (retriesRef.current < MAX_RETRIES) {
+          const delay = backoffDelay(retriesRef.current);
+          retriesRef.current++;
+          reconnectTimer.current = window.setTimeout(connect, delay);
+        }
       };
     }
 
     connect();
 
     return () => {
+      retriesRef.current = MAX_RETRIES; // Prevent onclose from scheduling reconnect
       clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
       wsRef.current = null;

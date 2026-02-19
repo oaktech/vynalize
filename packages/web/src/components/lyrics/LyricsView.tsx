@@ -2,41 +2,54 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { useStore } from '../../store';
 import KaraokeLine from './KaraokeLine';
 
+function findCurrentIndex(lyrics: { timeMs: number }[], posMs: number): number {
+  // Binary search for the last line where timeMs <= posMs
+  let lo = 0;
+  let hi = lyrics.length - 1;
+  let result = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >>> 1;
+    if (lyrics[mid].timeMs <= posMs) {
+      result = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return result;
+}
+
 export default function LyricsView() {
   const lyrics = useStore((s) => s.lyrics);
   const currentSong = useStore((s) => s.currentSong);
   const accentColor = useStore((s) => s.accentColor);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeLineRef = useRef<HTMLDivElement>(null);
-  const [posMs, setPosMs] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(-1);
 
-  // Drive position from store's startedAt + offsetMs via local RAF
+  // Drive position from store — only re-render when currentIndex changes
   useEffect(() => {
     let active = true;
+    let lastIndex = -1;
 
     function tick() {
       if (!active) return;
       const pos = useStore.getState().position;
       if (pos.startedAt) {
         const elapsed = performance.now() - pos.startedAt;
-        setPosMs(elapsed + pos.offsetMs);
+        const posMs = elapsed + pos.offsetMs;
+        const idx = findCurrentIndex(lyrics, posMs);
+        if (idx !== lastIndex) {
+          lastIndex = idx;
+          setCurrentIndex(idx);
+        }
       }
       requestAnimationFrame(tick);
     }
 
     requestAnimationFrame(tick);
     return () => { active = false; };
-  }, []);
-
-  // Find current line index
-  let currentIndex = -1;
-  for (let i = 0; i < lyrics.length; i++) {
-    if (lyrics[i].timeMs <= posMs) {
-      currentIndex = i;
-    } else {
-      break;
-    }
-  }
+  }, [lyrics]);
 
   // Detect chorus lines: text that appears more than once (normalized)
   const chorusSet = useMemo(() => {
@@ -62,7 +75,7 @@ export default function LyricsView() {
         block: 'center',
       });
     }
-  });
+  }, [currentIndex]);
 
   if (lyrics.length === 0) {
     return (

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type {
   SongInfo,
   LyricLine,
@@ -87,6 +88,18 @@ interface VinylStore {
   remoteConnected: boolean;
   setRemoteConnected: (v: boolean) => void;
 
+  // WebSocket status
+  wsStatus: 'connected' | 'connecting' | 'disconnected';
+  setWsStatus: (s: 'connected' | 'connecting' | 'disconnected') => void;
+
+  // Microphone error
+  micError: string | null;
+  setMicError: (e: string | null) => void;
+
+  // Network status
+  isOnline: boolean;
+  setOnline: (v: boolean) => void;
+
   // Visualizer cycling
   nextVisualizer: () => void;
   prevVisualizer: () => void;
@@ -99,89 +112,106 @@ const defaultPosition: PositionState = {
   startedAt: null,
 };
 
-export const useStore = create<VinylStore>((set) => ({
-  isListening: false,
-  audioFeatures: null,
-  setListening: (isListening) => set({ isListening }),
-  setAudioFeatures: (audioFeatures) => set({ audioFeatures }),
+export const useStore = create<VinylStore>()(
+  persist(
+    (set) => ({
+      isListening: false,
+      audioFeatures: null,
+      setListening: (isListening) => set({ isListening }),
+      setAudioFeatures: (audioFeatures) => set({ audioFeatures }),
 
-  currentSong: null,
-  isIdentifying: false,
-  setCurrentSong: (currentSong) => set({ currentSong }),
-  setIdentifying: (isIdentifying) => set({ isIdentifying }),
+      currentSong: null,
+      isIdentifying: false,
+      setCurrentSong: (currentSong) => set({ currentSong }),
+      setIdentifying: (isIdentifying) => set({ isIdentifying }),
 
-  bpm: null,
-  lastBeat: null,
-  isBeat: false,
-  setBpm: (bpm) => set({ bpm }),
-  triggerBeat: (lastBeat) => set({ lastBeat, isBeat: true }),
-  clearBeat: () => set({ isBeat: false }),
+      bpm: null,
+      lastBeat: null,
+      isBeat: false,
+      setBpm: (bpm) => set({ bpm }),
+      triggerBeat: (lastBeat) => set({ lastBeat, isBeat: true }),
+      clearBeat: () => set({ isBeat: false }),
 
-  lyrics: [],
-  setLyrics: (lyrics) => set({ lyrics }),
+      lyrics: [],
+      setLyrics: (lyrics) => set({ lyrics }),
 
-  position: defaultPosition,
-  setPosition: (p) =>
-    set((state) => ({ position: { ...state.position, ...p } })),
-  resetPosition: () => set({ position: defaultPosition }),
-  adjustOffset: (deltaMs) =>
-    set((state) => ({
-      position: { ...state.position, offsetMs: state.position.offsetMs + deltaMs },
-    })),
-  tapSync: (targetMs) =>
-    set((state) => ({
-      position: { ...state.position, offsetMs: targetMs - state.position.elapsedMs },
-    })),
+      position: defaultPosition,
+      setPosition: (p) =>
+        set((state) => ({ position: { ...state.position, ...p } })),
+      resetPosition: () => set({ position: defaultPosition }),
+      adjustOffset: (deltaMs) =>
+        set((state) => ({
+          position: { ...state.position, offsetMs: state.position.offsetMs + deltaMs },
+        })),
+      tapSync: (targetMs) =>
+        set((state) => ({
+          position: { ...state.position, offsetMs: targetMs - state.position.elapsedMs },
+        })),
 
-  appMode: 'visualizer',
-  visualizerMode: 'spectrum',
-  setAppMode: (appMode) => set({ appMode }),
-  setVisualizerMode: (visualizerMode) => set({ visualizerMode }),
+      appMode: 'visualizer',
+      visualizerMode: 'spectrum',
+      setAppMode: (appMode) => set({ appMode }),
+      setVisualizerMode: (visualizerMode) => set({ visualizerMode }),
 
-  isFullscreen: false,
-  controlsVisible: true,
-  setFullscreen: (isFullscreen) => set({ isFullscreen }),
-  setControlsVisible: (controlsVisible) => set({ controlsVisible }),
+      isFullscreen: false,
+      controlsVisible: true,
+      setFullscreen: (isFullscreen) => set({ isFullscreen }),
+      setControlsVisible: (controlsVisible) => set({ controlsVisible }),
 
-  videoId: null,
-  videoSearching: false,
-  videoOffsetMs: 0,
-  videoCheckpoint: null,
-  setVideoId: (videoId) => set({ videoId, videoCheckpoint: null }),
-  setVideoSearching: (videoSearching) => set({ videoSearching }),
-  setVideoOffsetMs: (videoOffsetMs) => set({ videoOffsetMs }),
-  adjustVideoOffset: (deltaMs) =>
-    set((state) => ({ videoOffsetMs: state.videoOffsetMs + deltaMs })),
-  setVideoCheckpoint: (videoCheckpoint) => set({ videoCheckpoint }),
+      videoId: null,
+      videoSearching: false,
+      videoOffsetMs: 0,
+      videoCheckpoint: null,
+      setVideoId: (videoId) => set({ videoId, videoCheckpoint: null }),
+      setVideoSearching: (videoSearching) => set({ videoSearching }),
+      setVideoOffsetMs: (videoOffsetMs) => set({ videoOffsetMs }),
+      adjustVideoOffset: (deltaMs) =>
+        set((state) => ({ videoOffsetMs: state.videoOffsetMs + deltaMs })),
+      setVideoCheckpoint: (videoCheckpoint) => set({ videoCheckpoint }),
 
-  accentColor: '#8b5cf6',
-  setAccentColor: (accentColor) => set({ accentColor }),
+      accentColor: '#8b5cf6',
+      setAccentColor: (accentColor) => set({ accentColor }),
 
-  audioInputDeviceId: localStorage.getItem('vv-audio-device') || '',
-  setAudioInputDeviceId: (audioInputDeviceId) => {
-    localStorage.setItem('vv-audio-device', audioInputDeviceId);
-    set({ audioInputDeviceId });
-  },
+      audioInputDeviceId: '',
+      setAudioInputDeviceId: (audioInputDeviceId) => set({ audioInputDeviceId }),
 
-  sensitivityGain: parseFloat(localStorage.getItem('vv-sensitivity') || '1'),
-  setSensitivityGain: (sensitivityGain) => {
-    localStorage.setItem('vv-sensitivity', String(sensitivityGain));
-    set({ sensitivityGain });
-  },
+      sensitivityGain: 1,
+      setSensitivityGain: (sensitivityGain) => set({ sensitivityGain }),
 
-  sessionId: null,
-  setSessionId: (sessionId) => set({ sessionId }),
-  remoteConnected: false,
-  setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
+      sessionId: null,
+      setSessionId: (sessionId) => set({ sessionId }),
+      remoteConnected: false,
+      setRemoteConnected: (remoteConnected) => set({ remoteConnected }),
 
-  nextVisualizer: () =>
-    set((state) => {
-      const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
-      return { visualizerMode: VISUALIZER_MODES[(idx + 1) % VISUALIZER_MODES.length] };
+      wsStatus: 'disconnected',
+      setWsStatus: (wsStatus) => set({ wsStatus }),
+
+      micError: null,
+      setMicError: (micError) => set({ micError }),
+
+      isOnline: navigator.onLine,
+      setOnline: (isOnline) => set({ isOnline }),
+
+      nextVisualizer: () =>
+        set((state) => {
+          const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
+          return { visualizerMode: VISUALIZER_MODES[(idx + 1) % VISUALIZER_MODES.length] };
+        }),
+      prevVisualizer: () =>
+        set((state) => {
+          const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
+          return { visualizerMode: VISUALIZER_MODES[(idx - 1 + VISUALIZER_MODES.length) % VISUALIZER_MODES.length] };
+        }),
     }),
-  prevVisualizer: () =>
-    set((state) => {
-      const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
-      return { visualizerMode: VISUALIZER_MODES[(idx - 1 + VISUALIZER_MODES.length) % VISUALIZER_MODES.length] };
-    }),
-}));
+    {
+      name: 'vynalize-store',
+      partialize: (state) => ({
+        appMode: state.appMode,
+        visualizerMode: state.visualizerMode,
+        sensitivityGain: state.sensitivityGain,
+        audioInputDeviceId: state.audioInputDeviceId,
+        accentColor: state.accentColor,
+      }),
+    },
+  ),
+);

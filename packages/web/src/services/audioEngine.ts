@@ -8,6 +8,24 @@ export async function initAudioCapture(deviceId?: string): Promise<{
   analyser: AnalyserNode;
   stream: MediaStream;
 }> {
+  // Close previous context to prevent leaks on device change
+  if (audioContext) {
+    try { audioContext.close(); } catch {}
+    audioContext = null;
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((t) => t.stop());
+    mediaStream = null;
+  }
+  if (sourceNode) {
+    sourceNode.disconnect();
+    sourceNode = null;
+  }
+  if (analyserNode) {
+    analyserNode.disconnect();
+    analyserNode = null;
+  }
+
   const constraints: MediaStreamConstraints = {
     audio: {
       echoCancellation: false,
@@ -31,6 +49,24 @@ export async function initAudioCapture(deviceId?: string): Promise<{
   analyserNode = analyser;
   sourceNode = source;
   mediaStream = stream;
+
+  // Handle iOS background suspend/resume
+  const handleVisibility = () => {
+    if (!audioContext) return;
+    if (document.hidden) {
+      audioContext.suspend();
+    } else if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibility);
+
+  // Clean up listener when context is closed
+  context.addEventListener('statechange', () => {
+    if (context.state === 'closed') {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    }
+  });
 
   return { context, analyser, stream };
 }

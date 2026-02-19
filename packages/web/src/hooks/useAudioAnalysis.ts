@@ -3,12 +3,15 @@ import { useStore } from '../store';
 import { getAnalyserNode } from '../services/audioEngine';
 import type { AudioFeatures } from '../types';
 
+const TARGET_INTERVAL = 33; // ~30fps
+
 export function useAudioAnalysis() {
   const isListening = useStore((s) => s.isListening);
   const setAudioFeatures = useStore((s) => s.setAudioFeatures);
   const rafRef = useRef<number>(0);
   const prevSpectrum = useRef<Float32Array | null>(null);
   const sensitivityRef = useRef(useStore.getState().sensitivityGain);
+  const lastFrameTime = useRef(0);
 
   // Keep sensitivity ref in sync without causing re-renders
   useEffect(() => {
@@ -27,8 +30,19 @@ export function useAudioAnalysis() {
     const timeData = new Uint8Array(analyser.fftSize);
     const floatFreq = new Float32Array(analyser.frequencyBinCount);
 
-    function analyze() {
+    // Reusable output arrays to reduce GC pressure
+    const outFreqData = new Uint8Array(analyser.frequencyBinCount);
+    const outTimeData = new Uint8Array(analyser.fftSize);
+
+    function analyze(now: number) {
       if (!analyser) return;
+
+      // Throttle to ~30fps
+      if (now - lastFrameTime.current < TARGET_INTERVAL) {
+        rafRef.current = requestAnimationFrame(analyze);
+        return;
+      }
+      lastFrameTime.current = now;
 
       analyser.getByteFrequencyData(freqData);
       analyser.getByteTimeDomainData(timeData);
@@ -92,6 +106,10 @@ export function useAudioAnalysis() {
       }
       zcr /= timeData.length;
 
+      // Copy into reusable arrays instead of allocating new ones
+      outFreqData.set(freqData);
+      outTimeData.set(timeData);
+
       const features: AudioFeatures = {
         rms: rms * gain,
         energy: energy * gain,
@@ -100,8 +118,8 @@ export function useAudioAnalysis() {
         zcr,
         loudness: { specific: new Float32Array(0), total: rms * gain },
         mfcc: [],
-        frequencyData: new Uint8Array(freqData),
-        timeData: new Uint8Array(timeData),
+        frequencyData: outFreqData,
+        timeData: outTimeData,
         bass,
         mid,
         high,

@@ -12,11 +12,14 @@ import { useStore } from './store';
 import AppShell from './components/AppShell';
 import RemoteControl from './components/RemoteControl';
 import ServerSettings from './components/ServerSettings';
+import QRPairing from './components/QRPairing';
 
 const Leaderboard = lazy(() => import('./components/Leaderboard'));
 const Privacy = lazy(() => import('./components/Privacy'));
 
 function StartScreen({ onStart }: { onStart: () => void }) {
+  const micError = useStore((s) => s.micError);
+
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-black">
       <div className="text-center max-w-md px-6">
@@ -30,6 +33,12 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           Visualizations, lyrics, and music videos — all driven by what's playing.
         </p>
 
+        {micError && (
+          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <p className="text-red-400/90 text-sm leading-relaxed">{micError}</p>
+          </div>
+        )}
+
         <button
           onClick={onStart}
           className="group relative px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl transition-all duration-300"
@@ -41,7 +50,7 @@ function StartScreen({ onStart }: { onStart: () => void }) {
               <line x1="12" y1="19" x2="12" y2="23" />
               <line x1="8" y1="23" x2="16" y2="23" />
             </svg>
-            Start Listening
+            {micError ? 'Try Again' : 'Start Listening'}
           </span>
         </button>
 
@@ -79,9 +88,12 @@ function SessionOverlay() {
   if (!sessionId || remoteConnected) return null;
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-3">
-      <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
-      <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 flex flex-col items-center gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-white/40 uppercase tracking-wide">Session Code</span>
+        <span className="text-2xl font-mono font-bold text-white/90 tracking-[0.2em]">{sessionId}</span>
+      </div>
+      <QRPairing sessionId={sessionId} />
     </div>
   );
 }
@@ -110,9 +122,10 @@ function DisplayApp() {
   }, [setControlsVisible]);
 
   useEffect(() => {
-    // Auto-fullscreen on display route
+    // Auto-fullscreen on display route (skip on iPhone which doesn't support it)
+    const supportsFullscreen = !!document.documentElement.requestFullscreen && !/iPhone|iPod/.test(navigator.userAgent);
     const tryFullscreen = () => {
-      if (!document.fullscreenElement) {
+      if (supportsFullscreen && !document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
     };
@@ -121,7 +134,7 @@ function DisplayApp() {
       tryFullscreen();
       window.removeEventListener('click', handler);
     };
-    window.addEventListener('click', handler);
+    if (supportsFullscreen) window.addEventListener('click', handler);
 
     // Start with controls hidden
     const t = window.setTimeout(() => setControlsVisible(false), 3000);

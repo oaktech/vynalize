@@ -3,6 +3,27 @@ import { getRedis } from '../services/redis.js';
 
 // In-memory fallback sliding window
 const localWindows = new Map<string, number[]>();
+const MAX_LOCAL_KEYS = 10_000;
+
+// Periodic cleanup of expired in-memory entries
+let cleanupScheduled = false;
+function scheduleCleanup(windowMs: number) {
+  if (cleanupScheduled) return;
+  cleanupScheduled = true;
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamps] of localWindows) {
+      // Remove expired entries
+      while (timestamps.length > 0 && timestamps[0] <= now - windowMs) {
+        timestamps.shift();
+      }
+      // Remove empty keys
+      if (timestamps.length === 0) {
+        localWindows.delete(key);
+      }
+    }
+  }, 60_000);
+}
 
 interface RateLimitOptions {
   keyPrefix: string;
@@ -14,6 +35,8 @@ interface RateLimitOptions {
 export function createRateLimit(opts: RateLimitOptions) {
   const { keyPrefix, windowMs, maxRequests, keyExtractor } = opts;
   const extractKey = keyExtractor ?? ((req: Request) => req.ip ?? 'unknown');
+
+  scheduleCleanup(windowMs);
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const clientKey = extractKey(req);
@@ -44,6 +67,12 @@ export function createRateLimit(opts: RateLimitOptions) {
       } catch {
         // Fall through to in-memory on Redis error
       }
+    }
+
+    // Evict oldest entries if map is too large
+    if (localWindows.size >= MAX_LOCAL_KEYS && !localWindows.has(fullKey)) {
+      const oldest = localWindows.keys().next().value;
+      if (oldest) localWindows.delete(oldest);
     }
 
     // In-memory fallback

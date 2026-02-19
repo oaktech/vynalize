@@ -26,6 +26,12 @@ export function parseLRC(lrc: string): LyricLine[] {
   return lines.sort((a, b) => a.timeMs - b.timeMs);
 }
 
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export async function fetchLyrics(
   artist: string,
   title: string
@@ -35,22 +41,35 @@ export async function fetchLyrics(
     track_name: title,
   });
 
-  const res = await fetch(`https://lrclib.net/api/get?${params}`, {
-    headers: { 'User-Agent': 'Vynalize/0.1.0' },
-  });
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchWithTimeout(`https://lrclib.net/api/get?${params}`, {
+        headers: { 'User-Agent': 'Vynalize/0.1.0' },
+      });
 
-  if (!res.ok) return [];
+      if (!res.ok) return [];
 
-  const data = await res.json();
-  if (data.syncedLyrics) {
-    return parseLRC(data.syncedLyrics);
+      const data = await res.json();
+      if (data.syncedLyrics) {
+        return parseLRC(data.syncedLyrics);
+      }
+      if (data.plainLyrics) {
+        return data.plainLyrics
+          .split('\n')
+          .filter((l: string) => l.trim())
+          .map((text: string, i: number) => ({ timeMs: i * 4000, text }));
+      }
+
+      return [];
+    } catch (err) {
+      lastError = err;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
   }
-  if (data.plainLyrics) {
-    return data.plainLyrics
-      .split('\n')
-      .filter((l: string) => l.trim())
-      .map((text: string, i: number) => ({ timeMs: i * 4000, text }));
-  }
 
+  console.warn('[lyricsApi] Failed after retries:', lastError);
   return [];
 }
