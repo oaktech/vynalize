@@ -8,19 +8,19 @@ const appModes: { id: AppMode; label: string; icon: string }[] = [
   { id: 'ascii', label: 'ASCII', icon: 'M4 7V4h16v3M9 20h6M12 4v16' },
 ];
 
-const vizModes: { id: VisualizerMode; label: string }[] = [
-  { id: 'spectrum', label: 'Spectrum' },
-  { id: 'radial', label: 'Radial' },
-  { id: 'particles', label: 'Particles' },
-  { id: 'radical', label: 'Radical' },
-  { id: 'nebula', label: 'Nebula' },
-  { id: 'vitals', label: 'Vitals' },
-  { id: 'synthwave', label: 'Synthwave' },
-  { id: 'spaceage', label: 'Space Age' },
-  { id: 'starrynight', label: 'Starry Night' },
-  { id: 'guitarhero', label: 'Guitar Hero' },
-  { id: 'vynalize', label: 'Vynalize' },
-  { id: 'beatsaber', label: 'Beat Saber' },
+const vizModes: { id: VisualizerMode; label: string; tag: string }[] = [
+  { id: 'spectrum', label: 'Spectrum', tag: 'Classic bars' },
+  { id: 'radial', label: 'Radial', tag: 'Circular rings' },
+  { id: 'particles', label: 'Particles', tag: 'Floating sparks' },
+  { id: 'radical', label: 'Radical', tag: 'Wild geometry' },
+  { id: 'nebula', label: 'Nebula', tag: 'Cosmic clouds' },
+  { id: 'vitals', label: 'Vitals', tag: 'Audio heartbeat' },
+  { id: 'synthwave', label: 'Synthwave', tag: 'Retro grid' },
+  { id: 'spaceage', label: 'Space Age', tag: '3D starfield' },
+  { id: 'starrynight', label: 'Starry Night', tag: 'Van Gogh skies' },
+  { id: 'guitarhero', label: 'Guitar Hero', tag: 'Note highway' },
+  { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
+  { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
 ];
 
 export default function ModeSelector() {
@@ -29,6 +29,8 @@ export default function ModeSelector() {
   const visualizerMode = useStore((s) => s.visualizerMode);
   const setVisualizerMode = useStore((s) => s.setVisualizerMode);
   const accentColor = useStore((s) => s.accentColor);
+  const favorites = useStore((s) => s.favoriteVisualizers);
+  const toggleFav = useStore((s) => s.toggleFavoriteVisualizer);
 
   return (
     <div className="flex flex-col gap-2">
@@ -71,21 +73,40 @@ export default function ModeSelector() {
       {/* Visualizer sub-modes */}
       {appMode === 'visualizer' && (
         <div className="flex gap-1 pl-1 overflow-x-auto scrollbar-hide">
-          {vizModes.map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => setVisualizerMode(mode.id)}
-              aria-label={`${mode.label} visualizer`}
-              aria-pressed={visualizerMode === mode.id}
-              className={`px-3 py-2 sm:px-2.5 sm:py-1 rounded-md text-xs sm:text-[11px] font-medium transition-all flex-shrink-0 whitespace-nowrap ${
-                visualizerMode === mode.id
-                  ? 'text-white bg-white/10'
-                  : 'text-white/30 hover:text-white/60'
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
+          {vizModes.map((mode) => {
+            const isFav = favorites.includes(mode.id);
+            const isActive = visualizerMode === mode.id;
+
+            return (
+              <div key={mode.id} className="flex-shrink-0 group relative">
+                <button
+                  onClick={() => setVisualizerMode(mode.id)}
+                  aria-label={`${mode.label} visualizer — ${mode.tag}`}
+                  aria-pressed={isActive}
+                  className={`px-3 py-2 sm:px-2.5 sm:py-1 rounded-md text-xs sm:text-[11px] font-medium transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'text-white bg-white/10'
+                      : 'text-white/30 hover:text-white/60'
+                  }`}
+                >
+                  {isFav && <span className="mr-1 text-amber-400/70">&#9733;</span>}
+                  {mode.label}
+                </button>
+                {/* Favorite toggle on hover */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleFav(mode.id); }}
+                  aria-label={isFav ? `Remove ${mode.label} from favorites` : `Add ${mode.label} to favorites`}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/80 border border-white/10 text-[8px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  {isFav ? '★' : '☆'}
+                </button>
+                {/* Tooltip with description */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/90 border border-white/10 rounded text-[10px] text-white/50 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  {mode.tag}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

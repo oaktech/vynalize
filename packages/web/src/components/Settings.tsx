@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useStore } from '../store';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -7,7 +8,12 @@ interface SettingsProps {
 
 export default function Settings({ isOpen, onClose }: SettingsProps) {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>('');
+  const selectedDevice = useStore((s) => s.audioInputDeviceId);
+  const setSelectedDevice = useStore((s) => s.setAudioInputDeviceId);
+  const autoCycleEnabled = useStore((s) => s.autoCycleEnabled);
+  const setAutoCycleEnabled = useStore((s) => s.setAutoCycleEnabled);
+  const autoCycleIntervalSec = useStore((s) => s.autoCycleIntervalSec);
+  const setAutoCycleIntervalSec = useStore((s) => s.setAutoCycleIntervalSec);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -51,6 +57,41 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Auto-Cycle */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-white/60 mb-2">
+            Auto-Cycle Visualizers
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setAutoCycleEnabled(!autoCycleEnabled)}
+              className={`relative w-10 h-6 rounded-full transition-colors ${autoCycleEnabled ? 'bg-violet-500' : 'bg-white/10'}`}
+              role="switch"
+              aria-checked={autoCycleEnabled}
+              aria-label="Toggle auto-cycle"
+            >
+              <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${autoCycleEnabled ? 'translate-x-4' : ''}`} />
+            </button>
+            {autoCycleEnabled && (
+              <select
+                value={autoCycleIntervalSec}
+                onChange={(e) => setAutoCycleIntervalSec(Number(e.target.value))}
+                className="bg-black border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none"
+                aria-label="Cycle interval"
+              >
+                <option value={15}>Every 15s</option>
+                <option value={30}>Every 30s</option>
+                <option value={60}>Every 60s</option>
+              </select>
+            )}
+          </div>
+          {autoCycleEnabled && (
+            <p className="text-[11px] text-white/30 mt-1.5">
+              Cycles through favorited visualizers (or all if none favorited)
+            </p>
+          )}
         </div>
 
         {/* Keyboard Shortcuts / Touch Hints */}

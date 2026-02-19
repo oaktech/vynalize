@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { useWsCommands } from '../hooks/useWsCommands';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import type { AppMode, VisualizerMode } from '../types';
 
 const APP_MODES: { id: AppMode; label: string; icon: JSX.Element }[] = [
@@ -433,7 +434,8 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
           </div>
         </section>
 
-        {/* Footer */}
+        {/* Install prompt + Footer */}
+        <InstallBanner />
         <footer className="text-center pt-2 pb-4">
           <p className="text-[10px] text-white/15">
             Vynalize Remote v0.1.0
@@ -472,6 +474,21 @@ function RemoteUI({ sessionId }: { sessionId: string | null }) {
           box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
         }
       `}</style>
+    </div>
+  );
+}
+
+function InstallBanner() {
+  const { canShow, promptInstall, dismiss } = useInstallPrompt();
+  if (!canShow) return null;
+  return (
+    <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[0.08] bg-white/[0.03]">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-white/80">Add to Home Screen</p>
+        <p className="text-[11px] text-white/35 mt-0.5">Quick access to the remote</p>
+      </div>
+      <button onClick={promptInstall} className="px-4 py-2 text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-lg transition-colors">Install</button>
+      <button onClick={dismiss} className="p-1.5 text-white/25 hover:text-white/50" aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useVideoSearch } from './hooks/useVideoSearch';
 import { useAutoDisplay } from './hooks/useAutoDisplay';
 import { usePositionTracker } from './hooks/usePositionTracker';
 import { useWsCommands } from './hooks/useWsCommands';
+import { useAutoCycle } from './hooks/useAutoCycle';
 import { useStore } from './store';
 import AppShell from './components/AppShell';
 import RemoteControl from './components/RemoteControl';
@@ -28,10 +29,25 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           alt="Vynalize"
           className="w-full max-w-96 mx-auto mb-8"
         />
-        <p className="text-white/40 text-sm mb-8 leading-relaxed">
-          A companion display for your analog listening experience.
-          Visualizations, lyrics, and music videos — all driven by what's playing.
+        <p className="text-white/40 text-sm mb-6 leading-relaxed">
+          Play music near your device. Vynalize creates synchronized visualizations,
+          lyrics, and music videos — all driven by what's playing in the room.
         </p>
+
+        <div className="flex justify-center gap-6 mb-8 text-white/25 text-[11px]">
+          <div className="flex flex-col items-center gap-1.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 19V6l12-3v13" /><circle cx="6" cy="19" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            <span>12 Visualizers</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 6h16M4 10h16M4 14h10M4 18h7" /></svg>
+            <span>Synced Lyrics</span>
+          </div>
+          <div className="flex flex-col items-center gap-1.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9" /><path d="M10 9.87v4.26a1 1 0 001.55.83l3.2-2.13a1 1 0 000-1.66l-3.2-2.13A1 1 0 0010 9.87z" /></svg>
+            <span>Music Videos</span>
+          </div>
+        </div>
 
         {micError && (
           <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -54,8 +70,9 @@ function StartScreen({ onStart }: { onStart: () => void }) {
           </span>
         </button>
 
-        <p className="text-white/20 text-xs mt-4">
-          Requires microphone access to hear your music
+        <p className="text-white/20 text-xs mt-4 leading-relaxed">
+          Microphone listens for music to identify songs.
+          <br />Audio stays on your device — nothing is recorded.
         </p>
       </div>
     </div>
@@ -71,6 +88,7 @@ function ActiveApp() {
   useVideoSearch();
   useAutoDisplay();
   usePositionTracker();
+  useAutoCycle();
 
   return (
     <>
@@ -108,6 +126,7 @@ function DisplayApp() {
   useVideoSearch();
   useAutoDisplay();
   usePositionTracker();
+  useAutoCycle();
 
   const setControlsVisible = useStore((s) => s.setControlsVisible);
   const hideTimer = useRef<number>(0);

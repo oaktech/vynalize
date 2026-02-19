@@ -1,16 +1,19 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useStore } from '../store';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 import NowPlaying from './NowPlaying';
 import ListeningPulse from './ListeningPulse';
 import ModeSelector from './ModeSelector';
 import SyncControls from './SyncControls';
 import Settings from './Settings';
 import ManualSearch from './ManualSearch';
+import SongHistory from './SongHistory';
 import VisualizerView from './visualizer/VisualizerView';
 import LyricsView from './lyrics/LyricsView';
 import VideoPlayer from './video/VideoPlayer';
 import AsciiWords from './visualizer/AsciiWords';
+import ShareButton from './ShareButton';
 
 const CONTROLS_HIDE_DELAY = 5000;
 
@@ -20,6 +23,7 @@ const supportsFullscreen = !!document.documentElement.requestFullscreen && !isIP
 
 export default function AppShell() {
   useNetworkStatus();
+  const { canShow: canInstall, promptInstall, dismiss: dismissInstall } = useInstallPrompt();
   const appMode = useStore((s) => s.appMode);
   const setAppMode = useStore((s) => s.setAppMode);
   const isFullscreen = useStore((s) => s.isFullscreen);
@@ -139,8 +143,10 @@ export default function AppShell() {
             <ListeningPulse />
             <NowPlaying />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
+            <SongHistory />
             <ManualSearch />
+            <ShareButton />
             {bpm && (
               <span className="text-xs text-white/30 tabular-nums font-mono mr-2">
                 {bpm} BPM
@@ -190,6 +196,15 @@ export default function AppShell() {
           </div>
         </div>
       </div>
+
+      {/* Install prompt */}
+      {canInstall && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-xl flex items-center gap-3">
+          <span className="text-xs text-white/70">Add Vynalize to home screen</span>
+          <button onClick={promptInstall} className="px-3 py-1 text-xs font-medium text-white bg-white/15 hover:bg-white/25 rounded-lg transition-colors">Install</button>
+          <button onClick={dismissInstall} className="p-1 text-white/30 hover:text-white/60" aria-label="Dismiss"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
+        </div>
+      )}
 
       {/* Offline banner */}
       {!isOnline && (

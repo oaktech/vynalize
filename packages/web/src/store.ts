@@ -103,6 +103,26 @@ interface VinylStore {
   // Visualizer cycling
   nextVisualizer: () => void;
   prevVisualizer: () => void;
+
+  // Song history (#25)
+  songHistory: Array<{ song: SongInfo; identifiedAt: number }>;
+  addSongToHistory: (song: SongInfo) => void;
+
+  // Visualizer favorites & auto-cycle (#26)
+  favoriteVisualizers: VisualizerMode[];
+  toggleFavoriteVisualizer: (mode: VisualizerMode) => void;
+  autoCycleEnabled: boolean;
+  autoCycleIntervalSec: number;
+  setAutoCycleEnabled: (v: boolean) => void;
+  setAutoCycleIntervalSec: (s: number) => void;
+
+  // Onboarding (#24)
+  tutorialSeen: boolean;
+  setTutorialSeen: (v: boolean) => void;
+
+  // PWA install prompt dismissed (#28)
+  installDismissed: boolean;
+  setInstallDismissed: (v: boolean) => void;
 }
 
 const defaultPosition: PositionState = {
@@ -202,6 +222,37 @@ export const useStore = create<VinylStore>()(
           const idx = VISUALIZER_MODES.indexOf(state.visualizerMode);
           return { visualizerMode: VISUALIZER_MODES[(idx - 1 + VISUALIZER_MODES.length) % VISUALIZER_MODES.length] };
         }),
+
+      songHistory: [],
+      addSongToHistory: (song) =>
+        set((state) => {
+          const entry = { song, identifiedAt: Date.now() };
+          const filtered = state.songHistory.filter(
+            (h) => !(h.song.title === song.title && h.song.artist === song.artist),
+          );
+          return { songHistory: [entry, ...filtered].slice(0, 50) };
+        }),
+
+      favoriteVisualizers: [],
+      toggleFavoriteVisualizer: (mode) =>
+        set((state) => {
+          const favs = state.favoriteVisualizers;
+          return {
+            favoriteVisualizers: favs.includes(mode)
+              ? favs.filter((m) => m !== mode)
+              : [...favs, mode],
+          };
+        }),
+      autoCycleEnabled: false,
+      autoCycleIntervalSec: 30,
+      setAutoCycleEnabled: (autoCycleEnabled) => set({ autoCycleEnabled }),
+      setAutoCycleIntervalSec: (autoCycleIntervalSec) => set({ autoCycleIntervalSec }),
+
+      tutorialSeen: false,
+      setTutorialSeen: (tutorialSeen) => set({ tutorialSeen }),
+
+      installDismissed: false,
+      setInstallDismissed: (installDismissed) => set({ installDismissed }),
     }),
     {
       name: 'vynalize-store',
@@ -211,6 +262,12 @@ export const useStore = create<VinylStore>()(
         sensitivityGain: state.sensitivityGain,
         audioInputDeviceId: state.audioInputDeviceId,
         accentColor: state.accentColor,
+        songHistory: state.songHistory,
+        favoriteVisualizers: state.favoriteVisualizers,
+        autoCycleEnabled: state.autoCycleEnabled,
+        autoCycleIntervalSec: state.autoCycleIntervalSec,
+        tutorialSeen: state.tutorialSeen,
+        installDismissed: state.installDismissed,
       }),
     },
   ),

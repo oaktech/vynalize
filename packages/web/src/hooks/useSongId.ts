@@ -12,6 +12,7 @@ export function useSongId() {
   const setCurrentSong = useStore((s) => s.setCurrentSong);
   const setIdentifying = useStore((s) => s.setIdentifying);
   const setPosition = useStore((s) => s.setPosition);
+  const addSongToHistory = useStore((s) => s.addSongToHistory);
   const currentSongRef = useRef(useStore.getState().currentSong);
   const isRunning = useRef(false);
 
@@ -82,6 +83,7 @@ export function useSongId() {
         if (isNewSong) {
           console.log(`[songid] Identified: "${song.title}" by ${song.artist} (position: ${(currentPositionMs / 1000).toFixed(1)}s)`);
           setCurrentSong(song);
+          addSongToHistory(song);
           // Auto-sync: set position tracker to the estimated song position
           setPosition({
             isTracking: true,
@@ -107,7 +109,7 @@ export function useSongId() {
       isRunning.current = false;
       setIdentifying(false);
     }
-  }, [setCurrentSong, setIdentifying, setPosition]);
+  }, [setCurrentSong, setIdentifying, setPosition, addSongToHistory]);
 
   useEffect(() => {
     if (!isListening || !sessionId) return;
