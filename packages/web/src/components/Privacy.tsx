@@ -70,7 +70,7 @@ export default function Privacy() {
               services are contacted to provide core functionality:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-white/50">
-              <li><strong className="text-white/70">Shazam</strong> — receives short audio samples for song identification; samples are not retained</li>
+              <li><strong className="text-white/70">Shazam</strong> — receives short audio samples for song identification via an unofficial community library; samples are not retained by Vynalize</li>
               <li><strong className="text-white/70">YouTube API</strong> — receives song title and artist to search for music videos</li>
               <li><strong className="text-white/70">MusicBrainz</strong> — receives song title and artist to look up album and release metadata</li>
               <li><strong className="text-white/70">Cover Art Archive</strong> — receives album release IDs (not personal data) to fetch artwork</li>
