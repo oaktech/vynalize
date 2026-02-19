@@ -53,6 +53,7 @@ const ALLOWED_ORIGIN_PATTERNS = [
   /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
   /^https?:\/\/\[::1\](:\d+)?$/,
   /^https?:\/\/vynalize\.local(:\d+)?$/,
+  /^https?:\/\/(www\.)?vynalize\.com$/,
   // Private IPv4 ranges (LAN access)
   /^https?:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/,
 ];
