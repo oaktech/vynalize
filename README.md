@@ -78,7 +78,7 @@ sudo reboot
 
 The setup script installs everything: Node.js, Chromium kiosk, systemd service, mDNS (`vynalize.local`), and ALSA config for the USB mic.
 
-After reboot, the Pi boots into a full-screen Chromium kiosk at `/display?autostart` and audio capture begins automatically. The phone remote is still available at `http://vynalize.local:3001/remote`.
+After reboot, the Pi boots into a full-screen Chromium kiosk at `/kiosk?autostart` and audio capture begins automatically. The phone remote is still available at `http://vynalize.local:3001/remote`.
 
 ## How It Works
 
@@ -123,7 +123,7 @@ Real-time onset detection using spectral flux with BPM estimation from a rolling
 
 ## Phone Remote & Sessions
 
-Each display generates a unique 6-character session code with a QR code (shown at the top center on `/display`). Scan the QR code or open `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
+Each display generates a unique 6-character session code with a QR code (shown at the top center on `/kiosk`). Scan the QR code or open `/remote` on your phone and enter the code to connect. A controller only affects the display it's paired with -- multiple households can use the same server without interference.
 
 Session codes can be disabled (open mode) via the settings page or by setting `REQUIRE_CODE=false` in `.env`. In open mode, remotes connect without a code -- useful for standalone Pi setups.
 

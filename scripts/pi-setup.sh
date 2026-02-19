@@ -5,7 +5,7 @@
 # Turns a fresh Raspberry Pi OS (Trixie) install into a dedicated
 # visualizer appliance:
 #   - Node.js server + built frontend
-#   - Chromium kiosk on /display (auto-starts, full-screen, mic granted)
+#   - Chromium kiosk on /kiosk (auto-starts, full-screen, mic granted)
 #   - mDNS so iPhone can reach http://vynalize.local:3001/remote
 #
 # Prerequisites:
@@ -23,7 +23,7 @@ set -euo pipefail
 # ── Config ────────────────────────────────────────────────────
 APP_DIR="${APP_DIR:-$HOME/vynalize}"
 APP_PORT="${APP_PORT:-3001}"
-KIOSK_URL="http://localhost:${APP_PORT}/display?autostart"
+KIOSK_URL="http://localhost:${APP_PORT}/kiosk?autostart"
 NODE_MAJOR=22
 SERVICE_USER="$(whoami)"
 

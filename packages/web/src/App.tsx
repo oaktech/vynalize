@@ -116,8 +116,8 @@ function SessionOverlay() {
   );
 }
 
-/** Display route — same as standalone but with WebSocket + auto-hide + auto-fullscreen */
-function DisplayApp() {
+/** Kiosk route — same as standalone but with auto-hide + auto-fullscreen */
+function KioskApp() {
   useWsCommands('display');
   useAudioAnalysis();
   useBeatDetection();
@@ -131,7 +131,7 @@ function DisplayApp() {
   const setControlsVisible = useStore((s) => s.setControlsVisible);
   const hideTimer = useRef<number>(0);
 
-  // Auto-hide controls after 3s on display route
+  // Auto-hide controls after 3s on kiosk route
   const resetHideTimer = useCallback(() => {
     setControlsVisible(true);
     clearTimeout(hideTimer.current);
@@ -141,25 +141,16 @@ function DisplayApp() {
   }, [setControlsVisible]);
 
   useEffect(() => {
-    // Auto-fullscreen on display route (skip on iPhone which doesn't support it)
+    // Auto-fullscreen immediately on kiosk route (skip on iPhone which doesn't support it)
     const supportsFullscreen = !!document.documentElement.requestFullscreen && !/iPhone|iPod/.test(navigator.userAgent);
-    const tryFullscreen = () => {
-      if (supportsFullscreen && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    };
-    // Need a user gesture first — fullscreen on first click
-    const handler = () => {
-      tryFullscreen();
-      window.removeEventListener('click', handler);
-    };
-    if (supportsFullscreen) window.addEventListener('click', handler);
+    if (supportsFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
 
     // Start with controls hidden
     const t = window.setTimeout(() => setControlsVisible(false), 3000);
 
     return () => {
-      window.removeEventListener('click', handler);
       clearTimeout(t);
       clearTimeout(hideTimer.current);
     };
@@ -185,8 +176,8 @@ function StandaloneApp() {
   return <ActiveApp />;
 }
 
-/** Display app — `/display` route (Pi kiosk) */
-function DisplayRoute() {
+/** Kiosk app — `/kiosk` route (Pi kiosk) */
+function KioskRoute() {
   const isListening = useStore((s) => s.isListening);
   const { start } = useAudioCapture();
   const autostart = new URLSearchParams(window.location.search).has('autostart');
@@ -201,7 +192,7 @@ function DisplayRoute() {
     return <StartScreen onStart={start} />;
   }
 
-  return <DisplayApp />;
+  return <KioskApp />;
 }
 
 export default function App() {
@@ -215,8 +206,8 @@ export default function App() {
     return <RemoteControl />;
   }
 
-  if (path === '/display') {
-    return <DisplayRoute />;
+  if (path === '/kiosk') {
+    return <KioskRoute />;
   }
 
   if (path === '/leaderboard') {
