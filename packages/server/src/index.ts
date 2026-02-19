@@ -8,29 +8,85 @@ config({ path: resolve(__dirname, '../../../.env'), override: false });
 import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { identifyRouter } from './routes/identify.js';
 import { videoRouter } from './routes/video.js';
 import { searchRouter } from './routes/search.js';
 import { settingsRouter } from './routes/settings.js';
+import { leaderboardRouter } from './routes/leaderboard.js';
 import { attachWebSocket } from './wsRelay.js';
 import { connectRedis, redisAvailable } from './services/redis.js';
+import { initDb, dbAvailable } from './services/db.js';
 import { initPool, getQueueDepth, getPoolSize } from './services/identifyPool.js';
 import { loadSettings, getSettings } from './services/settings.js';
+import { localOnly } from './middleware/localOnly.js';
+import { createRateLimit } from './middleware/rateLimit.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://www.youtube.com", "https://s.ytimg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://i.ytimg.com", "https://*.googleusercontent.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://lrclib.net"],
+      mediaSrc: ["'self'", "blob:"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  },
+}));
+
+// CORS — allow same-origin, localhost dev, mDNS, and LAN IPs
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^https?:\/\/\[::1\](:\d+)?$/,
+  /^https?:\/\/vynalize\.local(:\d+)?$/,
+  // Private IPv4 ranges (LAN access)
+  /^https?:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/,
+];
+
+app.use(cors({
+  origin(origin, callback) {
+    // Allow requests with no origin (same-origin, curl, mobile apps)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin))) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+}));
+
+app.use(express.json({ limit: '1mb' }));
 
 app.use('/api/identify', identifyRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/search', searchRouter);
-app.use('/api/settings', settingsRouter);
+app.use('/api/settings', localOnly, settingsRouter);
+app.use('/api/leaderboard', leaderboardRouter);
 
-app.post('/api/log', (req, res) => {
+const logRateLimit = createRateLimit({
+  keyPrefix: 'log',
+  windowMs: 60_000,
+  maxRequests: 30,
+});
+
+app.post('/api/log', logRateLimit, (req, res) => {
   const { tag, msg } = req.body ?? {};
-  if (tag && msg) console.log(`[${tag}] ${msg}`);
+  if (typeof tag !== 'string' || typeof msg !== 'string') {
+    res.sendStatus(400);
+    return;
+  }
+  // Limit length and strip newlines to prevent log injection
+  const safeTag = tag.slice(0, 50).replace(/[\r\n]/g, '');
+  const safeMsg = msg.slice(0, 500).replace(/[\r\n]/g, '');
+  if (safeTag && safeMsg) console.log(`[${safeTag}] ${safeMsg}`);
   res.sendStatus(204);
 });
 
@@ -48,7 +104,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.get('/api/diag', async (_req, res) => {
+app.get('/api/diag', localOnly, async (_req, res) => {
   const checks: Record<string, string | number | boolean> = {};
 
   checks.shazam = 'node-shazam (no API key required)';
@@ -84,6 +140,9 @@ async function start() {
   // Connect to Redis (no-op if REDIS_URL not set)
   await connectRedis();
 
+  // Connect to PostgreSQL (no-op if DATABASE_URL not set)
+  await initDb();
+
   // Load settings (settings.json overrides .env)
   await loadSettings();
 
@@ -97,6 +156,7 @@ async function start() {
     const settings = getSettings();
     console.log(`[server] Vynalize backend running on port ${PORT} (pid: ${process.pid})`);
     console.log(`[server] Redis: ${redisAvailable ? 'connected' : 'not available (local-only mode)'}`);
+    console.log(`[server] Database: ${dbAvailable ? 'connected (play tracking enabled)' : 'not available (play tracking disabled)'}`);
     if (!settings.requireCode) {
       console.log('[server] Session codes DISABLED (open mode) — remote connects without a code');
     }

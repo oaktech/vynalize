@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useAudioCapture } from './hooks/useAudioCapture';
 import { useAudioAnalysis } from './hooks/useAudioAnalysis';
 import { useBeatDetection } from './hooks/useBeatDetection';
@@ -12,6 +12,9 @@ import { useStore } from './store';
 import AppShell from './components/AppShell';
 import RemoteControl from './components/RemoteControl';
 import ServerSettings from './components/ServerSettings';
+
+const Leaderboard = lazy(() => import('./components/Leaderboard'));
+const Privacy = lazy(() => import('./components/Privacy'));
 
 function StartScreen({ onStart }: { onStart: () => void }) {
   return (
@@ -182,6 +185,22 @@ export default function App() {
 
   if (path === '/display') {
     return <DisplayRoute />;
+  }
+
+  if (path === '/leaderboard') {
+    return (
+      <Suspense fallback={<div className="w-screen h-screen bg-black" />}>
+        <Leaderboard />
+      </Suspense>
+    );
+  }
+
+  if (path === '/privacy') {
+    return (
+      <Suspense fallback={<div className="w-screen h-screen bg-black" />}>
+        <Privacy />
+      </Suspense>
+    );
   }
 
   // Default: standalone laptop mode (unchanged)

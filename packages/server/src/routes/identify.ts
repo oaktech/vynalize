@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 import { submitJob } from '../services/identifyPool.js';
 import { createRateLimit } from '../middleware/rateLimit.js';
+import { recordPlay } from '../services/plays.js';
 
 const upload = multer({
   dest: path.join(os.tmpdir(), 'vynalize-uploads'),
@@ -36,6 +37,13 @@ identifyRouter.post(
       }
 
       console.log(`[identify] Match: "${result.title}" by ${result.artist}`);
+
+      recordPlay(req.ip ?? '127.0.0.1', {
+        title: result.title,
+        artist: result.artist,
+        album: result.album,
+        albumArtUrl: result.albumArtUrl,
+      });
 
       res.json({
         match: true,

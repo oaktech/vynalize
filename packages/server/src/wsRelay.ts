@@ -13,6 +13,12 @@ import {
 import { getSettings } from './services/settings.js';
 
 const OPEN_SESSION = '__open__';
+const MAX_MESSAGE_SIZE = 50 * 1024; // 50 KB
+const VALID_MESSAGE_TYPES = new Set([
+  'state', 'song', 'beat', 'command', 'visualizer',
+  'lyrics', 'video', 'nowPlaying', 'seekTo', 'display',
+  'remoteStatus', 'session', 'error', 'ping', 'pong',
+]);
 
 type ClientRole = 'controller' | 'display';
 
@@ -172,12 +178,17 @@ export function attachWebSocket(server: Server): void {
 
     function processMessage(msg: string) {
       if (!resolvedSessionId) return;
+      if (msg.length > MAX_MESSAGE_SIZE) return;
+
       let parsed: { type?: string };
       try {
         parsed = JSON.parse(msg);
       } catch {
         return;
       }
+
+      if (!parsed.type || typeof parsed.type !== 'string') return;
+      if (!VALID_MESSAGE_TYPES.has(parsed.type)) return;
 
       touchSession(resolvedSessionId).catch(() => {});
 
