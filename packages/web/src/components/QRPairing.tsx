@@ -45,8 +45,8 @@ export default function QRPairing({ sessionId }: QRPairingProps) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <img src={dataUrl} alt="Scan to connect remote" width={120} height={120} className="rounded-lg" />
-      <p className="text-sm text-white/50 text-center leading-snug max-w-[160px]">
-        Scan to look up<br />music videos &amp; lyrics
+      <p className="text-sm text-white/50 text-center leading-snug max-w-[180px]">
+        Scan or visit<br /><span className="text-white/70">vynalize.com/remote</span><br />and enter the code
       </p>
     </div>
   );

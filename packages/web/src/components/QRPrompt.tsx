@@ -45,7 +45,7 @@ export default function QRPrompt() {
     <div className="w-full h-full flex flex-col items-center justify-center gap-6">
       <img src={dataUrl} alt="Scan to connect remote" width={200} height={200} className="rounded-xl" />
       <p className="text-xl font-semibold text-white/70 text-center leading-snug max-w-xs">
-        Scan here to look up<br />lyrics &amp; music videos
+        Scan or visit<br /><span className="text-white/90">vynalize.com/remote</span><br />and enter the code
       </p>
     </div>
   );
