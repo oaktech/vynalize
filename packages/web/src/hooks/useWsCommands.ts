@@ -92,6 +92,9 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
           case 'adjustVideoOffset':
             store.adjustVideoOffset(msg.value);
             break;
+          case 'setAutoPlayVideo':
+            store.setAutoPlayVideo(msg.value);
+            break;
         }
       };
 
@@ -119,7 +122,8 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
         state.visualizerMode !== prev.visualizerMode ||
         state.appMode !== prev.appMode ||
         state.accentColor !== prev.accentColor ||
-        state.sensitivityGain !== prev.sensitivityGain
+        state.sensitivityGain !== prev.sensitivityGain ||
+        state.autoPlayVideo !== prev.autoPlayVideo
       ) {
         const msg: WsStateMessage = {
           type: 'state',
@@ -128,6 +132,7 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
             appMode: state.appMode,
             accentColor: state.accentColor,
             sensitivityGain: state.sensitivityGain,
+            autoPlayVideo: state.autoPlayVideo,
           },
         };
         ws.send(JSON.stringify(msg));
@@ -184,6 +189,7 @@ export function useWsCommands(role: Role, sessionId?: string | null) {
           store.setAppMode(msg.data.appMode);
           store.setAccentColor(msg.data.accentColor);
           store.setSensitivityGain(msg.data.sensitivityGain);
+          store.setAutoPlayVideo(msg.data.autoPlayVideo);
         } else if (msg.type === 'song') {
           store.setCurrentSong(msg.data);
         } else if (msg.type === 'beat') {
