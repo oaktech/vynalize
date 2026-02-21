@@ -13,21 +13,22 @@ export function useAutoDisplay() {
   const videoId = useStore((s) => s.videoId);
   const videoSearching = useStore((s) => s.videoSearching);
   const lyrics = useStore((s) => s.lyrics);
+  const autoPlayVideo = useStore((s) => s.autoPlayVideo);
   const setAppMode = useStore((s) => s.setAppMode);
 
   useEffect(() => {
     if (!currentSong) return;
 
-    // Priority 1: Video available — show it immediately
-    if (videoId) {
+    // Priority 1: Video available and auto-play enabled — show it immediately
+    if (videoId && autoPlayVideo) {
       setAppMode('video');
       return;
     }
 
-    // Still searching for video — stay on visualizer, don't commit to lyrics yet
-    if (videoSearching) return;
+    // Still searching for video (and auto-play is on) — stay on visualizer, don't commit to lyrics yet
+    if (videoSearching && autoPlayVideo) return;
 
-    // Priority 2: No video, but lyrics available
+    // Priority 2: No video (or auto-play off), but lyrics available
     if (lyrics.length > 0) {
       setAppMode('lyrics');
       return;
@@ -35,5 +36,5 @@ export function useAutoDisplay() {
 
     // Priority 3: Nothing available — visualizer fallback
     setAppMode('visualizer');
-  }, [currentSong, videoId, videoSearching, lyrics, setAppMode]);
+  }, [currentSong, videoId, videoSearching, lyrics, autoPlayVideo, setAppMode]);
 }

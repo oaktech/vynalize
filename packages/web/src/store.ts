@@ -123,6 +123,10 @@ interface VinylStore {
   // PWA install prompt dismissed (#28)
   installDismissed: boolean;
   setInstallDismissed: (v: boolean) => void;
+
+  // Auto-play music videos when discovered
+  autoPlayVideo: boolean;
+  setAutoPlayVideo: (v: boolean) => void;
 }
 
 const defaultPosition: PositionState = {
@@ -253,6 +257,9 @@ export const useStore = create<VinylStore>()(
 
       installDismissed: false,
       setInstallDismissed: (installDismissed) => set({ installDismissed }),
+
+      autoPlayVideo: false,
+      setAutoPlayVideo: (autoPlayVideo) => set({ autoPlayVideo }),
     }),
     {
       name: 'vynalize-store',
@@ -268,6 +275,7 @@ export const useStore = create<VinylStore>()(
         autoCycleIntervalSec: state.autoCycleIntervalSec,
         tutorialSeen: state.tutorialSeen,
         installDismissed: state.installDismissed,
+        autoPlayVideo: state.autoPlayVideo,
       }),
     },
   ),

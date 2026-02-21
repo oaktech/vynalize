@@ -156,6 +156,7 @@ function RemoteUI({
   const visualizerMode = useStore((s) => s.visualizerMode);
   const accentColor = useStore((s) => s.accentColor);
   const sensitivityGain = useStore((s) => s.sensitivityGain);
+  const autoPlayVideo = useStore((s) => s.autoPlayVideo);
   const wsStatus = useStore((s) => s.wsStatus);
 
   const setAppMode = useCallback(
@@ -189,6 +190,10 @@ function RemoteUI({
     },
     [send],
   );
+
+  const toggleAutoPlayVideo = useCallback(() => {
+    send({ type: 'command', action: 'setAutoPlayVideo', value: !autoPlayVideo });
+  }, [send, autoPlayVideo]);
 
   // Video sync
   const [syncFlash, setSyncFlash] = useState<string | null>(null);
@@ -447,6 +452,33 @@ function RemoteUI({
             aria-label="Audio sensitivity"
             className="w-full h-11 appearance-none bg-transparent cursor-pointer touch-none"
           />
+        </section>
+
+        {/* Auto-play video toggle */}
+        <section className="mb-7">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[14px] font-medium text-white/80">Auto-play videos</p>
+              <p className="text-[11px] text-white/35 mt-0.5">Switch to video when discovered</p>
+            </div>
+            <button
+              onClick={toggleAutoPlayVideo}
+              role="switch"
+              aria-checked={autoPlayVideo}
+              aria-label="Auto-play videos"
+              className="relative flex-shrink-0 w-[51px] h-[31px] rounded-full transition-colors duration-200"
+              style={{
+                backgroundColor: autoPlayVideo ? accentColor : 'rgba(255,255,255,0.15)',
+              }}
+            >
+              <span
+                className="absolute top-[2px] left-[2px] w-[27px] h-[27px] rounded-full bg-white shadow transition-transform duration-200"
+                style={{
+                  transform: autoPlayVideo ? 'translateX(20px)' : 'translateX(0)',
+                }}
+              />
+            </button>
+          </div>
         </section>
 
         {/* Install prompt */}

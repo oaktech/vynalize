@@ -66,7 +66,8 @@ export type WsCommand =
   | { type: 'command'; action: 'adjustSensitivity'; value: number }
   | { type: 'command'; action: 'nextVisualizer' }
   | { type: 'command'; action: 'prevVisualizer' }
-  | { type: 'command'; action: 'adjustVideoOffset'; value: number };
+  | { type: 'command'; action: 'adjustVideoOffset'; value: number }
+  | { type: 'command'; action: 'setAutoPlayVideo'; value: boolean };
 
 export interface WsStateMessage {
   type: 'state';
@@ -75,6 +76,7 @@ export interface WsStateMessage {
     appMode: AppMode;
     accentColor: string;
     sensitivityGain: number;
+    autoPlayVideo: boolean;
   };
 }
 
