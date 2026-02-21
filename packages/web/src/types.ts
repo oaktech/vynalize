@@ -30,7 +30,8 @@ export type VisualizerMode =
   | 'starrynight'
   | 'guitarhero'
   | 'vynalize'
-  | 'beatsaber';
+  | 'beatsaber'
+  | 'pittsburgh';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 
