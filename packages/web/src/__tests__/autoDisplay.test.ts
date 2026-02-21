@@ -134,11 +134,11 @@ describe('Auto Cycle Logic', () => {
   it('cycles through all modes eventually', () => {
     const visited = new Set<string>();
     useStore.getState().setVisualizerMode('spectrum');
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 13; i++) {
       visited.add(useStore.getState().visualizerMode);
       useStore.getState().nextVisualizer();
     }
-    expect(visited.size).toBe(12);
+    expect(visited.size).toBe(13);
   });
 
   it('interval can be 15, 30, or 60 seconds', () => {

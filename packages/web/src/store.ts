@@ -12,7 +12,7 @@ import type {
 
 const VISUALIZER_MODES: VisualizerMode[] = [
   'spectrum', 'radial', 'particles',
-  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber',
+  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber', 'pittsburgh',
 ];
 
 interface VinylStore {

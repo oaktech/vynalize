@@ -21,6 +21,7 @@ const vizModes: { id: VisualizerMode; label: string; tag: string }[] = [
   { id: 'guitarhero', label: 'Guitar Hero', tag: 'Note highway' },
   { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
   { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
+  { id: 'pittsburgh', label: 'Pittsburgh', tag: 'City skyline' },
 ];
 
 export default function ModeSelector() {

@@ -209,11 +209,11 @@ describe('Kiosk Mode Flow', () => {
 });
 
 describe('Visualizer Cycling Flow', () => {
-  it('cycles through all 12 modes in sequence', () => {
+  it('cycles through all 13 modes in sequence', () => {
     const modes: VisualizerMode[] = [];
     useStore.getState().setVisualizerMode('spectrum');
 
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 13; i++) {
       modes.push(useStore.getState().visualizerMode);
       useStore.getState().nextVisualizer();
     }
@@ -221,7 +221,7 @@ describe('Visualizer Cycling Flow', () => {
     expect(modes).toEqual([
       'spectrum', 'radial', 'particles', 'radical', 'nebula',
       'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero',
-      'vynalize', 'beatsaber',
+      'vynalize', 'beatsaber', 'pittsburgh',
     ]);
 
     // Full cycle returns to start
