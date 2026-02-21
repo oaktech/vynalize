@@ -20,63 +20,109 @@ function hexToRgb(color: string): [number, number, number] {
   ];
 }
 
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
 // ── Stars ────────────────────────────────────────────────────
 
 interface Star {
   x: number;
   y: number;
   size: number;
-  speed: number;
+  twinkleSpeed: number;
+  phase: number;
 }
 
 function createStars(count: number): Star[] {
   return Array.from({ length: count }, () => ({
     x: Math.random(),
-    y: Math.random() * 0.4,
-    size: 0.5 + Math.random() * 1.5,
-    speed: 0.3 + Math.random() * 0.7,
+    y: Math.random() * 0.38,
+    size: 0.4 + Math.random() * 1.8,
+    twinkleSpeed: 0.5 + Math.random() * 2,
+    phase: Math.random() * Math.PI * 2,
   }));
 }
 
-// ── Buildings (Pittsburgh skyline silhouette) ────────────────
+// ── Building definitions (Pittsburgh skyline landmarks) ──────
 
 interface Building {
-  x: number;
-  width: number;
-  height: number;
-  windows: { row: number; col: number }[];
-  hasPeak: boolean;
-  peakHeight: number;
+  x: number;      // center x (0-1)
+  w: number;      // width (0-1)
+  h: number;      // height (0-1)
+  type: 'box' | 'tower' | 'cathedral' | 'ppg' | 'ussteel' | 'spire';
+  windowRows: number;
+  windowCols: number;
 }
 
-function createBuildings(count: number): Building[] {
-  const buildings: Building[] = [];
-  let cursor = 0;
+function createSkyline(): Building[] {
+  // Pittsburgh skyline from left to right — iconic buildings
+  return [
+    // Far left small buildings
+    { x: 0.02, w: 0.035, h: 0.08, type: 'box', windowRows: 3, windowCols: 2 },
+    { x: 0.06, w: 0.03, h: 0.12, type: 'box', windowRows: 5, windowCols: 2 },
+    { x: 0.09, w: 0.04, h: 0.10, type: 'box', windowRows: 4, windowCols: 2 },
+    { x: 0.13, w: 0.025, h: 0.15, type: 'tower', windowRows: 7, windowCols: 2 },
+    { x: 0.16, w: 0.04, h: 0.09, type: 'box', windowRows: 3, windowCols: 3 },
 
-  for (let i = 0; i < count; i++) {
-    const w = 0.015 + Math.random() * 0.04;
-    const h = 0.08 + Math.random() * 0.35;
-    // Taller in the center (Pittsburgh downtown cluster)
-    const centerBoost = 1 - Math.abs((cursor + w / 2) - 0.5) * 1.4;
-    const finalH = h * (0.5 + Math.max(0, centerBoost) * 0.8);
-    const hasPeak = Math.random() < 0.2;
-    const peakHeight = hasPeak ? finalH * (0.05 + Math.random() * 0.15) : 0;
+    // Mount Washington / Station Square area
+    { x: 0.20, w: 0.035, h: 0.14, type: 'box', windowRows: 6, windowCols: 2 },
+    { x: 0.24, w: 0.03, h: 0.11, type: 'box', windowRows: 5, windowCols: 2 },
 
-    // Generate window grid
-    const windowCols = Math.max(1, Math.floor(w * 80));
-    const windowRows = Math.max(1, Math.floor(finalH * 20));
-    const windows: { row: number; col: number }[] = [];
-    for (let r = 0; r < windowRows; r++) {
-      for (let c = 0; c < windowCols; c++) {
-        if (Math.random() < 0.4) windows.push({ row: r, col: c });
-      }
-    }
+    // PPG Place (Gothic revival glass castle) - iconic!
+    { x: 0.30, w: 0.055, h: 0.30, type: 'ppg', windowRows: 14, windowCols: 4 },
+    { x: 0.265, w: 0.03, h: 0.20, type: 'ppg', windowRows: 9, windowCols: 2 },
+    { x: 0.34, w: 0.025, h: 0.18, type: 'ppg', windowRows: 8, windowCols: 2 },
 
-    buildings.push({ x: cursor, width: w, height: finalH, windows, hasPeak, peakHeight });
-    cursor += w + Math.random() * 0.005;
-  }
+    // One Oxford Centre
+    { x: 0.38, w: 0.04, h: 0.22, type: 'tower', windowRows: 10, windowCols: 3 },
 
-  return buildings;
+    // US Steel Tower (tallest in Pittsburgh)
+    { x: 0.44, w: 0.055, h: 0.38, type: 'ussteel', windowRows: 18, windowCols: 4 },
+    { x: 0.48, w: 0.03, h: 0.16, type: 'box', windowRows: 7, windowCols: 2 },
+
+    // BNY Mellon Center
+    { x: 0.52, w: 0.045, h: 0.28, type: 'tower', windowRows: 13, windowCols: 3 },
+
+    // One PPG Place area
+    { x: 0.57, w: 0.035, h: 0.20, type: 'box', windowRows: 9, windowCols: 3 },
+    { x: 0.60, w: 0.04, h: 0.24, type: 'tower', windowRows: 11, windowCols: 3 },
+
+    // Gateway Center cluster
+    { x: 0.65, w: 0.035, h: 0.17, type: 'box', windowRows: 8, windowCols: 2 },
+    { x: 0.69, w: 0.04, h: 0.14, type: 'box', windowRows: 6, windowCols: 3 },
+
+    // Cathedral of Learning (iconic gothic tower)
+    { x: 0.75, w: 0.035, h: 0.34, type: 'cathedral', windowRows: 16, windowCols: 3 },
+
+    // Right side smaller buildings
+    { x: 0.80, w: 0.04, h: 0.12, type: 'box', windowRows: 5, windowCols: 3 },
+    { x: 0.84, w: 0.03, h: 0.16, type: 'tower', windowRows: 7, windowCols: 2 },
+    { x: 0.88, w: 0.04, h: 0.10, type: 'box', windowRows: 4, windowCols: 3 },
+    { x: 0.92, w: 0.035, h: 0.13, type: 'box', windowRows: 5, windowCols: 2 },
+    { x: 0.96, w: 0.03, h: 0.08, type: 'box', windowRows: 3, windowCols: 2 },
+  ];
+}
+
+// ── Golden particles (rise from city on beats) ──────────────
+
+interface GoldParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  life: number;
+  maxLife: number;
+  brightness: number;
+}
+
+// ── Window state for flickering lights ──────────────────────
+
+interface WindowState {
+  lit: boolean;
+  brightness: number;
+  flickerTimer: number;
 }
 
 // ── Component ────────────────────────────────────────────────
@@ -104,6 +150,7 @@ export default function PittsburghSkyline({ accentColor }: { accentColor: string
     return () => window.removeEventListener('resize', resize);
   }, []);
 
+  // Beat trigger
   useEffect(() => {
     if (isBeat) beatPulse.current = 1;
   }, [isBeat]);
