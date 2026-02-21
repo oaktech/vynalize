@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useStore } from '../store';
 
 // ── Remote Control Tests ───────────────────────────────────
@@ -75,7 +75,7 @@ describe('Remote Control', () => {
 
     it('sends setAppMode and setVisualizerMode when in non-visualizer mode', () => {
       const send = vi.fn();
-      const appMode = 'lyrics';
+      const appMode: string = 'lyrics';
       if (appMode !== 'visualizer') {
         send({ type: 'command', action: 'setAppMode', value: 'visualizer' });
       }

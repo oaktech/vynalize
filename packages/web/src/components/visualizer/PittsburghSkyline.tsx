@@ -104,6 +104,56 @@ function createSkyline(): Building[] {
   ];
 }
 
+// ── Buildings for rendering ──────────────────────────────────
+
+interface RenderBuilding {
+  x: number;
+  width: number;
+  height: number;
+  hasPeak: boolean;
+  peakHeight: number;
+  windows: { row: number; col: number }[];
+}
+
+function createBuildings(count: number): RenderBuilding[] {
+  const skyline = createSkyline();
+  const extra = count - skyline.length;
+  const all: RenderBuilding[] = skyline.map((b) => {
+    const windowCols = b.windowCols;
+    const windowRows = b.windowRows;
+    const windows: { row: number; col: number }[] = [];
+    for (let row = 0; row < windowRows; row++) {
+      for (let col = 0; col < windowCols; col++) {
+        if (Math.random() > 0.3) windows.push({ row, col });
+      }
+    }
+    return {
+      x: b.x,
+      width: b.w,
+      height: b.h,
+      hasPeak: b.type === 'cathedral' || b.type === 'spire' || b.type === 'ppg',
+      peakHeight: b.type === 'cathedral' ? 0.06 : b.type === 'ppg' ? 0.03 : 0,
+      windows,
+    };
+  });
+  // Fill extra random buildings if count exceeds landmark count
+  for (let i = 0; i < extra; i++) {
+    const x = Math.random();
+    const width = 0.02 + Math.random() * 0.03;
+    const height = 0.06 + Math.random() * 0.14;
+    const windowCols = Math.max(1, Math.floor(width * 80));
+    const windowRows = Math.max(1, Math.floor(height * 20));
+    const windows: { row: number; col: number }[] = [];
+    for (let row = 0; row < windowRows; row++) {
+      for (let col = 0; col < windowCols; col++) {
+        if (Math.random() > 0.3) windows.push({ row, col });
+      }
+    }
+    all.push({ x, width, height, hasPeak: false, peakHeight: 0, windows });
+  }
+  return all;
+}
+
 // ── Golden particles (rise from city on beats) ──────────────
 
 interface GoldParticle {
@@ -200,7 +250,7 @@ export default function PittsburghSkyline({ accentColor }: { accentColor: string
 
     // ── Stars ──
     for (const star of stars) {
-      const twinkle = 0.4 + 0.6 * Math.sin(performance.now() / 1000 * star.speed + star.x * 100);
+      const twinkle = 0.4 + 0.6 * Math.sin(performance.now() / 1000 * star.twinkleSpeed + star.x * 100);
       const bright = twinkle + s.high * 0.5;
       const sz = star.size * dpr * (0.8 + pulse * 0.2);
       ctx.beginPath();

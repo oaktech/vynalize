@@ -173,7 +173,7 @@ describe('Server API Configuration', () => {
 describe('WebSocket Relay Logic', () => {
   describe('Message routing', () => {
     it('display messages route to controllers', () => {
-      const senderRole = 'display';
+      const senderRole: string = 'display';
       const targetRole = senderRole === 'controller' ? 'display' : 'controller';
       expect(targetRole).toBe('controller');
     });
