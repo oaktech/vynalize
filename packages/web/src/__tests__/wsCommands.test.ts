@@ -102,7 +102,7 @@ describe('WebSocket Command Processing', () => {
 
     it('ignores non-command message types', () => {
       const mode = useStore.getState().visualizerMode;
-      processCommand({ type: 'state', data: { visualizerMode: 'nebula', appMode: 'visualizer', accentColor: '#fff', sensitivityGain: 2 } });
+      processCommand({ type: 'state', data: { visualizerMode: 'nebula', appMode: 'visualizer', accentColor: '#fff', sensitivityGain: 2, autoPlayVideo: false } });
       // state messages are for controller role, not display
       expect(useStore.getState().visualizerMode).toBe(mode);
     });
@@ -131,6 +131,7 @@ describe('WebSocket Command Processing', () => {
           appMode: 'lyrics',
           accentColor: '#00ff00',
           sensitivityGain: 0.5,
+          autoPlayVideo: false,
         },
       };
       processControllerMessage(stateMsg);
@@ -185,15 +186,15 @@ describe('WebSocket Command Processing', () => {
 
   describe('Display role — outgoing state sync', () => {
     it('detects visualizer mode change', () => {
-      const prev = { visualizerMode: 'spectrum' as const, appMode: 'visualizer' as const, accentColor: '#8b5cf6', sensitivityGain: 1 };
-      const state = { ...prev, visualizerMode: 'radial' as const };
+      const prev = { visualizerMode: 'spectrum' as string, appMode: 'visualizer' as string, accentColor: '#8b5cf6', sensitivityGain: 1 };
+      const state = { ...prev, visualizerMode: 'radial' };
       const changed = state.visualizerMode !== prev.visualizerMode;
       expect(changed).toBe(true);
     });
 
     it('detects app mode change', () => {
-      const prev = { appMode: 'visualizer' as const };
-      const state = { appMode: 'lyrics' as const };
+      const prev = { appMode: 'visualizer' as string };
+      const state = { appMode: 'lyrics' as string };
       expect(state.appMode !== prev.appMode).toBe(true);
     });
 

@@ -121,32 +121,27 @@ describe('identifySong API client', () => {
 
 describe('Song Identification Flow', () => {
   describe('Song change detection', () => {
+    function isSongNew(
+      current: { title: string; artist: string } | null,
+      newSong: { title: string; artist: string },
+    ): boolean {
+      return !current || newSong.title !== current.title || newSong.artist !== current.artist;
+    }
+
     it('detects new song when no current song', () => {
-      const current = null;
-      const newSong = { title: 'New Song', artist: 'Artist' };
-      const isNew = !current || newSong.title !== current.title || newSong.artist !== current.artist;
-      expect(isNew).toBe(true);
+      expect(isSongNew(null, { title: 'New Song', artist: 'Artist' })).toBe(true);
     });
 
     it('detects same song correctly', () => {
-      const current = { title: 'Song', artist: 'Artist' };
-      const newSong = { title: 'Song', artist: 'Artist' };
-      const isNew = !current || newSong.title !== current.title || newSong.artist !== current.artist;
-      expect(isNew).toBe(false);
+      expect(isSongNew({ title: 'Song', artist: 'Artist' }, { title: 'Song', artist: 'Artist' })).toBe(false);
     });
 
     it('detects different song when title changes', () => {
-      const current = { title: 'Song A', artist: 'Artist' };
-      const newSong = { title: 'Song B', artist: 'Artist' };
-      const isNew = !current || newSong.title !== current.title || newSong.artist !== current.artist;
-      expect(isNew).toBe(true);
+      expect(isSongNew({ title: 'Song A', artist: 'Artist' }, { title: 'Song B', artist: 'Artist' })).toBe(true);
     });
 
     it('detects different song when artist changes', () => {
-      const current = { title: 'Song', artist: 'Artist A' };
-      const newSong = { title: 'Song', artist: 'Artist B' };
-      const isNew = !current || newSong.title !== current.title || newSong.artist !== current.artist;
-      expect(isNew).toBe(true);
+      expect(isSongNew({ title: 'Song', artist: 'Artist A' }, { title: 'Song', artist: 'Artist B' })).toBe(true);
     });
   });
 
