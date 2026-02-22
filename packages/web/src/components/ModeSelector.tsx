@@ -1,6 +1,8 @@
 import { useStore } from '../store';
 import type { AppMode, VisualizerMode } from '../types';
 
+export const APP_MODES: AppMode[] = ['visualizer', 'lyrics', 'video', 'ascii'];
+
 const appModes: { id: AppMode; label: string; icon: string }[] = [
   { id: 'visualizer', label: 'Visualizer', icon: 'M9 19V6l12-3v13M9 19c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2zm12-3c0 1.1-1.34 2-3 2s-3-.9-3-2 1.34-2 3-2 3 .9 3 2z' },
   { id: 'lyrics', label: 'Lyrics', icon: 'M4 6h16M4 10h16M4 14h10M4 18h7' },
