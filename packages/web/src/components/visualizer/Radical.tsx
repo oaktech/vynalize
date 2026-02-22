@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 /** Compress dynamic range — same approach as SpectrumBars boost().
  *  Quiet mic signals get amplified, loud signals are tamed. */
@@ -128,11 +129,10 @@ function drawStarburst(
     );
     ctx.closePath();
     ctx.fillStyle = col;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (8 + a.energy * 18) * devicePixelRatio;
+    applyGlow(ctx, (8 + a.energy * 18) * getVisDpr(), col);
     ctx.fill();
   }
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
 
   // hot white center — pulses with beat
   const centerSize = innerR * (2 + a.beatPulse * 1.5);
@@ -166,16 +166,15 @@ function drawRings(
     const ringR = r * (t + breathe + audioExpand);
 
     const col = i % 2 === 0 ? color : color2;
-    const lw = baseWidth * (1 + a.energy * 0.6) * devicePixelRatio;
+    const lw = baseWidth * (1 + a.energy * 0.6) * getVisDpr();
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(1, ringR), 0, Math.PI * 2);
     ctx.strokeStyle = col;
     ctx.lineWidth = lw;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (14 + a.energy * 16) * devicePixelRatio;
+    applyGlow(ctx, (14 + a.energy * 16) * getVisDpr(), col);
     ctx.stroke();
   }
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
 
   // center glow — pulses with energy
   const glowR = r * (0.1 + a.energy * 0.06 + a.beatPulse * 0.08);
@@ -219,15 +218,14 @@ function drawZigzag(
     }
     const col = row % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.mid * 0.4) * devicePixelRatio;
+    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.mid * 0.4) * getVisDpr();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (10 + a.energy * 14) * devicePixelRatio;
+    applyGlow(ctx, (10 + a.energy * 14) * getVisDpr(), col);
     ctx.stroke();
   }
 
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
   ctx.restore();
 }
 
@@ -262,13 +260,12 @@ function drawDiamond(
 
     const col = i % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    ctx.lineWidth = (2.5 + params[2] * 2.5) * (1 + a.energy * 0.5) * devicePixelRatio;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (12 + a.energy * 14) * devicePixelRatio;
+    ctx.lineWidth = (2.5 + params[2] * 2.5) * (1 + a.energy * 0.5) * getVisDpr();
+    applyGlow(ctx, (12 + a.energy * 14) * getVisDpr(), col);
     ctx.stroke();
   }
 
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
   ctx.restore();
 }
 
@@ -285,7 +282,7 @@ function drawGrid(
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(rotation);
-  ctx.lineWidth = (2 + a.energy * 1.5) * devicePixelRatio;
+  ctx.lineWidth = (2 + a.energy * 1.5) * getVisDpr();
   ctx.lineCap = 'round';
 
   // Wave amplitude driven by audio + gentle idle
@@ -295,8 +292,7 @@ function drawGrid(
     const offset = -r + i * spacing;
     const col = i % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (8 + a.energy * 12) * devicePixelRatio;
+    applyGlow(ctx, (8 + a.energy * 12) * getVisDpr(), col);
 
     // horizontal — wave vertically
     ctx.beginPath();
@@ -319,7 +315,7 @@ function drawGrid(
     ctx.stroke();
   }
 
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
   ctx.restore();
 }
 
@@ -358,15 +354,14 @@ function drawBolt(
     const col = b % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
     // Thickness surges with bass
-    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.bass * 0.8 + a.beatPulse * 0.5) * devicePixelRatio;
+    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.bass * 0.8 + a.beatPulse * 0.5) * getVisDpr();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.shadowColor = col;
-    ctx.shadowBlur = (20 + a.energy * 24 + a.beatPulse * 16) * devicePixelRatio;
+    applyGlow(ctx, (20 + a.energy * 24 + a.beatPulse * 16) * getVisDpr(), col);
     ctx.stroke();
   }
 
-  ctx.shadowBlur = 0;
+  clearGlow(ctx);
   ctx.restore();
 }
 
@@ -424,8 +419,8 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
     if (!canvas) return;
 
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);

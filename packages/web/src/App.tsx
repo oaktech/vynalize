@@ -212,8 +212,15 @@ function StandaloneApp() {
 /** Kiosk app — `/kiosk` route (Pi kiosk / LAN display) */
 function KioskRoute() {
   const isListening = useStore((s) => s.isListening);
+  const setLowPowerMode = useStore((s) => s.setLowPowerMode);
   const { start } = useAudioCapture();
   const autostart = new URLSearchParams(window.location.search).has('autostart');
+
+  // Enable low-power mode: disables canvas shadows, caps DPR,
+  // reduces particle counts — keeps frame rates smooth on Pi.
+  useEffect(() => {
+    setLowPowerMode(true);
+  }, [setLowPowerMode]);
 
   // On the Pi appliance (?autostart), silently attempt mic capture.
   // On LAN devices without ?autostart (or without a mic), skip straight

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, getLowPowerCount } from '../../utils/perfConfig';
 
 // ── Color helpers ────────────────────────────────────────────
 
@@ -112,8 +113,10 @@ function createOrbs(count: number): Orb[] {
 
 // ── Component ────────────────────────────────────────────────
 
-const STAR_COUNT = 250;
-const ORB_COUNT = 90;
+const STAR_COUNT_FULL = 250;
+const STAR_COUNT_LOW = 80;
+const ORB_COUNT_FULL = 90;
+const ORB_COUNT_LOW = 30;
 const RIBBON_COUNT = 4;
 
 export default function Nebula({ accentColor }: { accentColor: string }) {
@@ -133,16 +136,18 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
   const blinkPhase = useRef(-1);                    // -1 = open, 0-1 = blink progress
   const nextBlink = useRef(2 + Math.random() * 4);  // seconds until next autonomous blink
 
-  const stars = useMemo(() => createStars(STAR_COUNT), []);
-  const orbs = useMemo(() => createOrbs(ORB_COUNT), []);
+  const starCount = getLowPowerCount(STAR_COUNT_FULL, STAR_COUNT_LOW);
+  const orbCount = getLowPowerCount(ORB_COUNT_FULL, ORB_COUNT_LOW);
+  const stars = useMemo(() => createStars(starCount), [starCount]);
+  const orbs = useMemo(() => createOrbs(orbCount), [orbCount]);
 
   // Canvas resize
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      const w = canvas.clientWidth * devicePixelRatio;
-      const h = canvas.clientHeight * devicePixelRatio;
+      const w = canvas.clientWidth * getVisDpr();
+      const h = canvas.clientHeight * getVisDpr();
       canvas.width = w;
       canvas.height = h;
       // Also resize trail canvas
@@ -225,7 +230,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const sy = star.y * height;
       const flicker = 0.5 + 0.5 * Math.sin(now * star.twinkleSpeed + star.twinkleOffset);
       const bright = star.brightness * (0.4 + flicker * 0.6) + twinkle * flicker * 0.3;
-      const sz = star.size * devicePixelRatio * (0.8 + pulse * 0.4);
+      const sz = star.size * getVisDpr() * (0.8 + pulse * 0.4);
 
       ctx.beginPath();
       ctx.arc(sx, sy, sz, 0, Math.PI * 2);
@@ -406,7 +411,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
         relIrisY + Math.sin(angle) * outerR,
       );
       ctx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, ${0.08 + pulse * 0.06})`;
-      ctx.lineWidth = 1.5 * devicePixelRatio;
+      ctx.lineWidth = 1.5 * getVisDpr();
       ctx.stroke();
     }
 
@@ -458,7 +463,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const ox = cx + Math.cos(orb.angle) * dist;
       const oy = cy + Math.sin(orb.angle) * dist * 0.6 + wobble; // elliptical orbit
 
-      const sz = orb.size * devicePixelRatio * (0.8 + bLowMid * 1.0 + pulse * 0.6);
+      const sz = orb.size * getVisDpr() * (0.8 + bLowMid * 1.0 + pulse * 0.6);
       const bright = orb.brightness * (0.5 + bLowMid * 0.6 + pulse * 0.5);
 
       // Particle glow

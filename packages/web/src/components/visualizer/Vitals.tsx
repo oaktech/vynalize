@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -91,8 +92,8 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -117,7 +118,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const [r, g, b] = hexToRgb(accentColor);
 
     const { rms, bass, mid, high, energy } = audioFeatures;
@@ -290,8 +291,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         if (pass.glow > 0) {
-          ctx.shadowColor = `rgb(${trace.rgb})`;
-          ctx.shadowBlur = pass.glow * dpr;
+          applyGlow(ctx, pass.glow * dpr, `rgb(${trace.rgb})`);
         }
 
         let drawing = false;
@@ -318,7 +318,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
           else ctx.lineTo(x, y);
         }
         ctx.stroke();
-        ctx.shadowBlur = 0;
+        clearGlow(ctx);
       }
 
       // Leading dot at cursor position
@@ -331,10 +331,9 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
         ctx.beginPath();
         ctx.arc(dotX, dotY, 3.5 * dpr, 0, Math.PI * 2);
         ctx.fillStyle = 'white';
-        ctx.shadowColor = `rgb(${trace.rgb})`;
-        ctx.shadowBlur = 14 * dpr;
+        applyGlow(ctx, 14 * dpr, `rgb(${trace.rgb})`);
         ctx.fill();
-        ctx.shadowBlur = 0;
+        clearGlow(ctx);
       }
     }
 
@@ -345,10 +344,9 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     // BPM (large)
     ctx.font = `bold ${48 * dpr}px monospace`;
     ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-    ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
-    ctx.shadowBlur = flash * 20 * dpr;
+    applyGlow(ctx, flash * 20 * dpr, `rgb(${r}, ${g}, ${b})`);
     ctx.fillText(Math.round(smoothBpm.current).toString(), panelX, height * 0.12);
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     ctx.font = `${12 * dpr}px monospace`;
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
@@ -393,10 +391,9 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ctx.beginPath();
       ctx.arc(width - 20 * dpr, 20 * dpr, (6 + flash * 6) * dpr, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${flash})`;
-      ctx.shadowColor = `rgb(${r}, ${g}, ${b})`;
-      ctx.shadowBlur = 20 * flash * dpr;
+      applyGlow(ctx, 20 * flash * dpr, `rgb(${r}, ${g}, ${b})`);
       ctx.fill();
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
     }
   }, [audioFeatures, accentColor, isBeat, bpm]);
 

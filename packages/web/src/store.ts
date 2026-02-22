@@ -128,6 +128,10 @@ interface VinylStore {
   autoPlayVideo: boolean;
   setAutoPlayVideo: (v: boolean) => void;
 
+  // Low-power mode (auto-enabled on Pi kiosk — not persisted)
+  lowPowerMode: boolean;
+  setLowPowerMode: (v: boolean) => void;
+
   // Auth (not persisted — fetched from server)
   authUser: { id: number; email: string; displayName: string; avatarUrl: string | null; hasYoutubeApiKey: boolean } | null;
   authLoading: boolean;
@@ -268,6 +272,9 @@ export const useStore = create<VinylStore>()(
 
       autoPlayVideo: false,
       setAutoPlayVideo: (autoPlayVideo) => set({ autoPlayVideo }),
+
+      lowPowerMode: false,
+      setLowPowerMode: (lowPowerMode) => set({ lowPowerMode }),
 
       authUser: null,
       authLoading: true,

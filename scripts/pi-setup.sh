@@ -45,7 +45,9 @@ sudo apt-get install -y -qq \
   avahi-utils \
   libnss-mdns \
   labwc \
-  alsa-utils
+  alsa-utils \
+  pipewire \
+  wireplumber
 
 # ── 2. Node.js (via NodeSource) ──────────────────────────────
 if ! command -v node &>/dev/null || [[ "$(node -v | cut -d. -f1 | tr -d v)" -lt "$NODE_MAJOR" ]]; then
@@ -142,17 +144,56 @@ fi
 cp "${APP_DIR}/scripts/vynalize-updater.sh" "$SCRIPTS_DEST/vynalize-updater.sh"
 chmod +x "$SCRIPTS_DEST/vynalize-updater.sh"
 
-# ── 6. USB audio — list devices ──────────────────────────────
+# ── 6. USB audio — PipeWire + ALSA ───────────────────────────
+# Pi OS Trixie uses PipeWire as the default audio server.
+# Chromium (Wayland) talks to PipeWire, not raw ALSA, so we
+# need to set the default *PipeWire* source via WirePlumber.
 info ""
 info "Available audio input devices:"
 echo "──────────────────────────────────────────"
 arecord -l 2>/dev/null || true
 echo "──────────────────────────────────────────"
-info "Your USB audio interface should appear above."
-info "The app selects the input device in the browser (Settings)."
-info ""
 
-# Set USB audio as default ALSA capture device if no .asoundrc exists
+# Ensure PipeWire + WirePlumber are running for this user session
+systemctl --user enable --now pipewire pipewire-pulse wireplumber 2>/dev/null || true
+
+# Find the USB audio source in PipeWire and set it as default
+USB_PW_SOURCE=$(wpctl status 2>/dev/null \
+  | sed -n '/Audio/,/Video/p' \
+  | sed -n '/Sources:/,/Sinks\|Filters\|Streams/p' \
+  | grep -i 'usb\|audio' \
+  | grep -oP '^\s*\K[0-9]+' \
+  | head -1)
+
+if [[ -n "$USB_PW_SOURCE" ]]; then
+  info "Setting PipeWire default source to USB device (id ${USB_PW_SOURCE})..."
+  wpctl set-default "$USB_PW_SOURCE"
+else
+  # PipeWire may not be running yet (first boot). Create a WirePlumber
+  # rule that auto-selects USB audio as default source on future boots.
+  info "PipeWire not yet active — creating WirePlumber rule for USB audio..."
+fi
+
+# Always write the WirePlumber rule so USB mic is default on every boot
+WP_RULES_DIR="$HOME/.config/wireplumber/wireplumber.conf.d"
+mkdir -p "$WP_RULES_DIR"
+cat > "$WP_RULES_DIR/50-usb-mic-default.conf" <<'WPEOF'
+monitor.alsa.rules = [
+  {
+    matches = [
+      { device.name = "~alsa_input.usb-*" }
+    ]
+    actions = {
+      update-props = {
+        node.name = "usb-mic"
+        priority.session = 2000
+      }
+    }
+  }
+]
+WPEOF
+
+# Also keep ALSA fallback for non-PipeWire apps
 if [[ ! -f "$HOME/.asoundrc" ]]; then
   USB_CARD=$(arecord -l 2>/dev/null | grep -oP 'card \K[0-9]+' | head -1)
   if [[ -n "$USB_CARD" ]]; then
@@ -168,12 +209,11 @@ ctl.!default {
     card ${USB_CARD}
 }
 ALSAEOF
-  else
-    warn "No USB audio device detected — plug in your USB mic and re-run setup."
   fi
-else
-  info ".asoundrc already exists, skipping ALSA config."
 fi
+
+info "USB audio configured for PipeWire + ALSA."
+info ""
 
 # ── 7. Avahi / mDNS — vynalize.local ─────────────────────
 info "Configuring mDNS hostname: vynalize.local"
@@ -264,6 +304,9 @@ info "Configuring Chromium kiosk autostart..."
 KIOSK_SCRIPT="$HOME/kiosk.sh"
 cat > "$KIOSK_SCRIPT" <<'KIOSKEOF'
 #!/usr/bin/env bash
+# Ensure PipeWire is running (Chromium needs it for mic access)
+systemctl --user start pipewire pipewire-pulse wireplumber 2>/dev/null || true
+
 # Wait for server to be ready
 for i in $(seq 1 30); do
   curl -sf "http://localhost:__PORT__/api/health" >/dev/null 2>&1 && break
