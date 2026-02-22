@@ -209,21 +209,20 @@ function StandaloneApp() {
   return <ActiveApp />;
 }
 
-/** Kiosk app — `/kiosk` route (Pi kiosk) */
+/** Kiosk app — `/kiosk` route (Pi kiosk / LAN display) */
 function KioskRoute() {
   const isListening = useStore((s) => s.isListening);
   const { start } = useAudioCapture();
   const autostart = new URLSearchParams(window.location.search).has('autostart');
 
+  // On the Pi appliance (?autostart), silently attempt mic capture.
+  // On LAN devices without ?autostart (or without a mic), skip straight
+  // to the visualizer — the appliance is already listening.
   useEffect(() => {
     if (autostart && !isListening) {
       start();
     }
   }, [autostart, isListening, start]);
-
-  if (!isListening) {
-    return <StartScreen onStart={start} />;
-  }
 
   return <KioskApp />;
 }
