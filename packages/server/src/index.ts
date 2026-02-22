@@ -18,7 +18,7 @@ import { settingsRouter } from './routes/settings.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 import { authRouter } from './routes/auth.js';
 import { userRouter } from './routes/user.js';
-import { attachWebSocket } from './wsRelay.js';
+import { attachWebSocket, getActiveKioskSession } from './wsRelay.js';
 import { connectRedis, redisAvailable } from './services/redis.js';
 import { initDb, dbAvailable } from './services/db.js';
 import { runMigrations } from './services/migrations.js';
@@ -154,6 +154,7 @@ async function start() {
     res.json({
       requireCode: getSettings().requireCode,
       requireAuth: isAuthEnabled(),
+      kioskSession: getActiveKioskSession(),
       ...(lanHost && { lanHost }),
     });
   });

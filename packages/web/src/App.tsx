@@ -146,9 +146,68 @@ function SessionOverlay() {
   );
 }
 
+/** Viewer mode — syncs to a remote kiosk over WebSocket, no local mic */
+function ViewerApp({ sessionId }: { sessionId: string }) {
+  useWsCommands('viewer', sessionId);
+  useBeatDetection();
+  useLyrics();
+  useVideoSearch();
+  useAutoDisplay();
+  usePositionTracker();
+  useAutoCycle();
+
+  const kioskConnected = useStore((s) => s.kioskConnected);
+
+  if (!kioskConnected) {
+    return <ViewerDisconnected sessionId={sessionId} />;
+  }
+
+  return <AppShell />;
+}
+
+/** Shown when the kiosk goes offline — auto-polls /api/config to detect restart */
+function ViewerDisconnected({ sessionId }: { sessionId: string }) {
+  useEffect(() => {
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        // Kiosk restarted with a new session — full reload picks up new session ID
+        if (data.kioskSession && data.kioskSession !== sessionId) {
+          window.location.reload();
+        }
+      } catch {}
+    }, 30_000);
+
+    return () => clearInterval(poll);
+  }, [sessionId]);
+
+  return (
+    <div className="w-screen h-screen flex items-center justify-center bg-black">
+      <div className="text-center max-w-md px-6">
+        <img
+          src="/vynalize-logo.png"
+          alt="Vynalize"
+          className="w-full max-w-64 mx-auto mb-8 opacity-30"
+        />
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <svg className="animate-spin h-5 w-5 text-white/40" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span className="text-white/50 text-sm">Kiosk Disconnected</span>
+        </div>
+        <p className="text-white/25 text-xs">
+          Waiting for the kiosk to come back online...
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /** Kiosk route — same as standalone but with auto-hide + auto-fullscreen */
 function KioskApp() {
-  useWsCommands('display');
+  useWsCommands('display', undefined, { broadcastAudio: true, isKiosk: true });
   useAudioAnalysis();
   useBeatDetection();
   useSongId();
@@ -194,10 +253,33 @@ function KioskApp() {
   );
 }
 
-/** Standalone app — original `/` route (laptop with mic) */
+/** Standalone app — original `/` route (laptop with mic, or viewer if kiosk is active) */
 function StandaloneApp() {
   const isListening = useStore((s) => s.isListening);
   const { start } = useAudioCapture();
+  const [kioskSession, setKioskSession] = useState<string | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  // Check if a kiosk is already running — if so, skip the mic and enter viewer mode
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.kioskSession) {
+          setKioskSession(data.kioskSession);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setConfigLoaded(true));
+  }, []);
+
+  if (!configLoaded) {
+    return <div className="w-screen h-screen bg-black" />;
+  }
+
+  if (kioskSession) {
+    return <ViewerApp sessionId={kioskSession} />;
+  }
 
   if (!isListening) {
     return <StartScreen onStart={start} />;

@@ -100,4 +100,30 @@ export interface WsRemoteStatusMessage {
   controllers: number;
 }
 
-export type WsMessage = WsCommand | WsStateMessage | WsSongMessage | WsBeatMessage | WsSessionMessage | WsRemoteStatusMessage;
+export interface WsAudioFeaturesMessage {
+  type: 'audioFeatures';
+  rms: number;
+  energy: number;
+  spectralCentroid: number;
+  spectralFlux: number;
+  zcr: number;
+  bass: number;
+  mid: number;
+  high: number;
+  frequencyData: number[]; // 128-bin downsampled
+}
+
+export interface WsKioskStatusMessage {
+  type: 'kioskStatus';
+  connected: boolean;
+}
+
+export type WsMessage =
+  | WsCommand
+  | WsStateMessage
+  | WsSongMessage
+  | WsBeatMessage
+  | WsSessionMessage
+  | WsRemoteStatusMessage
+  | WsAudioFeaturesMessage
+  | WsKioskStatusMessage;

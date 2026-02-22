@@ -18,9 +18,10 @@ const VALID_MESSAGE_TYPES = new Set([
   'state', 'song', 'beat', 'command', 'visualizer',
   'lyrics', 'video', 'nowPlaying', 'seekTo', 'display',
   'remoteStatus', 'session', 'error', 'ping', 'pong',
+  'audioFeatures', 'kioskStatus',
 ]);
 
-type ClientRole = 'controller' | 'display';
+type ClientRole = 'controller' | 'display' | 'viewer';
 
 interface TaggedSocket {
   ws: WebSocket;
@@ -40,6 +41,12 @@ const roomCleanupTimers = new Map<string, NodeJS.Timeout>();
 // Phones going to sleep kill the TCP connection but reconnect quickly on wake.
 const DISCONNECT_GRACE_MS = 15_000;
 const disconnectGraceTimers = new Map<string, NodeJS.Timeout>();
+
+// Track kiosk sessions (sessionId of displays connected with ?kiosk=true)
+const kioskSessions = new Set<string>();
+
+// Cache latest audio features frame per session (in-memory only, not Redis)
+const latestAudioFeatures = new Map<string, string>();
 
 // Track Redis channel subscriptions
 const subscribedChannels = new Set<string>();
@@ -62,10 +69,20 @@ function broadcastToRoom(
   const room = rooms.get(sessionId);
   if (!room) return;
 
-  const targetRole: ClientRole = senderRole === 'controller' ? 'display' : 'controller';
-  for (const client of room) {
-    if (client.role === targetRole && client.ws !== excludeWs && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(msg);
+  // Display messages go to controllers AND viewers
+  if (senderRole === 'display') {
+    for (const client of room) {
+      if ((client.role === 'controller' || client.role === 'viewer') && client.ws !== excludeWs && client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(msg);
+      }
+    }
+  } else {
+    // Controller/viewer messages go to displays only
+    const targetRole: ClientRole = 'display';
+    for (const client of room) {
+      if (client.role === targetRole && client.ws !== excludeWs && client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(msg);
+      }
     }
   }
 }
@@ -121,6 +138,8 @@ function scheduleRoomCleanup(sessionId: string): void {
     if (!room || room.size === 0) {
       rooms.delete(sessionId);
       roomCleanupTimers.delete(sessionId);
+      kioskSessions.delete(sessionId);
+      latestAudioFeatures.delete(sessionId);
       unsubscribeFromChannel(sessionId);
     }
   }, 60_000);
@@ -161,6 +180,15 @@ function cancelDisconnectGrace(sessionId: string): void {
   }
 }
 
+/** Returns the session ID of the first active kiosk, or null if none. */
+export function getActiveKioskSession(): string | null {
+  for (const sessionId of kioskSessions) {
+    const room = rooms.get(sessionId);
+    if (room && room.size > 0) return sessionId;
+  }
+  return null;
+}
+
 export function attachWebSocket(server: Server): void {
   const wss = new WebSocketServer({ noServer: true });
 
@@ -197,8 +225,10 @@ export function attachWebSocket(server: Server): void {
 
   wss.on('connection', (ws, req) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
-    const role = (url.searchParams.get('role') as ClientRole) || 'controller';
+    const roleParam = url.searchParams.get('role') || 'controller';
+    const role = (['controller', 'display', 'viewer'].includes(roleParam) ? roleParam : 'controller') as ClientRole;
     const sessionParam = url.searchParams.get('session');
+    const isKiosk = url.searchParams.get('kiosk') === 'true';
 
     // Register message handler synchronously to avoid race with async setup.
     // Messages that arrive before setup completes are buffered and replayed.
@@ -225,6 +255,9 @@ export function attachWebSocket(server: Server): void {
       if (role === 'display') {
         if (parsed.type === 'state' || parsed.type === 'song' || parsed.type === 'beat') {
           cacheState(resolvedSessionId, parsed.type, msg).catch(() => {});
+        }
+        if (parsed.type === 'audioFeatures') {
+          latestAudioFeatures.set(resolvedSessionId, msg);
         }
       }
 
@@ -279,6 +312,16 @@ export function attachWebSocket(server: Server): void {
           }
         }
 
+        // Kiosk display disconnecting — notify viewers
+        if (role === 'display' && isKiosk) {
+          kioskSessions.delete(resolvedSessionId);
+          latestAudioFeatures.delete(resolvedSessionId);
+          sendToRole(resolvedSessionId, 'viewer', JSON.stringify({
+            type: 'kioskStatus',
+            connected: false,
+          }));
+        }
+
         if (room.size === 0) {
           scheduleRoomCleanup(resolvedSessionId);
         }
@@ -322,6 +365,11 @@ export function attachWebSocket(server: Server): void {
 
       await subscribeToChannel(sessionId);
 
+      // Register kiosk session
+      if (role === 'display' && isKiosk) {
+        kioskSessions.add(sessionId);
+      }
+
       // Send cached state to new controllers
       if (role === 'controller') {
         // Cancel any pending disconnect grace — controller is (re)connecting
@@ -338,6 +386,25 @@ export function attachWebSocket(server: Server): void {
           type: 'remoteStatus',
           connected: true,
           controllers: countRole(sessionId, 'controller'),
+        }));
+      }
+
+      // Send cached state + latest audio frame to new viewers
+      if (role === 'viewer') {
+        try {
+          const cached = await getState(sessionId);
+          if (cached.state) ws.send(cached.state);
+          if (cached.song) ws.send(cached.song);
+          if (cached.beat) ws.send(cached.beat);
+        } catch {}
+
+        const audioFrame = latestAudioFeatures.get(sessionId);
+        if (audioFrame) ws.send(audioFrame);
+
+        // Let viewer know kiosk is online
+        ws.send(JSON.stringify({
+          type: 'kioskStatus',
+          connected: kioskSessions.has(sessionId),
         }));
       }
 
