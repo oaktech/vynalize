@@ -22,6 +22,13 @@ export function recordPlay(ip: string, headers: Record<string, string | string[]
 
 /** Best-effort client IP for geo lookup (not security-sensitive) */
 function clientIp(ip: string, headers: Record<string, string | string[] | undefined>): string {
+  // Cloudflare sets this to the true client IP — most reliable behind CF
+  const cfIp = headers['cf-connecting-ip'];
+  if (cfIp) {
+    const val = Array.isArray(cfIp) ? cfIp[0] : cfIp;
+    if (val) return val.trim();
+  }
+
   const xff = headers['x-forwarded-for'];
   if (xff) {
     const first = (Array.isArray(xff) ? xff[0] : xff).split(',')[0].trim();
