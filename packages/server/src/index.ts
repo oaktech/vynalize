@@ -51,6 +51,7 @@ app.use(helmet({
       connectSrc: ["'self'", "ws:", "wss:", "https://lrclib.net", "https://accounts.google.com"],
       mediaSrc: ["'self'", "blob:"],
       workerSrc: ["'self'", "blob:"],
+      upgradeInsecureRequests: null,
     },
   },
 }));
