@@ -26,7 +26,7 @@ import { initPool, getQueueDepth, getPoolSize } from './services/identifyPool.js
 import { loadSettings, getSettings } from './services/settings.js';
 import { configurePassport } from './services/passport.js';
 import { createSessionMiddleware } from './services/sessionStore.js';
-import { localOnly } from './middleware/localOnly.js';
+import { localOnly, isPrivateIP } from './middleware/localOnly.js';
 import { createRateLimit } from './middleware/rateLimit.js';
 import { isAuthEnabled } from './middleware/auth.js';
 import { updateRouter } from './routes/update.js';
@@ -145,14 +145,17 @@ async function start() {
     res.sendStatus(204);
   });
 
-  app.get('/api/config', (_req, res) => {
+  app.get('/api/config', (req, res) => {
     let lanHost: string | undefined;
     for (const addrs of Object.values(networkInterfaces())) {
       const match = addrs?.find((a) => a.family === 'IPv4' && !a.internal);
       if (match) { lanHost = match.address; break; }
     }
+    // Local network clients skip the pairing code — they share the open session
+    const clientIp = req.socket.remoteAddress ?? '';
+    const isLocal = isPrivateIP(clientIp);
     res.json({
-      requireCode: getSettings().requireCode,
+      requireCode: isLocal ? false : getSettings().requireCode,
       requireAuth: isAuthEnabled(),
       ...(lanHost && { lanHost }),
     });
