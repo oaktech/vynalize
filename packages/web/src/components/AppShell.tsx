@@ -110,7 +110,7 @@ export default function AppShell() {
 
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden bg-black"
+      className="relative w-screen h-dvh overflow-hidden bg-black"
       onMouseMove={showControls}
       onTouchStart={showControls}
       onClick={showControls}
@@ -139,79 +139,84 @@ export default function AppShell() {
       >
         {/* Top bar */}
         <div
-          className="pointer-events-auto absolute top-0 left-0 right-0 px-5 py-4 md:px-6 md:py-5 flex items-center justify-between bg-gradient-to-b from-black/70 via-black/40 to-transparent pb-10"
-          style={{ paddingTop: `max(1rem, env(safe-area-inset-top))`, paddingLeft: `max(1.25rem, env(safe-area-inset-left))`, paddingRight: `max(1.25rem, env(safe-area-inset-right))` }}
+          className="pointer-events-auto absolute top-0 left-0 right-0 px-3 py-3 sm:px-5 sm:py-4 md:px-6 md:py-5 bg-gradient-to-b from-black/80 via-black/50 to-transparent"
+          style={{ paddingTop: `max(0.75rem, env(safe-area-inset-top))`, paddingLeft: `max(0.75rem, env(safe-area-inset-left))`, paddingRight: `max(0.75rem, env(safe-area-inset-right))` }}
         >
-          <div className="flex items-center gap-3">
-            <ListeningPulse />
-            <NowPlaying />
-          </div>
-          <div className="flex items-center gap-2 relative">
-            <SongHistory />
-            <ManualSearch />
-            <ShareButton />
-            {bpm && (
-              <span className="text-xs text-white/30 tabular-nums font-mono mr-2">
-                {bpm} BPM
-              </span>
-            )}
-            {authUser && (
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: listening pulse + song info */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <ListeningPulse />
+              <NowPlaying />
+            </div>
+
+            {/* Right: action buttons */}
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 relative">
+              <SongHistory />
+              <ManualSearch />
+              <ShareButton />
+              {bpm && (
+                <span className="text-xs text-white/30 tabular-nums font-mono mr-1 hidden sm:inline">
+                  {bpm} BPM
+                </span>
+              )}
+              {authUser && (
+                <button
+                  onClick={() => setUserSettingsOpen(true)}
+                  className="p-1 rounded-full hover:ring-2 ring-white/20 transition-all"
+                  aria-label="Account"
+                  title="Account"
+                >
+                  {authUser.avatarUrl ? (
+                    <img src={authUser.avatarUrl} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-violet-500/30 flex items-center justify-center text-white/70 text-xs font-medium">
+                      {authUser.displayName.charAt(0)}
+                    </div>
+                  )}
+                </button>
+              )}
               <button
-                onClick={() => setUserSettingsOpen(true)}
-                className="p-1 rounded-full hover:ring-2 ring-white/20 transition-all"
-                aria-label="Account"
-                title="Account"
+                onClick={() => setSettingsOpen(true)}
+                className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
+                aria-label="Settings"
+                title="Settings"
               >
-                {authUser.avatarUrl ? (
-                  <img src={authUser.avatarUrl} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-violet-500/30 flex items-center justify-center text-white/70 text-xs font-medium">
-                    {authUser.displayName.charAt(0)}
-                  </div>
-                )}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
               </button>
-            )}
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-              </svg>
-            </button>
-            {supportsFullscreen && (
-              <button
-                onClick={toggleFullscreen}
-                className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-              >
-                {isFullscreen ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-                  </svg>
-                )}
-              </button>
-            )}
+              {supportsFullscreen && (
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors hidden sm:flex"
+                  title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+                >
+                  {isFullscreen ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Bottom bar */}
         <div
-          className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/60 to-transparent"
+          className="pointer-events-auto absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/70 via-black/40 to-transparent pt-8"
           style={{ paddingBottom: `max(0.75rem, env(safe-area-inset-bottom))`, paddingLeft: `max(0.75rem, env(safe-area-inset-left))`, paddingRight: `max(0.75rem, env(safe-area-inset-right))` }}
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <ModeSelector />
+          <div className="flex flex-col gap-3">
             {isListening && (appMode === 'lyrics' || appMode === 'video') && (
               <SyncControls />
             )}
+            <ModeSelector />
           </div>
         </div>
       </div>

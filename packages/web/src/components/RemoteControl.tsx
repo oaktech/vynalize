@@ -47,7 +47,7 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
 
   return (
     <div
-      className="min-h-screen text-white overflow-y-auto overscroll-y-contain"
+      className="min-h-dvh text-white overflow-y-auto overscroll-y-contain"
       style={{
         backgroundColor: '#000',
         paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -56,7 +56,7 @@ function SessionEntry({ onJoin }: { onJoin: (code: string) => void }) {
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
-      <div className="relative z-10 px-5 max-w-lg mx-auto flex flex-col min-h-screen">
+      <div className="relative z-10 px-5 max-w-lg mx-auto flex flex-col min-h-dvh">
         {/* Header — logo */}
         <div className="flex justify-center pt-16 mb-2">
           <img
@@ -227,7 +227,7 @@ function RemoteUI({
 
   return (
     <div
-      className="min-h-screen text-white overflow-y-auto overscroll-y-contain"
+      className="min-h-dvh text-white overflow-y-auto overscroll-y-contain"
       style={{
         backgroundColor: '#050505',
         paddingTop: 'env(safe-area-inset-top, 0px)',

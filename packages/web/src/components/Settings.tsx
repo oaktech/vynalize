@@ -30,13 +30,22 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Settings">
-      <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Settings" onClick={onClose}>
+      <div
+        className="bg-zinc-900 border border-white/10 border-b-0 sm:border-b rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md sm:mx-4 p-5 sm:p-6 shadow-2xl max-h-[80vh] sm:max-h-[90vh] overflow-y-auto"
+        style={{ paddingBottom: `max(1.25rem, env(safe-area-inset-bottom))` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle for mobile */}
+        <div className="flex justify-center mb-3 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Settings</h2>
           <button
             onClick={onClose}
-            className="p-3 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-3 sm:p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 active:bg-white/20 transition-colors"
             aria-label="Close settings"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -53,7 +62,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
           <select
             value={selectedDevice}
             onChange={(e) => setSelectedDevice(e.target.value)}
-            className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
+            className="w-full bg-black border border-white/10 rounded-lg px-3 py-3 sm:py-2 text-sm text-white focus:outline-none focus:border-white/30"
           >
             <option value="">Default</option>
             {audioDevices.map((device) => (

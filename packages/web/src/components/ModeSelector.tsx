@@ -35,17 +35,17 @@ export default function ModeSelector() {
   return (
     <div className="flex flex-col gap-2">
       {/* App mode tabs */}
-      <div className="flex gap-1 bg-white/5 rounded-xl p-1 backdrop-blur-sm overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 bg-white/5 rounded-xl p-1 backdrop-blur-sm">
         {appModes.map((mode) => (
           <button
             key={mode.id}
             onClick={() => setAppMode(mode.id)}
             aria-label={`${mode.label} mode`}
             aria-pressed={appMode === mode.id}
-            className={`flex items-center gap-2 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2.5 sm:py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95 ${
               appMode === mode.id
                 ? 'text-white shadow-sm'
-                : 'text-white/40 hover:text-white/70'
+                : 'text-white/40 hover:text-white/70 active:text-white/70'
             }`}
             style={
               appMode === mode.id
@@ -65,14 +65,14 @@ export default function ModeSelector() {
             >
               <path d={mode.icon} />
             </svg>
-            {mode.label}
+            <span className="text-[10px] sm:text-xs">{mode.label}</span>
           </button>
         ))}
       </div>
 
       {/* Visualizer sub-modes */}
       {appMode === 'visualizer' && (
-        <div className="flex gap-1 pl-1 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1.5 sm:gap-1 pl-1 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-0.5">
           {vizModes.map((mode) => {
             const isFav = favorites.includes(mode.id);
             const isActive = visualizerMode === mode.id;
@@ -83,10 +83,10 @@ export default function ModeSelector() {
                   onClick={() => setVisualizerMode(mode.id)}
                   aria-label={`${mode.label} visualizer — ${mode.tag}`}
                   aria-pressed={isActive}
-                  className={`px-3 py-2 sm:px-2.5 sm:py-1 rounded-md text-xs sm:text-[11px] font-medium transition-all whitespace-nowrap ${
+                  className={`px-3 py-2 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-md text-xs font-medium transition-all whitespace-nowrap active:scale-95 ${
                     isActive
                       ? 'text-white bg-white/10'
-                      : 'text-white/30 hover:text-white/60'
+                      : 'text-white/30 hover:text-white/60 active:text-white/60'
                   }`}
                 >
                   {isFav && <span className="mr-1 text-amber-400/70">&#9733;</span>}
