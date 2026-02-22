@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const PERIODS = [
   { key: 'today', label: 'Today' },
@@ -48,6 +48,8 @@ function countryFlag(code: string | null): string {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export default function Leaderboard() {
   const [period, setPeriod] = useState('week');
   const [category, setCategory] = useState('songs');
@@ -55,23 +57,62 @@ export default function Leaderboard() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // Reset and fetch first page when filters change
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/leaderboard?period=${period}&category=${category}&limit=20`)
+    setHasMore(true);
+    fetch(`/api/leaderboard?period=${period}&category=${category}&limit=${PAGE_SIZE}&offset=0`)
       .then((r) => r.json())
       .then((data) => {
+        const items = data.songs ?? data.artists ?? data.genres ?? [];
         setSongs(data.songs ?? []);
         setArtists(data.artists ?? []);
         setGenres(data.genres ?? []);
+        if (items.length < PAGE_SIZE) setHasMore(false);
       })
       .catch(() => {
         setSongs([]);
         setArtists([]);
         setGenres([]);
+        setHasMore(false);
       })
       .finally(() => setLoading(false));
   }, [period, category]);
+
+  const currentLength =
+    category === 'songs' ? songs.length : category === 'artists' ? artists.length : genres.length;
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetch(`/api/leaderboard?period=${period}&category=${category}&limit=${PAGE_SIZE}&offset=${currentLength}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const items = data.songs ?? data.artists ?? data.genres ?? [];
+        if (items.length < PAGE_SIZE) setHasMore(false);
+        if (data.songs) setSongs((prev) => [...prev, ...data.songs]);
+        if (data.artists) setArtists((prev) => [...prev, ...data.artists]);
+        if (data.genres) setGenres((prev) => [...prev, ...data.genres]);
+      })
+      .catch(() => setHasMore(false))
+      .finally(() => setLoadingMore(false));
+  }, [period, category, currentLength, loadingMore, hasMore]);
+
+  // IntersectionObserver on sentinel triggers next page
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore(); },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   const isEmpty =
     (category === 'songs' && songs.length === 0) ||
@@ -242,6 +283,13 @@ export default function Leaderboard() {
                   </span>
                 </div>
               ))}
+          {/* Sentinel for infinite scroll */}
+          {hasMore && <div ref={sentinelRef} className="h-1" />}
+          {loadingMore && (
+            <div className="flex justify-center py-4">
+              <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            </div>
+          )}
           </div>
         )}
 

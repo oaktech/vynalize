@@ -23,6 +23,7 @@ leaderboardRouter.get('/', async (req, res) => {
 
   const period = String(req.query.period || 'all');
   const limit = Math.min(Math.max(parseInt(String(req.query.limit || '25'), 10) || 25, 1), 100);
+  const offset = Math.max(parseInt(String(req.query.offset || '0'), 10) || 0, 0);
 
   const whereClause = PERIOD_FILTERS[period];
   if (!whereClause) {
@@ -54,14 +55,14 @@ leaderboardRouter.get('/', async (req, res) => {
          WHERE ${whereClause}
          GROUP BY artist
          ORDER BY play_count DESC, MAX(played_at) DESC
-         LIMIT $1`,
-        [limit],
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
 
       res.json({
         period,
         artists: rows.map((row, i) => ({
-          rank: i + 1,
+          rank: offset + i + 1,
           artist: row.artist,
           playCount: row.play_count,
           songCount: row.song_count,
@@ -80,14 +81,14 @@ leaderboardRouter.get('/', async (req, res) => {
          WHERE ${whereClause} AND genre IS NOT NULL
          GROUP BY genre
          ORDER BY play_count DESC, MAX(played_at) DESC
-         LIMIT $1`,
-        [limit],
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
 
       res.json({
         period,
         genres: rows.map((row, i) => ({
-          rank: i + 1,
+          rank: offset + i + 1,
           genre: row.genre,
           playCount: row.play_count,
           artistCount: row.artist_count,
@@ -108,14 +109,14 @@ leaderboardRouter.get('/', async (req, res) => {
          WHERE ${whereClause}
          GROUP BY title, artist
          ORDER BY play_count DESC, MAX(played_at) DESC
-         LIMIT $1`,
-        [limit],
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
 
       res.json({
         period,
         songs: rows.map((row, i) => ({
-          rank: i + 1,
+          rank: offset + i + 1,
           title: row.title,
           artist: row.artist,
           album: row.album,
