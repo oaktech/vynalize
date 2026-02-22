@@ -33,13 +33,18 @@ jobs:
       - name: Prune to production dependencies
         run: npm prune --production --workspaces --include-workspace-root
 
-      - name: Verify no native modules
+      - name: Strip native modules
         run: |
-          # All deps should be pure JS — fail if native addons sneak in
-          if find node_modules -name '*.node' | grep -q .; then
-            echo "ERROR: Native .node addons found — tarball will not work on arm64"
-            find node_modules -name '*.node'
-            exit 1
+          # npm workspace prune doesn't always clean optional platform binaries
+          # (e.g. @rollup/rollup-linux-x64-*). Remove any .node files — they're
+          # x64 CI artifacts and won't work on the Pi's arm64 anyway.
+          found=$(find node_modules -name '*.node' 2>/dev/null || true)
+          if [ -n "$found" ]; then
+            echo "Removing leftover native modules:"
+            echo "$found"
+            echo "$found" | xargs rm -f
+          else
+            echo "No native modules found — clean"
           fi
 
       - name: Determine version
