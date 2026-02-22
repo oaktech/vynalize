@@ -125,7 +125,7 @@ export default function Leaderboard() {
       : 'w-7 text-center text-sm font-mono text-white/30 shrink-0';
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="fixed inset-0 overflow-y-auto bg-black text-white">
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
         {/* Header */}
         <div className="mb-4">
