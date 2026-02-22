@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -35,8 +36,8 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -111,7 +112,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       const alpha = 0.3 + val * 0.7;
       ctx.beginPath();
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      ctx.lineWidth = (2 + val * 3) * devicePixelRatio;
+      ctx.lineWidth = (2 + val * 3) * getVisDpr();
       ctx.lineCap = 'round';
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -123,7 +124,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       const y3 = Math.sin(angle) * (baseRadius - innerLength);
       ctx.beginPath();
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.4})`;
-      ctx.lineWidth = 1.5 * devicePixelRatio;
+      ctx.lineWidth = 1.5 * getVisDpr();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x3, y3);
       ctx.stroke();

@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -37,8 +38,8 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -60,7 +61,7 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
 
     const freq = audioFeatures.frequencyData;
     const barCount = 64;
-    const gap = 2 * devicePixelRatio;
+    const gap = 2 * getVisDpr();
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 
     const [r, g, b] = hexToRgb(accentColor);
@@ -102,7 +103,7 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
         : prev + (target - prev) * 0.15;
 
       const val = smoothBars.current[i];
-      const barHeight = Math.max(2 * devicePixelRatio, val * height * 0.9);
+      const barHeight = Math.max(2 * getVisDpr(), val * height * 0.9);
 
       const x = i * (barWidth + gap);
       const y = height - barHeight;
@@ -115,16 +116,15 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      const radius = Math.min(barWidth / 2, 4 * devicePixelRatio);
+      const radius = Math.min(barWidth / 2, 4 * getVisDpr());
       ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
       ctx.fill();
 
       // Glow on loud bars
       if (val > 0.5) {
-        ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${(val - 0.5) * 0.8})`;
-        ctx.shadowBlur = 15 * devicePixelRatio;
+        applyGlow(ctx, 15 * getVisDpr(), `rgba(${r}, ${g}, ${b}, ${(val - 0.5) * 0.8})`);
         ctx.fill();
-        ctx.shadowBlur = 0;
+        clearGlow(ctx);
       }
 
       // Reflection

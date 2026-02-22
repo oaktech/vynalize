@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -195,8 +196,8 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -216,7 +217,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
     const now = performance.now() / 1000;
 
@@ -379,11 +380,10 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       );
       ctx.closePath();
       ctx.fillStyle = flameColors[f];
-      ctx.shadowColor = '#ff66aa';
-      ctx.shadowBlur = (f === 0 ? 20 : 10) * dpr;
+      applyGlow(ctx, (f === 0 ? 20 : 10) * dpr, '#ff66aa');
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Exhaust particles
     if (Math.random() < 0.3 + s.bass * 0.7) {
@@ -627,10 +627,9 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     ctx.beginPath();
     ctx.arc(cometX, cometY, cometR, 0, Math.PI * 2);
     ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#4488ff';
-    ctx.shadowBlur = 20 * dpr;
+    applyGlow(ctx, 20 * dpr, '#4488ff');
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Beat sparkles
     if (pulse > 0.3) {
@@ -764,8 +763,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     }
 
     // Sun disk — glow pulses on beat
-    ctx.shadowColor = '#ff8800';
-    ctx.shadowBlur = (10 + pulse * 25 + bHigh * 20) * dpr;
+    applyGlow(ctx, (10 + pulse * 25 + bHigh * 20) * dpr, '#ff8800');
     const sunGrad = ctx.createRadialGradient(
       eclCenterX, eclCenterY, 0,
       eclCenterX, eclCenterY, sunRadius,
@@ -777,7 +775,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     ctx.arc(eclCenterX, eclCenterY, sunRadius, 0, Math.PI * 2);
     ctx.fillStyle = sunGrad;
     ctx.fill();
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Moon disk (eclipse) — size stays fixed so crescent shifts on pulse
     ctx.beginPath();
@@ -806,11 +804,10 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.quadraticCurveTo(cxp, cyp, ex, ey);
       ctx.strokeStyle = `rgba(255,140,30,${0.4 + pulse * 0.5 + bHigh * 0.4})`;
       ctx.lineWidth = (2 + pulse * 2) * dpr;
-      ctx.shadowColor = '#ff6600';
-      ctx.shadowBlur = (8 + pulse * 12) * dpr;
+      applyGlow(ctx, (8 + pulse * 12) * dpr, '#ff6600');
       ctx.stroke();
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Vignette
     const vig3 = ctx.createRadialGradient(
@@ -917,11 +914,10 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.ellipse(bhX, bhY, outerR, outerR * 0.35, arcAngle, 0, Math.PI * 0.4);
       ctx.strokeStyle = `rgba(${Math.floor(50 + 200 * (1 - t))},255,${Math.floor(50 + 100 * (1 - t))},${0.3 - t * 0.15})`;
       ctx.lineWidth = (2.5 - t * 1.5) * dpr;
-      ctx.shadowColor = '#00ff44';
-      ctx.shadowBlur = 6 * dpr;
+      applyGlow(ctx, 6 * dpr, '#00ff44');
       ctx.stroke();
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Photon ring
     const ringBright = s.rms + pulse;
@@ -929,10 +925,9 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     ctx.arc(bhX, bhY, bhR * 1.2, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(0,255,68,${0.4 + ringBright * 0.4})`;
     ctx.lineWidth = 2.5 * dpr;
-    ctx.shadowColor = '#00ff44';
-    ctx.shadowBlur = 15 * dpr * (0.5 + ringBright);
+    applyGlow(ctx, 15 * dpr * (0.5 + ringBright), '#00ff44');
     ctx.stroke();
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Black hole center (solid black)
     ctx.beginPath();
@@ -966,8 +961,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.lineTo(bhX + jetW, bhY);
       ctx.closePath();
       ctx.fillStyle = topJetGrad;
-      ctx.shadowColor = '#00ff44';
-      ctx.shadowBlur = 10 * dpr;
+      applyGlow(ctx, 10 * dpr, '#00ff44');
       ctx.fill();
       // Bottom jet
       const botJetGrad = ctx.createLinearGradient(bhX, bhY, bhX, bhY + jetLen);
@@ -980,7 +974,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.closePath();
       ctx.fillStyle = botJetGrad;
       ctx.fill();
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
     }
 
     // Vignette
@@ -1087,11 +1081,10 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       ctx.beginPath();
       ctx.arc(dx, dy, 2.5 * dpr, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${ar},${ag},${ab},${bright})`;
-      ctx.shadowColor = `rgb(${ar},${ag},${ab})`;
-      ctx.shadowBlur = 6 * dpr * bright;
+      applyGlow(ctx, 6 * dpr * bright, `rgb(${ar},${ag},${ab})`);
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // ════════════════════════════════════════════════════════════
     // Postcard Frames

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr } from '../../utils/perfConfig';
 
 // ── Color helpers (same as Nebula) ──────────────────────────
 
@@ -247,8 +248,8 @@ export default function StarryNight({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -267,7 +268,7 @@ export default function StarryNight({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
 
     // ── Smooth audio ──
     const sm = smooth.current;

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -158,8 +159,8 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -187,7 +188,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const now = performance.now();
 
     const [ar, ag, ab] = hexToRgb(accentColor);
@@ -579,11 +580,10 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       if (flashA > 0.01) {
         const fl = i > 0 && laneFlash.current[i - 1] > (i < NUM_LANES ? laneFlash.current[i] : 0) ? i - 1 : Math.min(i, NUM_LANES - 1);
         ctx.strokeStyle = `rgba(${laneColors[fl]}, ${baseA + flashA * 0.6})`;
-        ctx.shadowColor = `rgba(${laneColors[fl]}, 0.6)`;
-        ctx.shadowBlur = 10 * dpr * flashA;
+        applyGlow(ctx, 10 * dpr * flashA, `rgba(${laneColors[fl]}, 0.6)`);
       } else {
         ctx.strokeStyle = `rgba(255, 255, 255, ${baseA})`;
-        ctx.shadowBlur = 0;
+        clearGlow(ctx);
       }
 
       ctx.lineWidth = (i === 0 || i === NUM_LANES ? 2.5 : 1.5) * dpr;
@@ -591,7 +591,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       ctx.moveTo(topX, y01ToCanvas(0));
       ctx.lineTo(botX, floorY);
       ctx.stroke();
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
     }
 
     // ── 3. Beat markers ──
@@ -832,8 +832,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     ctx.textBaseline = 'top';
     ctx.font = `bold ${42 * dpr}px monospace`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-    ctx.shadowBlur = 8 * dpr;
+    applyGlow(ctx, 8 * dpr, 'rgba(0, 0, 0, 0.9)');
     ctx.fillText(score.score.toLocaleString(), width - 24 * dpr, 120 * dpr);
 
     // Streak
@@ -862,7 +861,7 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fillText(`LONG STREAK: ${score.longestStreak} NOTES`, width - 24 * dpr, 252 * dpr);
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Star power bar
     const bX = 20 * dpr, bY = 153 * dpr, bW = 260 * dpr, bH = 24 * dpr;
@@ -899,11 +898,10 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `bold ${Math.round(50 * dpr * mS)}px monospace`;
-      ctx.shadowColor = `rgba(255, 200, 50, 0.8)`;
-      ctx.shadowBlur = 25 * dpr * mA;
+      applyGlow(ctx, 25 * dpr * mA, 'rgba(255, 200, 50, 0.8)');
       ctx.fillStyle = `rgba(255, 255, 100, ${mA})`;
       ctx.fillText(ms.text, vanishX, mY);
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
       ctx.restore();
 
       if (el < 150) {
@@ -931,11 +929,10 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       else if (score.lastHitText === 'GREAT!') tc = `rgba(80, 255, 140, ${tA})`;
       else tc = `rgba(140, 200, 255, ${tA})`;
 
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-      ctx.shadowBlur = 8 * dpr;
+      applyGlow(ctx, 8 * dpr, 'rgba(0, 0, 0, 0.7)');
       ctx.fillStyle = tc;
       ctx.fillText(score.lastHitText, vanishX, tY);
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
       ctx.restore();
     }
   }, [audioFeatures, accentColor, isBeat, bpm, stars, spotlights]);

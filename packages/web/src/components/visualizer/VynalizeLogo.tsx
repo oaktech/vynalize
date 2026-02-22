@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -69,8 +70,8 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -105,7 +106,7 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
 
     const W = canvas.width;
     const H = canvas.height;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
 
     // ── Smooth audio (fast attack, slow decay) ───────────────
@@ -503,10 +504,9 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
 
       ctx.save();
       ctx.fillStyle = `hsl(${hue}, ${sat}%, ${lit}%)`;
-      ctx.shadowColor = `rgba(${ar},${ag},${ab},${0.25 + bp * 0.4})`;
-      ctx.shadowBlur = (3 + bp * 10) * dpr;
+      applyGlow(ctx, (3 + bp * 10) * dpr, `rgba(${ar},${ag},${ab},${0.25 + bp * 0.4})`);
       ctx.fillText(ch, charX, charY);
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
       ctx.restore();
 
       cursorX += lw + spacing;

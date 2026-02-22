@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -170,8 +171,8 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -206,7 +207,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const now = performance.now();
     const timeSec = now / 1000;
 
@@ -877,8 +878,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     ctx.textBaseline = 'top';
     ctx.font = `bold ${42 * dpr}px monospace`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-    ctx.shadowBlur = 8 * dpr;
+    applyGlow(ctx, 8 * dpr, 'rgba(0, 0, 0, 0.9)');
     ctx.fillText(score.score.toLocaleString(), centerX, 24 * dpr);
 
     // Combo & multiplier (below score, centered)
@@ -901,7 +901,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.fillText(`${score.streak} STREAK`, centerX, 122 * dpr);
     }
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // Energy bar (bottom-center)
     const ebW = 200 * dpr;
@@ -955,11 +955,10 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
       else if (score.lastHitText === 'GREAT!') tc = `rgba(80, 255, 140, ${tA})`;
       else tc = `rgba(140, 200, 255, ${tA})`;
 
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-      ctx.shadowBlur = 8 * dpr;
+      applyGlow(ctx, 8 * dpr, 'rgba(0, 0, 0, 0.7)');
       ctx.fillStyle = tc;
       ctx.fillText(score.lastHitText, centerX, tY);
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
       ctx.restore();
     }
 
@@ -977,11 +976,10 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = `bold ${Math.round(50 * dpr * mS)}px monospace`;
-      ctx.shadowColor = `rgba(${ar}, ${ag}, ${ab}, 0.8)`;
-      ctx.shadowBlur = 25 * dpr * mA;
+      applyGlow(ctx, 25 * dpr * mA, `rgba(${ar}, ${ag}, ${ab}, 0.8)`);
       ctx.fillStyle = `rgba(255, 255, 255, ${mA})`;
       ctx.fillText(ms.text, centerX, mY);
-      ctx.shadowBlur = 0;
+      clearGlow(ctx);
       ctx.restore();
     }
 

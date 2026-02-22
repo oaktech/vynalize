@@ -2,8 +2,10 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../../store';
+import { getLowPowerCount, getVisDpr } from '../../utils/perfConfig';
 
-const PARTICLE_COUNT = 2000;
+const PARTICLE_COUNT_FULL = 2000;
+const PARTICLE_COUNT_LOW = 500;
 
 /** Boost quiet signals and compress dynamic range */
 function boost(value: number): number {
@@ -19,16 +21,17 @@ function Particles() {
   const audioFeatures = useStore((s) => s.audioFeatures);
   const isBeat = useStore((s) => s.isBeat);
   const accentColor = useStore((s) => s.accentColor);
+  const particleCount = getLowPowerCount(PARTICLE_COUNT_FULL, PARTICLE_COUNT_LOW);
 
   const beatPulse = useRef(0);
   const smoothEnergy = useRef(0);
 
   const { positions, velocities, colors } = useMemo(() => {
-    const positions = new Float32Array(PARTICLE_COUNT * 3);
-    const velocities = new Float32Array(PARTICLE_COUNT * 3);
-    const colors = new Float32Array(PARTICLE_COUNT * 3);
+    const positions = new Float32Array(particleCount * 3);
+    const velocities = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
@@ -48,7 +51,7 @@ function Particles() {
     }
 
     return { positions, velocities, colors };
-  }, []);
+  }, [particleCount]);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -86,7 +89,7 @@ function Particles() {
     // On beat: strong outward burst. Otherwise: spring back toward REST_RADIUS.
     const burstForce = pulse * 0.4;
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
+    for (let i = 0; i < particleCount; i++) {
       const i3 = i * 3;
 
       const dx = pos[i3];
@@ -181,6 +184,7 @@ export default function ParticleField() {
     <Canvas
       camera={{ position: [0, 0, 8], fov: 60 }}
       style={{ background: 'transparent' }}
+      dpr={getVisDpr()}
       gl={{ alpha: true, antialias: true }}
     >
       <Particles />

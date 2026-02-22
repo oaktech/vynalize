@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
+import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -76,8 +77,8 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resize = () => {
-      canvas.width = canvas.clientWidth * devicePixelRatio;
-      canvas.height = canvas.clientHeight * devicePixelRatio;
+      canvas.width = canvas.clientWidth * getVisDpr();
+      canvas.height = canvas.clientHeight * getVisDpr();
     };
     resize();
     window.addEventListener('resize', resize);
@@ -95,7 +96,7 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     if (!ctx) return;
 
     const { width, height } = canvas;
-    const dpr = devicePixelRatio;
+    const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
 
     const { rms, bass, mid, high, energy } = audioFeatures;
@@ -282,10 +283,9 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     // Mountain edge glow
     ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.25 + pulse * 0.3})`;
     ctx.lineWidth = 1.5 * dpr;
-    ctx.shadowColor = `rgb(${ar}, ${ag}, ${ab})`;
-    ctx.shadowBlur = 8 * dpr;
+    applyGlow(ctx, 8 * dpr, `rgb(${ar}, ${ag}, ${ab})`);
     ctx.stroke();
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // ── Perspective grid ──
     const vanishX = width * 0.5;
@@ -335,10 +335,9 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     ctx.lineTo(width, horizon);
     ctx.strokeStyle = `rgba(${ar}, ${ag}, ${ab}, ${0.4 + pulse * 0.4})`;
     ctx.lineWidth = 2 * dpr;
-    ctx.shadowColor = `rgb(${ar}, ${ag}, ${ab})`;
-    ctx.shadowBlur = 15 * dpr * (0.5 + pulse);
+    applyGlow(ctx, 15 * dpr * (0.5 + pulse), `rgb(${ar}, ${ag}, ${ab})`);
     ctx.stroke();
-    ctx.shadowBlur = 0;
+    clearGlow(ctx);
 
     // ── Chromatic flare on beats ──
     if (pulse > 0.1) {
