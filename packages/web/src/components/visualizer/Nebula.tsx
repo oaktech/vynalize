@@ -205,7 +205,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const tctx = trail.getContext('2d')!;
       // Copy current canvas to trail
       tctx.globalCompositeOperation = 'source-over';
-      tctx.drawImage(canvas, 0, 0);
+      tctx.drawImage(canvasRef.current!, 0, 0);
     }
 
     // Clear main canvas
