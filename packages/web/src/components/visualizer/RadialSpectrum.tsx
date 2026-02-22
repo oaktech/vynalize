@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
-import { getVisDpr } from '../../utils/perfConfig';
+import { getVisDpr, getLowPowerCount } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -85,7 +85,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     const scale = pulseScale.current + bLowMid * 0.08;
 
     const freq = audioFeatures.frequencyData;
-    const barCount = 128;
+    const barCount = getLowPowerCount(128, 48);
     const binsPerBar = Math.floor((freq.length * 0.5) / barCount);
     const angleStep = (Math.PI * 2) / barCount;
 

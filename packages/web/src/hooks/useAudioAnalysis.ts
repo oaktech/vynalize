@@ -5,7 +5,7 @@ import { isLowPower } from '../utils/perfConfig';
 import type { AudioFeatures } from '../types';
 
 const FPS_FULL = 33;  // ~30fps
-const FPS_LOW = 50;   // ~20fps
+const FPS_LOW = 66;   // ~15fps
 
 export function useAudioAnalysis() {
   const isListening = useStore((s) => s.isListening);

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { getVisDpr, applyGlow, clearGlow, getLowPowerCount } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -60,7 +60,7 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
-    const barCount = 64;
+    const barCount = getLowPowerCount(64, 24);
     const gap = 2 * getVisDpr();
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 

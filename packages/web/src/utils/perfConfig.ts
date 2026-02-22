@@ -1,8 +1,10 @@
 import { useStore } from '../store';
 
-/** Returns a DPR capped to 1 in low-power mode (Pi kiosk). */
+/** Returns a halved DPR in low-power mode (Pi kiosk).
+ *  At 0.5× native resolution, the canvas has ¼ the pixels — CSS scales it up.
+ *  Looks slightly softer but dramatically reduces GPU fill rate. */
 export function getVisDpr(): number {
-  return useStore.getState().lowPowerMode ? 1 : devicePixelRatio;
+  return useStore.getState().lowPowerMode ? 0.5 : devicePixelRatio;
 }
 
 /** Set canvas shadow glow. No-ops in low-power mode. */

@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../../store';
-import { getVisDpr, getLowPowerCount } from '../../utils/perfConfig';
+import { getVisDpr, getLowPowerCount, isLowPower } from '../../utils/perfConfig';
 
 // ── Color helpers ────────────────────────────────────────────
 
@@ -204,11 +204,11 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     const [r1, g1, b1] = hexToRgb(accentColor);
     const [r2, g2, b2] = complementary(r1, g1, b1);
 
-    // ── Trail effect: fade previous frame ──
-    const trail = trailCanvas.current;
+    // ── Trail effect: fade previous frame (skip on Pi — double drawImage is expensive) ──
+    const lowPower = isLowPower();
+    const trail = lowPower ? null : trailCanvas.current;
     if (trail) {
       const tctx = trail.getContext('2d')!;
-      // Copy current canvas to trail
       tctx.globalCompositeOperation = 'source-over';
       tctx.drawImage(canvas, 0, 0);
     }
