@@ -76,16 +76,71 @@ npm install --workspaces --include-workspace-root
 npm run build --workspace=packages/server
 npm run build --workspace=packages/web
 
-# ── 5. Environment file ──────────────────────────────────────
-if [[ ! -f "$APP_DIR/.env" ]]; then
-  info "Creating .env file (edit later to add API keys)..."
-  cat > "$APP_DIR/.env" <<ENVEOF
+# ── 5. OTA update directory layout ───────────────────────────
+SHARED_DIR="${APP_DIR}/shared"
+RELEASES_DIR="${APP_DIR}/releases"
+DOWNLOADS_DIR="${APP_DIR}/downloads"
+SCRIPTS_DEST="${APP_DIR}/scripts"
+INITIAL_VERSION="v0.1.0"
+
+info "Setting up OTA update directory layout..."
+mkdir -p "$SHARED_DIR" "$RELEASES_DIR" "$DOWNLOADS_DIR" "$SCRIPTS_DEST"
+
+# Move .env to shared/ (or create it there)
+if [[ -f "$APP_DIR/.env" && ! -L "$APP_DIR/.env" ]]; then
+  mv "$APP_DIR/.env" "$SHARED_DIR/.env"
+elif [[ ! -f "$SHARED_DIR/.env" ]]; then
+  cat > "$SHARED_DIR/.env" <<ENVEOF
 PORT=${APP_PORT}
 # YOUTUBE_API_KEY=your_key_here
 ENVEOF
-else
-  info ".env already exists, skipping."
 fi
+
+# Move settings.json to shared/ (or create default)
+if [[ -f "$APP_DIR/settings.json" && ! -L "$APP_DIR/settings.json" ]]; then
+  mv "$APP_DIR/settings.json" "$SHARED_DIR/settings.json"
+elif [[ ! -f "$SHARED_DIR/settings.json" ]]; then
+  echo '{}' > "$SHARED_DIR/settings.json"
+fi
+
+# Package the built app into an initial release
+RELEASE_DIR="${RELEASES_DIR}/${INITIAL_VERSION}"
+if [[ ! -d "$RELEASE_DIR" ]]; then
+  info "Creating initial release ${INITIAL_VERSION}..."
+  mkdir -p "$RELEASE_DIR"
+
+  echo "${INITIAL_VERSION#v}" > "$RELEASE_DIR/VERSION"
+  cp "$APP_DIR/package.json" "$RELEASE_DIR/"
+  cp -r "$APP_DIR/node_modules" "$RELEASE_DIR/"
+  cp -r "$APP_DIR/packages" "$RELEASE_DIR/"
+
+  # Symlink shared files into the release
+  ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
+  ln -sfn "$SHARED_DIR/settings.json" "$RELEASE_DIR/settings.json"
+fi
+
+# Create current symlink
+ln -sfn "$RELEASE_DIR" "${APP_DIR}/current"
+info "Active release: ${APP_DIR}/current -> ${RELEASE_DIR}"
+
+# Initialize update.json
+if [[ ! -f "$SHARED_DIR/update.json" ]]; then
+  cat > "$SHARED_DIR/update.json" <<UJEOF
+{
+  "currentVersion": "${INITIAL_VERSION#v}",
+  "updateAvailable": null,
+  "status": "idle",
+  "lastCheck": null,
+  "lastUpdate": null,
+  "channel": "stable",
+  "error": null
+}
+UJEOF
+fi
+
+# Install updater script
+cp "${APP_DIR}/scripts/vynalize-updater.sh" "$SCRIPTS_DEST/vynalize-updater.sh"
+chmod +x "$SCRIPTS_DEST/vynalize-updater.sh"
 
 # ── 6. USB audio — list devices ──────────────────────────────
 info ""
@@ -144,10 +199,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=${SERVICE_USER}
-WorkingDirectory=${APP_DIR}
-ExecStart=$(command -v node) ${APP_DIR}/packages/server/dist/index.js
+WorkingDirectory=${APP_DIR}/current
+ExecStart=$(command -v node) ${APP_DIR}/current/packages/server/dist/index.js
 Environment=NODE_ENV=production
-EnvironmentFile=${APP_DIR}/.env
+EnvironmentFile=${APP_DIR}/shared/.env
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -157,10 +212,50 @@ StandardError=journal
 WantedBy=multi-user.target
 SVCEOF
 
+# ── 8b. Systemd timer — OTA updater ─────────────────────────
+info "Creating systemd timer: vynalize-updater"
+sudo tee /etc/systemd/system/vynalize-updater.service >/dev/null <<USVCEOF
+[Unit]
+Description=Vynalize OTA Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=${SERVICE_USER}
+ExecStart=${APP_DIR}/scripts/vynalize-updater.sh auto
+StandardOutput=journal
+StandardError=journal
+USVCEOF
+
+sudo tee /etc/systemd/system/vynalize-updater.timer >/dev/null <<UTMREOF
+[Unit]
+Description=Vynalize daily update check
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=7200
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UTMREOF
+
+# ── 8c. Sudoers — passwordless service restart ──────────────
+info "Configuring sudoers for passwordless service restart..."
+sudo tee /etc/sudoers.d/vynalize-update >/dev/null <<SUDEOF
+# Allow the vynalize user to restart the service without a password
+${SERVICE_USER} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart vynalize.service
+SUDEOF
+sudo chmod 440 /etc/sudoers.d/vynalize-update
+
 sudo systemctl daemon-reload
 sudo systemctl enable vynalize.service
+sudo systemctl enable vynalize-updater.timer
+sudo systemctl start vynalize-updater.timer
 sudo systemctl restart vynalize.service
 info "Server running on port ${APP_PORT}."
+info "Update timer enabled (daily 3-5 AM)."
 
 # ── 9. Chromium kiosk autostart ───────────────────────────────
 info "Configuring Chromium kiosk autostart..."
@@ -236,7 +331,7 @@ info "  Remote:  http://vynalize.local:${APP_PORT}/remote"
 info ""
 info "  Audio capture starts automatically on the display."
 info ""
-info "  To add YouTube video search, edit ~/.env:"
+info "  To add YouTube video search, edit ~/vynalize/shared/.env:"
 info "    YOUTUBE_API_KEY=your_key_here"
 info ""
 info "  Reboot now to start the kiosk:"

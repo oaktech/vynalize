@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --workspaces --include-workspace-root
+
+      - name: Build server
+        run: npm run build --workspace=packages/server
+
+      - name: Build web
+        run: npm run build --workspace=packages/web
+
+      - name: Prune to production dependencies
+        run: npm prune --production --workspaces --include-workspace-root
+
+      - name: Verify no native modules
+        run: |
+          # All deps should be pure JS — fail if native addons sneak in
+          if find node_modules -name '*.node' | grep -q .; then
+            echo "ERROR: Native .node addons found — tarball will not work on arm64"
+            find node_modules -name '*.node'
+            exit 1
+          fi
+
+      - name: Determine version
+        id: version
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          TAG="${GIT_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Auto-detect pre-release from tag name
+          if echo "$TAG" | grep -qE '(alpha|beta|rc)'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release tarball
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          RELEASE_DIR="vynalize-${RELEASE_TAG}"
+          mkdir "$RELEASE_DIR"
+
+          # Write VERSION file
+          echo "$RELEASE_VERSION" > "$RELEASE_DIR/VERSION"
+
+          # Copy built artifacts, production deps, and scripts
+          cp package.json "$RELEASE_DIR/"
+          cp -r node_modules "$RELEASE_DIR/"
+          cp -r packages "$RELEASE_DIR/"
+          cp -r scripts "$RELEASE_DIR/"
+
+          # Remove source files and dev artifacts from the tarball
+          find "$RELEASE_DIR/packages" -name 'src' -type d -exec rm -rf {} + 2>/dev/null || true
+          find "$RELEASE_DIR/packages" -name 'tsconfig*.json' -delete 2>/dev/null || true
+          find "$RELEASE_DIR/packages" -name 'vite.config.*' -delete 2>/dev/null || true
+          find "$RELEASE_DIR/packages" -name '*.test.*' -delete 2>/dev/null || true
+          rm -rf "$RELEASE_DIR/packages/web/public" 2>/dev/null || true
+
+          TARBALL="vynalize-${RELEASE_TAG}-arm64.tar.gz"
+          tar -czf "$TARBALL" "$RELEASE_DIR"
+          sha256sum "$TARBALL" > "$TARBALL.sha256"
+
+          echo "tarball=$TARBALL" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            ${{ env.tarball }}
+            ${{ env.tarball }}.sha256

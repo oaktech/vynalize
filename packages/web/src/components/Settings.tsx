@@ -8,6 +8,7 @@ interface SettingsProps {
 
 export default function Settings({ isOpen, onClose }: SettingsProps) {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [version, setVersion] = useState('0.1.0');
   const selectedDevice = useStore((s) => s.audioInputDeviceId);
   const setSelectedDevice = useStore((s) => s.setAudioInputDeviceId);
   const autoCycleEnabled = useStore((s) => s.autoCycleEnabled);
@@ -20,6 +21,10 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
     navigator.mediaDevices.enumerateDevices().then((devices) => {
       setAudioDevices(devices.filter((d) => d.kind === 'audioinput'));
     });
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((data) => { if (data.version) setVersion(data.version); })
+      .catch(() => {});
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -170,7 +175,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
         {/* About */}
         <div className="pt-4 border-t border-white/5">
           <p className="text-xs text-white/20 text-center">
-            Vynalize v0.1.0 — A companion display for analog listening
+            Vynalize v{version} — A companion display for analog listening
           </p>
         </div>
       </div>

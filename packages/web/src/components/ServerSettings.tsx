@@ -1,8 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface SettingsData {
   youtubeApiKey: string;
   requireCode: boolean;
+}
+
+interface UpdateState {
+  currentVersion: string;
+  updateAvailable: string | null;
+  status: 'idle' | 'checking' | 'downloading' | 'installing' | 'error';
+  lastCheck: string | null;
+  lastUpdate: string | null;
+  channel: 'stable' | 'beta';
+  error: string | null;
 }
 
 export default function ServerSettings() {
@@ -12,6 +22,16 @@ export default function ServerSettings() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [apiKeyEdited, setApiKeyEdited] = useState(false);
   const feedbackTimer = useRef<number>(0);
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null);
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+  const pollRef = useRef<number>(0);
+
+  const fetchUpdateState = useCallback(() => {
+    fetch('/api/update')
+      .then((r) => r.json())
+      .then((data: UpdateState) => setUpdateState(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -21,7 +41,18 @@ export default function ServerSettings() {
         setApiKeyInput(data.youtubeApiKey);
       })
       .catch(() => setFeedback({ type: 'error', msg: 'Failed to load settings' }));
-  }, []);
+
+    fetchUpdateState();
+  }, [fetchUpdateState]);
+
+  // Poll while an update is in progress
+  useEffect(() => {
+    clearInterval(pollRef.current);
+    if (updateState && ['checking', 'downloading', 'installing'].includes(updateState.status)) {
+      pollRef.current = window.setInterval(fetchUpdateState, 3000);
+    }
+    return () => clearInterval(pollRef.current);
+  }, [updateState?.status, fetchUpdateState]);
 
   function showFeedback(type: 'success' | 'error', msg: string) {
     setFeedback({ type, msg });
@@ -139,6 +170,102 @@ export default function ServerSettings() {
             </button>
           </div>
         </div>
+
+        {/* Software Update */}
+        {updateState && (
+          <div className="mb-8 pt-6 border-t border-white/5">
+            <h2 className="text-sm font-medium text-white/60 mb-4">Software Update</h2>
+
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm text-white">
+                  Current version: <span className="font-mono text-white/80">v{updateState.currentVersion}</span>
+                </p>
+                {updateState.lastCheck && (
+                  <p className="text-xs text-white/20 mt-0.5">
+                    Last checked: {new Date(updateState.lastCheck).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Status display */}
+            {updateState.status === 'checking' && (
+              <p className="text-sm text-white/40 mb-3">Checking for updates...</p>
+            )}
+            {updateState.status === 'downloading' && (
+              <p className="text-sm text-amber-400 mb-3">Downloading update...</p>
+            )}
+            {updateState.status === 'installing' && (
+              <p className="text-sm text-amber-400 mb-3">Installing update... The page will reload shortly.</p>
+            )}
+            {updateState.status === 'error' && updateState.error && (
+              <p className="text-sm text-red-400 mb-3">{updateState.error}</p>
+            )}
+            {updateState.updateAvailable && updateState.status === 'idle' && (
+              <p className="text-sm text-emerald-400 mb-3">
+                Update available: <span className="font-mono">v{updateState.updateAvailable}</span>
+              </p>
+            )}
+            {!updateState.updateAvailable && updateState.status === 'idle' && updateState.lastCheck && (
+              <p className="text-sm text-white/30 mb-3">Up to date</p>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => {
+                  fetch('/api/update/check', { method: 'POST' }).then(fetchUpdateState);
+                }}
+                disabled={updateState.status !== 'idle'}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg text-xs text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Check for Updates
+              </button>
+              {updateState.updateAvailable && updateState.status === 'idle' && (
+                <button
+                  onClick={() => {
+                    fetch('/api/update/apply', { method: 'POST' }).then(fetchUpdateState);
+                  }}
+                  className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 border border-violet-500/30 rounded-lg text-xs text-white transition-colors"
+                >
+                  Install v{updateState.updateAvailable}
+                </button>
+              )}
+            </div>
+
+            {/* Channel selector (behind disclosure) */}
+            <button
+              onClick={() => setShowChannelPicker(!showChannelPicker)}
+              className="text-xs text-white/20 hover:text-white/40 transition-colors"
+            >
+              {showChannelPicker ? '▾' : '▸'} Update channel: {updateState.channel}
+            </button>
+            {showChannelPicker && (
+              <div className="mt-2 flex items-center gap-2">
+                {(['stable', 'beta'] as const).map((ch) => (
+                  <button
+                    key={ch}
+                    onClick={() => {
+                      fetch('/api/update/channel', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ channel: ch }),
+                      }).then(fetchUpdateState);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs transition-colors ${
+                      updateState.channel === ch
+                        ? 'bg-white/15 text-white border border-white/20'
+                        : 'bg-white/5 text-white/40 border border-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    {ch}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Save */}
         <div className="flex items-center gap-3">
