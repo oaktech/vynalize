@@ -29,6 +29,7 @@ import { createSessionMiddleware } from './services/sessionStore.js';
 import { localOnly } from './middleware/localOnly.js';
 import { createRateLimit } from './middleware/rateLimit.js';
 import { isAuthEnabled } from './middleware/auth.js';
+import { updateRouter } from './routes/update.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -124,6 +125,7 @@ async function start() {
   app.use('/api/search', searchRouter);
   app.use('/api/settings', localOnly, settingsRouter);
   app.use('/api/leaderboard', leaderboardRouter);
+  app.use('/api/update', localOnly, updateRouter);
 
   const logRateLimit = createRateLimit({
     keyPrefix: 'log',
@@ -156,11 +158,19 @@ async function start() {
     });
   });
 
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
+    let version = '0.1.0';
+    try {
+      const { readFile } = await import('fs/promises');
+      version = (await readFile(resolve(__dirname, '../../../VERSION'), 'utf-8')).trim();
+    } catch {
+      // VERSION file doesn't exist in dev — fall back to 0.1.0
+    }
     res.json({
       status: 'ok',
       timestamp: Date.now(),
       redis: redisAvailable,
+      version,
     });
   });
 

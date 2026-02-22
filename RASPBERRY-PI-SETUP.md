@@ -100,10 +100,11 @@ The script is fully unattended. Grab a coffee — it takes a few minutes to down
 | Node.js 22 | Adds the NodeSource apt repository and installs Node 22 |
 | Clone / pull | Clones the repo into `~/vynalize` (or pulls latest if already cloned) |
 | Build | Runs `npm install` then builds the backend and frontend for production |
-| `.env` | Creates `~/vynalize/.env` with `PORT=3001` if it doesn't already exist |
+| `.env` | Creates `~/vynalize/shared/.env` with `PORT=3001` if it doesn't already exist |
 | ALSA | Detects the USB audio device and writes `~/.asoundrc` to set it as the default capture device |
 | mDNS | Configures Avahi so the Pi is reachable at `vynalize.local` |
 | systemd service | Creates and enables `vynalize.service` — the Node server starts at boot and restarts on crash |
+| OTA updates | Creates release-based directory layout (`releases/`, `shared/`, `current` symlink), installs updater script and daily systemd timer |
 | Chromium kiosk | Writes `~/kiosk.sh`, configures labwc autostart to launch it on login |
 | Auto-login | Calls `raspi-config` to enable desktop auto-login |
 | GPU memory | Sets `gpu_mem=256` in `/boot/firmware/config.txt` for smoother rendering |
@@ -127,7 +128,7 @@ At the end you will see a summary like:
 The app works without any API keys. Song identification (via Shazam), audio-reactive visualizations, and synced lyrics all work out of the box. A YouTube API key unlocks the music video mode.
 
 ```bash
-nano ~/vynalize/.env
+nano ~/vynalize/shared/.env
 ```
 
 ```env
@@ -199,10 +200,56 @@ systemctl status vynalize
 journalctl -u vynalize -f
 ```
 
-**Update to the latest version:**
+### Automatic updates
+
+Vynalize appliances update themselves automatically. A systemd timer runs daily between 3:00-5:00 AM, checks GitHub for new releases, and applies updates with automatic rollback on failure. No user intervention required.
+
+The update cycle: download tarball → verify SHA-256 checksum → extract → atomic symlink swap → restart → health check → rollback if unhealthy.
+
+**Check update status:**
 
 ```bash
-cd ~/vynalize && git pull && npm install && npm run build && sudo systemctl restart vynalize
+cat ~/vynalize/shared/update.json
+```
+
+Or open `http://vynalize.local:3001/settings` in a browser and scroll to the "Software Update" section.
+
+**Manually trigger an update check:**
+
+```bash
+~/vynalize/scripts/vynalize-updater.sh check
+```
+
+**Manually apply an available update:**
+
+```bash
+~/vynalize/scripts/vynalize-updater.sh auto
+```
+
+**Roll back to the previous version:**
+
+```bash
+~/vynalize/scripts/vynalize-updater.sh rollback
+```
+
+**Switch between stable and beta channels:**
+
+The update channel can be changed from the Server Settings page, or directly:
+
+```bash
+# Edit ~/vynalize/shared/update.json and set "channel": "beta"
+```
+
+**View update logs:**
+
+```bash
+cat ~/vynalize/shared/update.log
+```
+
+**Check the update timer:**
+
+```bash
+systemctl list-timers vynalize-updater.timer
 ```
 
 **Reconfigure after swapping the USB mic:**
@@ -224,4 +271,4 @@ rm ~/.asoundrc
 | Mic is detected but no songs are identified | Check ALSA config — run `arecord -l` to list cards, then verify `~/.asoundrc` points to the right card number |
 | `ssh: Could not resolve hostname vynalize.local` | mDNS takes a moment after first boot; use the IP address directly, or wait and retry |
 | Chromium not launching full-screen | Confirm `do_boot_behaviour B4` succeeded: run `sudo raspi-config`, go to System Options → Boot / Auto Login → Desktop Autologin |
-| YouTube video mode not available | Add `YOUTUBE_API_KEY` to `~/vynalize/.env` and restart with `sudo systemctl restart vynalize` |
+| YouTube video mode not available | Add `YOUTUBE_API_KEY` to `~/vynalize/shared/.env` and restart with `sudo systemctl restart vynalize` |
