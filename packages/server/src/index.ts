@@ -1,8 +1,11 @@
 import { config } from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { homedir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+// Stable path first (survives deploys on Pi), then repo-root fallback for dev
+config({ path: resolve(homedir(), 'vynalize/.env'), override: false });
 config({ path: resolve(__dirname, '../../../.env'), override: false });
 
 import { createServer } from 'http';
