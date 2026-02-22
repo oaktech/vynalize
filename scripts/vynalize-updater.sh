@@ -259,27 +259,30 @@ cmd_install() {
   local version
   version=$(parse_release_version "$release")
   local tarball="${DOWNLOADS_DIR}/vynalize-${tag}-arm64.tar.gz"
+  local release_dir="${RELEASES_DIR}/${tag}"
 
-  if [[ ! -f "$tarball" ]]; then
+  if [[ -d "$release_dir" ]]; then
+    # Release already extracted (e.g. re-update after rollback) — skip extraction
+    log "Release ${tag} already extracted, skipping to install"
+  elif [[ -f "$tarball" ]]; then
+    # Extract to temp dir, then move into place
+    local tmp_dir="${RELEASES_DIR}/.tmp-${tag}"
+    rm -rf "$tmp_dir"
+    mkdir -p "$tmp_dir"
+
+    log "Extracting to ${release_dir}..."
+    tar -xzf "$tarball" -C "$tmp_dir" --strip-components=1
+
+    # Create symlinks to shared config inside the release
+    ln -sfn "${SHARED_DIR}/.env" "${tmp_dir}/.env"
+    ln -sfn "${SHARED_DIR}/settings.json" "${tmp_dir}/settings.json"
+
+    # Move extracted dir to final location
+    rm -rf "$release_dir"
+    mv "$tmp_dir" "$release_dir"
+  else
     die "No downloaded tarball found for ${tag}. Run 'download' first."
   fi
-
-  # Extract to temp dir, then move into place
-  local tmp_dir="${RELEASES_DIR}/.tmp-${tag}"
-  rm -rf "$tmp_dir"
-  mkdir -p "$tmp_dir"
-
-  log "Extracting to ${RELEASES_DIR}/${tag}..."
-  tar -xzf "$tarball" -C "$tmp_dir" --strip-components=1
-
-  # Create symlinks to shared config inside the release
-  ln -sfn "${SHARED_DIR}/.env" "${tmp_dir}/.env"
-  ln -sfn "${SHARED_DIR}/settings.json" "${tmp_dir}/settings.json"
-
-  # Move extracted dir to final location
-  local release_dir="${RELEASES_DIR}/${tag}"
-  rm -rf "$release_dir"
-  mv "$tmp_dir" "$release_dir"
 
   # Update previous symlink to current (before swapping)
   if [[ -L "$CURRENT_LINK" ]]; then
