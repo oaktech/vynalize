@@ -54,6 +54,8 @@ function getLocalIPs(): Set<string> {
   return localIPs;
 }
 
+export { isPrivateIP };
+
 export function localOnly(req: Request, res: Response, next: NextFunction): void {
   // Use the raw TCP peer address — NOT req.ip, which reflects X-Forwarded-For
   // when trust proxy is enabled and can be spoofed by any remote client.
