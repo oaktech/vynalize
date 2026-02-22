@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../../store';
-import { getLowPowerCount, getVisDpr } from '../../utils/perfConfig';
+import { getLowPowerCount, getVisDpr, isLowPower } from '../../utils/perfConfig';
 
 const PARTICLE_COUNT_FULL = 2000;
 const PARTICLE_COUNT_LOW = 500;
@@ -185,7 +185,7 @@ export default function ParticleField() {
       camera={{ position: [0, 0, 8], fov: 60 }}
       style={{ background: 'transparent' }}
       dpr={getVisDpr()}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: !isLowPower() }}
     >
       <Particles />
     </Canvas>

@@ -25,3 +25,8 @@ export function clearGlow(ctx: CanvasRenderingContext2D): void {
 export function getLowPowerCount(full: number, reduced: number): number {
   return useStore.getState().lowPowerMode ? reduced : full;
 }
+
+/** Returns true when running in low-power mode. */
+export function isLowPower(): boolean {
+  return useStore.getState().lowPowerMode;
+}

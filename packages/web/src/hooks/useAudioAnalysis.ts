@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { getAnalyserNode } from '../services/audioEngine';
+import { isLowPower } from '../utils/perfConfig';
 import type { AudioFeatures } from '../types';
 
-const TARGET_INTERVAL = 33; // ~30fps
+const FPS_FULL = 33;  // ~30fps
+const FPS_LOW = 50;   // ~20fps
 
 export function useAudioAnalysis() {
   const isListening = useStore((s) => s.isListening);
@@ -37,8 +39,9 @@ export function useAudioAnalysis() {
     function analyze(now: number) {
       if (!analyser) return;
 
-      // Throttle to ~30fps
-      if (now - lastFrameTime.current < TARGET_INTERVAL) {
+      // Throttle to ~30fps (desktop) or ~20fps (Pi)
+      const interval = isLowPower() ? FPS_LOW : FPS_FULL;
+      if (now - lastFrameTime.current < interval) {
         rafRef.current = requestAnimationFrame(analyze);
         return;
       }
