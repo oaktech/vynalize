@@ -58,8 +58,7 @@ export default function Leaderboard() {
 
   useEffect(() => {
     setLoading(true);
-    const limit = category === 'songs' ? 50 : 10;
-    fetch(`/api/leaderboard?period=${period}&category=${category}&limit=${limit}`)
+    fetch(`/api/leaderboard?period=${period}&category=${category}&limit=20`)
       .then((r) => r.json())
       .then((data) => {
         setSongs(data.songs ?? []);
@@ -79,52 +78,58 @@ export default function Leaderboard() {
     (category === 'artists' && artists.length === 0) ||
     (category === 'genres' && genres.length === 0);
 
+  const rankClass = (rank: number) =>
+    rank <= 3
+      ? 'w-7 h-7 rounded-full bg-white/15 text-white font-bold text-xs flex items-center justify-center shrink-0'
+      : 'w-7 text-center text-sm font-mono text-white/30 shrink-0';
+
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <a href="/" className="text-white/30 text-sm hover:text-white/60 transition-colors">
-              &larr; Back
-            </a>
-            <h1 className="text-2xl font-bold mt-1">Leaderboard</h1>
-            <p className="text-white/40 text-sm mt-1">Most played across all sessions</p>
+        <div className="mb-4">
+          <a href="/" className="text-white/30 text-sm hover:text-white/60 transition-colors">
+            &larr; Back
+          </a>
+          <h1 className="text-2xl font-bold mt-1">Leaderboard</h1>
+          <p className="text-white/40 text-sm mt-1">Most played across all sessions</p>
+        </div>
+
+        {/* Sticky navigation */}
+        <div className="sticky top-0 z-10 bg-black pb-3 pt-2 -mx-4 px-4">
+          {/* Category tabs */}
+          <div className="flex gap-1 mb-2">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => setCategory(c.key)}
+                className={`px-4 py-1.5 rounded-xl text-sm transition-all duration-200 ${
+                  category === c.key
+                    ? 'bg-white text-black font-medium'
+                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        {/* Category tabs */}
-        <div className="flex gap-1 mb-4">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => setCategory(c.key)}
-              className={`px-4 py-2 rounded-xl text-sm transition-all duration-200 ${
-                category === c.key
-                  ? 'bg-white text-black font-medium'
-                  : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Period tabs */}
-        <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
-          {PERIODS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriod(p.key)}
-              className={`px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all duration-200 ${
-                period === p.key
-                  ? 'bg-white/15 text-white'
-                  : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
+          {/* Period tabs */}
+          <div className="flex gap-1 overflow-x-auto">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all duration-200 ${
+                  period === p.key
+                    ? 'bg-white/15 text-white'
+                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Content */}
@@ -142,16 +147,18 @@ export default function Leaderboard() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {category === 'songs' &&
               songs.map((song) => (
                 <div
                   key={`${song.title}-${song.artist}`}
-                  className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    song.rank <= 3
+                      ? 'bg-white/[0.05] hover:bg-white/[0.08]'
+                      : 'bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
                 >
-                  <span className="w-8 text-center text-sm font-mono text-white/30 shrink-0">
-                    {song.rank}
-                  </span>
+                  <span className={rankClass(song.rank)}>{song.rank}</span>
                   {song.albumArtUrl ? (
                     <img src={song.albumArtUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                   ) : (
@@ -162,12 +169,12 @@ export default function Leaderboard() {
                     <p className="text-xs text-white/40 truncate">{song.artist}</p>
                   </div>
                   {song.topCountry && (
-                    <span className="text-xs text-white/30 shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block">
                       {countryFlag(song.topCountry)}
                     </span>
                   )}
-                  <span className="text-sm font-mono text-white/50 shrink-0">
-                    {song.playCount}
+                  <span className="text-xs font-mono text-white/50 shrink-0">
+                    {song.playCount} <span className="text-white/30">plays</span>
                   </span>
                 </div>
               ))}
@@ -176,11 +183,13 @@ export default function Leaderboard() {
               artists.map((artist) => (
                 <div
                   key={artist.artist}
-                  className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    artist.rank <= 3
+                      ? 'bg-white/[0.05] hover:bg-white/[0.08]'
+                      : 'bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
                 >
-                  <span className="w-8 text-center text-sm font-mono text-white/30 shrink-0">
-                    {artist.rank}
-                  </span>
+                  <span className={rankClass(artist.rank)}>{artist.rank}</span>
                   {artist.albumArtUrl ? (
                     <img src={artist.albumArtUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
                   ) : (
@@ -193,12 +202,12 @@ export default function Leaderboard() {
                     </p>
                   </div>
                   {artist.topCountry && (
-                    <span className="text-xs text-white/30 shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block">
                       {countryFlag(artist.topCountry)}
                     </span>
                   )}
-                  <span className="text-sm font-mono text-white/50 shrink-0">
-                    {artist.playCount}
+                  <span className="text-xs font-mono text-white/50 shrink-0">
+                    {artist.playCount} <span className="text-white/30">plays</span>
                   </span>
                 </div>
               ))}
@@ -207,13 +216,15 @@ export default function Leaderboard() {
               genres.map((genre) => (
                 <div
                   key={genre.genre}
-                  className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    genre.rank <= 3
+                      ? 'bg-white/[0.05] hover:bg-white/[0.08]'
+                      : 'bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
                 >
-                  <span className="w-8 text-center text-sm font-mono text-white/30 shrink-0">
-                    {genre.rank}
-                  </span>
+                  <span className={rankClass(genre.rank)}>{genre.rank}</span>
                   <div className="w-10 h-10 rounded-xl bg-white/10 shrink-0 flex items-center justify-center text-lg">
-                    {genre.rank <= 3 ? ['🥇', '🥈', '🥉'][genre.rank - 1] : '🎵'}
+                    {genre.rank <= 3 ? ['\u{1F947}', '\u{1F948}', '\u{1F949}'][genre.rank - 1] : '\u{1F3B5}'}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{genre.genre}</p>
@@ -222,12 +233,12 @@ export default function Leaderboard() {
                     </p>
                   </div>
                   {genre.topCountry && (
-                    <span className="text-xs text-white/30 shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block">
                       {countryFlag(genre.topCountry)}
                     </span>
                   )}
-                  <span className="text-sm font-mono text-white/50 shrink-0">
-                    {genre.playCount}
+                  <span className="text-xs font-mono text-white/50 shrink-0">
+                    {genre.playCount} <span className="text-white/30">plays</span>
                   </span>
                 </div>
               ))}
