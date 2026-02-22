@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -142,12 +142,10 @@ interface ColState {
 
 export default function BeatSaber({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
   const currentSong = useStore((s) => s.currentSong);
 
   const beatPulse = useRef(0);
+  const prevBeat = useRef(false);
   const gridScroll = useRef(0);
   const blocksRef = useRef<Block[]>([]);
   const slicesRef = useRef<SliceHalf[]>([]);
@@ -179,11 +177,6 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Beat pulse
-  useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
-
   // Reset on song change
   useEffect(() => {
     scoreRef.current = {
@@ -200,13 +193,14 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
   }, [currentSong]);
 
   // Main render
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d')!;
-    if (!ctx) return;
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-    const { width, height } = canvas;
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
+
     const dpr = getVisDpr();
     const now = performance.now();
     const timeSec = now / 1000;
@@ -222,7 +216,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     beatPulse.current *= 0.88;
     const pulse = beatPulse.current;
 
-    const beatsPerSec = (bpm || 120) / 60;
+    const beatsPerSec = (audioRef.bpm || 120) / 60;
     const blockSpeed = beatsPerSec * 0.3;
 
     // ── Projection ──────────────────────────────────────────
@@ -334,7 +328,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     }
 
     // Beat bonus paired blocks
-    if (isBeat && pulse > 0.8 && blocksRef.current.length < 70) {
+    if (audioRef.isBeat && pulse > 0.8 && blocksRef.current.length < 70) {
       const leftCol = Math.floor(Math.random() * 2);
       const rightCol = 2 + Math.floor(Math.random() * 2);
       const row = Math.floor(Math.random() * NUM_ROWS);
@@ -983,7 +977,9 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
       ctx.restore();
     }
 
-  }, [audioFeatures, accentColor, isBeat, bpm]);
+  }, [accentColor]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useStore } from '../../store';
-import { getLowPowerCount, getVisDpr } from '../../utils/perfConfig';
+import { getLowPowerCount, getVisDpr, isLowPower, audioRef } from '../../utils/perfConfig';
 
 const PARTICLE_COUNT_FULL = 2000;
 const PARTICLE_COUNT_LOW = 500;
@@ -18,10 +18,9 @@ const MAX_RADIUS = 8; // hard clamp — never drift beyond this
 function Particles() {
   const meshRef = useRef<THREE.Points>(null);
   const matRef = useRef<THREE.PointsMaterial>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
   const accentColor = useStore((s) => s.accentColor);
   const particleCount = getLowPowerCount(PARTICLE_COUNT_FULL, PARTICLE_COUNT_LOW);
+  const prevBeat = useRef(false);
 
   const beatPulse = useRef(0);
   const smoothEnergy = useRef(0);
@@ -67,16 +66,19 @@ function Particles() {
     const targetG = tempColor.g;
     const targetB = tempColor.b;
 
-    const bass = boost(audioFeatures?.bass ?? 0);
-    const mid = boost(audioFeatures?.mid ?? 0);
-    const high = boost(audioFeatures?.high ?? 0);
-    const energy = boost(audioFeatures?.energy ?? 0);
+    const af = audioRef.features;
+    const bass = boost(af?.bass ?? 0);
+    const mid = boost(af?.mid ?? 0);
+    const high = boost(af?.high ?? 0);
+    const energy = boost(af?.energy ?? 0);
 
     // Smooth energy so particles stay lively between beats
     smoothEnergy.current += (energy - smoothEnergy.current) * 0.15;
     const sEnergy = smoothEnergy.current;
 
-    if (isBeat) beatPulse.current = 1;
+    // Beat edge detection
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
     beatPulse.current *= 0.88;
     const pulse = beatPulse.current;
 
@@ -185,7 +187,7 @@ export default function ParticleField() {
       camera={{ position: [0, 0, 8], fov: 60 }}
       style={{ background: 'transparent' }}
       dpr={getVisDpr()}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: !isLowPower() }}
     >
       <Particles />
     </Canvas>

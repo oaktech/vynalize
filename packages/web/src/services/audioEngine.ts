@@ -39,6 +39,11 @@ export async function initAudioCapture(deviceId?: string): Promise<{
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
   const context = new AudioContext();
+  // Chromium kiosk on Linux may leave the context suspended even with
+  // --autoplay-policy=no-user-gesture-required — force it awake.
+  if (context.state === 'suspended') {
+    await context.resume();
+  }
   const source = context.createMediaStreamSource(stream);
   const analyser = context.createAnalyser();
   analyser.fftSize = 2048;

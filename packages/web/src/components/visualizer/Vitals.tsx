@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { useRef, useEffect, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -55,9 +54,6 @@ function co2Shape(t: number): number {
 
 export default function Vitals({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
 
   // Sweep data buffers
   const ecgBuffer = useRef(new Float32Array(HISTORY));
@@ -72,6 +68,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
   const beatStrength = useRef(0);
   const beepFlash = useRef(0);
   const plethPhase = useRef(1); // 0..1, reset on beat
+  const prevBeat = useRef(false);
 
   // Smooth audio for oscillation amplitude
   const smoothAudio = useRef({ bass: 0, mid: 0, high: 0, rms: 0, energy: 0 });
@@ -100,24 +97,20 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Trigger ECG complex on beat
-  useEffect(() => {
-    if (isBeat) {
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
+
+    // Beat edge detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) {
       beatPhase.current = 0;
       beatActive.current = true;
       beatStrength.current = 1;
       beepFlash.current = 1;
       plethPhase.current = -0.08; // small delay for pulse transit time
     }
-  }, [isBeat]);
+    prevBeat.current = audioRef.isBeat;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const { width, height } = canvas;
     const dpr = getVisDpr();
     const [r, g, b] = hexToRgb(accentColor);
 
@@ -212,7 +205,7 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     beepFlash.current *= 0.88;
 
     // ── Smooth readout values ──
-    const targetBpm = bpm || 72;
+    const targetBpm = audioRef.bpm || 72;
     smoothBpm.current += (targetBpm - smoothBpm.current) * 0.05;
     smoothSpO2.current += ((95 + energy * 4) - smoothSpO2.current) * 0.02;
     smoothResp.current += ((14 + sa.energy * 8) - smoothResp.current) * 0.02;
@@ -245,8 +238,6 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
     const step = width / HISTORY;
     const filled = Math.min(writeIdx.current, HISTORY);
     const wrapped = writeIdx.current >= HISTORY;
-
-    // No overlay — the gap in the trace lines provides the sweep break
 
     const traceConfigs = [
       { buffer: ecgBuffer.current, y: 0.10, h: 0.24, rgb: `${r}, ${g}, ${b}`, label: 'II', lineW: 3 },
@@ -395,7 +386,9 @@ export default function Vitals({ accentColor }: { accentColor: string }) {
       ctx.fill();
       clearGlow(ctx);
     }
-  }, [audioFeatures, accentColor, isBeat, bpm]);
+  }, [accentColor]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

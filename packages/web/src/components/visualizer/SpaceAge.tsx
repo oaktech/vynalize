@@ -1,6 +1,5 @@
-import { useRef, useEffect, useMemo } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -172,11 +171,9 @@ const DOME_POSITIONS = [0.4, 0.7];
 
 export default function SpaceAge({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
 
   const beatPulse = useRef(0);
+  const prevBeat = useRef(false);
   const smooth = useRef({ rms: 0, bass: 0, mid: 0, high: 0, energy: 0 });
   const exhaustParticles = useRef<
     { x: number; y: number; vy: number; alpha: number; size: number }[]
@@ -204,19 +201,14 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // Beat tracking
-  useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  // Main render
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
 
-    const { width, height } = canvas;
     const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
     const now = performance.now() / 1000;
@@ -235,6 +227,7 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
     beatPulse.current *= 0.85;
     const pulse = beatPulse.current;
 
+    const bpm = audioRef.bpm;
     const beatsPerSec = (bpm || 120) / 60;
     const panelW = width / 4;
     const panelH = height;
@@ -1099,7 +1092,9 @@ export default function SpaceAge({ accentColor }: { accentColor: string }) {
       const fh = panelH - 4 * dpr;
       ctx.strokeRect(fx, fy, fw, fh);
     }
-  }, [audioFeatures, accentColor, isBeat, bpm, stars, ledDots]);
+  }, [accentColor, stars, ledDots]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

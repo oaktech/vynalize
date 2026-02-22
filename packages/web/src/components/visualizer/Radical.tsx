@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { useRef, useEffect, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 /** Compress dynamic range — same approach as SpectrumBars boost().
  *  Quiet mic signals get amplified, loud signals are tamed. */
@@ -403,14 +402,13 @@ function drawScene(
 
 export default function Radical({ accentColor: _accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
 
   // Two scene slots: current (always visible) and outgoing (fading out)
   const currentRef = useRef<Scene | null>(null);
   const outgoingRef = useRef<Scene | null>(null);
   const lastTransitionRef = useRef(0);
   const beatPulseRef = useRef(0);
+  const prevBeat = useRef(false);
   const smooth = useRef({ bass: 0, mid: 0, energy: 0, rms: 0 });
 
   // Canvas resize
@@ -436,27 +434,24 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
     }
   }, []);
 
-  // Beat: transition to new scene (with cooldown)
-  useEffect(() => {
-    if (!isBeat) return;
-    beatPulseRef.current = 1;
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-    const now = performance.now();
-    if (now - lastTransitionRef.current < BEAT_COOLDOWN) return;
+    // Beat edge detection from shared ref
+    const isBeat = audioRef.isBeat;
+    if (isBeat && !prevBeat.current) {
+      beatPulseRef.current = 1;
 
-    lastTransitionRef.current = now;
-    outgoingRef.current = currentRef.current;
-    currentRef.current = createScene(now);
-  }, [isBeat]);
+      const now = performance.now();
+      if (now - lastTransitionRef.current >= BEAT_COOLDOWN) {
+        lastTransitionRef.current = now;
+        outgoingRef.current = currentRef.current;
+        currentRef.current = createScene(now);
+      }
+    }
+    prevBeat.current = isBeat;
 
-  // Render every frame
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
     const now = performance.now();
@@ -466,10 +461,10 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
 
     // Smooth audio (fast attack, slow decay — matches SpectrumBars)
     const s = smooth.current;
-    const rawBass = audioFeatures?.bass ?? 0;
-    const rawMid = audioFeatures?.mid ?? 0;
-    const rawEnergy = audioFeatures?.energy ?? 0;
-    const rawRms = audioFeatures?.rms ?? 0;
+    const rawBass = audioFeatures.bass ?? 0;
+    const rawMid = audioFeatures.mid ?? 0;
+    const rawEnergy = audioFeatures.energy ?? 0;
+    const rawRms = audioFeatures.rms ?? 0;
     s.bass += (rawBass - s.bass) * (rawBass > s.bass ? 0.4 : 0.15);
     s.mid += (rawMid - s.mid) * (rawMid > s.mid ? 0.4 : 0.15);
     s.energy += (rawEnergy - s.energy) * (rawEnergy > s.energy ? 0.4 : 0.15);
@@ -479,7 +474,6 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
     const bBass = boost(s.bass, 4.0);
     const bMid = boost(s.mid, 6.0);
     const bEnergy = boost(s.energy, 3.0);
-    const bRms = boost(s.rms, 3.0);
     const bLowMid = boost(s.bass * 0.4 + s.mid * 0.6, 6.0); // blend favoring mids
 
     // Decay beat pulse
@@ -528,7 +522,9 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
       currentRef.current.rotation += currentRef.current.rotationSpeed * (1 + bLowMid * 1.5);
       drawScene(ctx, currentRef.current, cx, cy, baseR * scaleBump, fadeIn, buildAudioCtx(currentRef.current));
     }
-  }, [audioFeatures]);
+  }, []);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

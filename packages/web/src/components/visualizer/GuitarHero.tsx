@@ -1,6 +1,6 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -130,10 +130,8 @@ function createSpotlights(): Spotlight[] {
 
 export default function GuitarHero({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
   const currentSong = useStore((s) => s.currentSong);
+  const prevBeat = useRef(false);
 
   const beatPulse = useRef(0);
   const gridScroll = useRef(0);
@@ -168,10 +166,6 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
   }, []);
 
   useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
-
-  useEffect(() => {
     scoreRef.current = { score: 0, streak: 0, longestStreak: 0, combo: 0, multiplier: 1, starPower: 0, lastHitText: '', lastHitTime: 0 };
     prevMultiplierRef.current = 1;
     notesRef.current = [];
@@ -180,14 +174,15 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
     for (let i = 0; i < NUM_LANES; i++) { laneFlash.current[i] = 0; laneBeam.current[i] = 0; }
   }, [currentSong]);
 
-  // Main render
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-    const { width, height } = canvas;
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
+
+    const bpm = audioRef.bpm;
     const dpr = getVisDpr();
     const now = performance.now();
 
@@ -935,7 +930,9 @@ export default function GuitarHero({ accentColor }: { accentColor: string }) {
       clearGlow(ctx);
       ctx.restore();
     }
-  }, [audioFeatures, accentColor, isBeat, bpm, stars, spotlights]);
+  }, [accentColor]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

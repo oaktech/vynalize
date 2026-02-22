@@ -324,10 +324,14 @@ exec chromium \
   --disable-features=TranslateUI \
   --disable-pinch \
   --overscroll-history-navigation=0 \
-  --disk-cache-dir=/dev/null \
+  --disk-cache-dir=/tmp/chromium-cache \
   --autoplay-policy=no-user-gesture-required \
   --use-fake-ui-for-media-stream \
-  --enable-features=OverlayScrollbar \
+  --enable-features=OverlayScrollbar,CanvasOopRasterization \
+  --enable-gpu-rasterization \
+  --enable-accelerated-2d-canvas \
+  --ignore-gpu-blocklist \
+  --enable-zero-copy \
   --ozone-platform=wayland \
   "__URL__"
 KIOSKEOF

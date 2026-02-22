@@ -1,6 +1,5 @@
-import { useRef, useEffect, useMemo } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr } from '../../utils/perfConfig';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { getVisDpr, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Color helpers (same as Nebula) ──────────────────────────
 
@@ -228,11 +227,9 @@ const MOON_YELLOW: [number, number, number] = [255, 235, 120];
 
 export default function StarryNight({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
 
   const beatPulse = useRef(0);
+  const prevBeat = useRef(false);
   const smooth = useRef({ rms: 0, bass: 0, mid: 0, high: 0, energy: 0 });
   const timeAccum = useRef(0);
 
@@ -256,18 +253,14 @@ export default function StarryNight({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  // Main render loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
 
-    const { width, height } = canvas;
     const dpr = getVisDpr();
 
     // ── Smooth audio ──
@@ -288,7 +281,7 @@ export default function StarryNight({ accentColor }: { accentColor: string }) {
     beatPulse.current *= 0.88;
     const pulse = beatPulse.current;
 
-    const beatsPerSec = (bpm || 120) / 60;
+    const beatsPerSec = (audioRef.bpm || 120) / 60;
     // Time accumulates faster with audio energy
     timeAccum.current += 0.016 * (1 + bLowMid * 2) * beatsPerSec * 0.5;
     const t = timeAccum.current;
@@ -641,7 +634,9 @@ export default function StarryNight({ accentColor }: { accentColor: string }) {
     }
 
     ctx.restore();
-  }, [audioFeatures, accentColor, isBeat, bpm, vortices, vgStars, strokes, cypressPoints, buildings, hills]);
+  }, [accentColor]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

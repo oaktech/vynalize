@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { useRef, useEffect, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -44,9 +43,6 @@ interface Ripple {
 
 export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const bpm = useStore((s) => s.bpm);
-  const isBeat = useStore((s) => s.isBeat);
 
   // Persistent animation state (all mutable, no React state)
   const timeRef = useRef(0);
@@ -63,6 +59,7 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
   const smooth = useRef({ bass: 0, mid: 0, high: 0, energy: 0, rms: 0 });
   const irisRot = useRef(0);
   const waveBurst = useRef(0);
+  const prevBeat = useRef(false);
 
   // ── Resize ─────────────────────────────────────────────────
 
@@ -78,25 +75,24 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  // ── Beat triggers ──────────────────────────────────────────
+  // ── Main draw callback ──────────────────────────────────────
 
-  useEffect(() => {
-    if (!isBeat) return;
-    beatPulse.current = 1;
-    pupilScale.current = [0.45, 0.45];
-    eyeScale.current = [1.09, 1.09];
-    lidOpenness.current = [1, 1];
-    browBounce.current = [-1, -1];
-    waveBurst.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  // ── Main render ────────────────────────────────────────────
+    // Beat edge detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) {
+      beatPulse.current = 1;
+      pupilScale.current = [0.45, 0.45];
+      eyeScale.current = [1.09, 1.09];
+      lidOpenness.current = [1, 1];
+      browBounce.current = [-1, -1];
+      waveBurst.current = 1;
+    }
+    prevBeat.current = audioRef.isBeat;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const bpm = audioRef.bpm;
 
     const now = performance.now();
     const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
@@ -104,8 +100,6 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
     timeRef.current += dt;
     const time = timeRef.current;
 
-    const W = canvas.width;
-    const H = canvas.height;
     const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
 
@@ -558,8 +552,9 @@ export default function VynalizeLogo({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = `hsla(${p.hue}, 85%, 72%, ${alpha * 0.85})`;
       ctx.fill();
     }
+  }, [accentColor]);
 
-  }, [audioFeatures, accentColor, bpm, isBeat]);
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

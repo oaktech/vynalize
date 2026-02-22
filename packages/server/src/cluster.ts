@@ -1,5 +1,14 @@
 import cluster from 'cluster';
 import os from 'os';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import { homedir } from 'os';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(homedir(), 'vynalize/.env'), override: false });
+config({ path: resolve(__dirname, '../../../.env'), override: false });
 
 const WEB_CONCURRENCY = parseInt(process.env.WEB_CONCURRENCY || '', 10) || os.cpus().length;
 

@@ -1,9 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { getAnalyserNode } from '../services/audioEngine';
+import { isLowPower, audioRef } from '../utils/perfConfig';
 import type { AudioFeatures } from '../types';
 
-const TARGET_INTERVAL = 33; // ~30fps
+const FPS_FULL = 33;  // ~30fps
+const FPS_LOW = 66;   // ~15fps
+const STORE_INTERVAL = 200; // update React store at 5fps max (for song ID, beat detection)
 
 export function useAudioAnalysis() {
   const isListening = useStore((s) => s.isListening);
@@ -12,6 +15,7 @@ export function useAudioAnalysis() {
   const prevSpectrum = useRef<Float32Array | null>(null);
   const sensitivityRef = useRef(useStore.getState().sensitivityGain);
   const lastFrameTime = useRef(0);
+  const lastStoreTime = useRef(0);
 
   // Keep sensitivity ref in sync without causing re-renders
   useEffect(() => {
@@ -37,8 +41,9 @@ export function useAudioAnalysis() {
     function analyze(now: number) {
       if (!analyser) return;
 
-      // Throttle to ~30fps
-      if (now - lastFrameTime.current < TARGET_INTERVAL) {
+      // Throttle to ~30fps (desktop) or ~20fps (Pi)
+      const interval = isLowPower() ? FPS_LOW : FPS_FULL;
+      if (now - lastFrameTime.current < interval) {
         rafRef.current = requestAnimationFrame(analyze);
         return;
       }
@@ -125,7 +130,18 @@ export function useAudioAnalysis() {
         high,
       };
 
-      setAudioFeatures(features);
+      // Always write to shared ref (visualizers read this via rAF — no React overhead)
+      audioRef.features = features;
+      audioRef.bpm = useStore.getState().bpm;
+      audioRef.isBeat = useStore.getState().isBeat;
+
+      // Throttle React store updates — only needed for non-visualizer consumers
+      // (beat detection, song ID, etc.) at 5fps max
+      if (now - lastStoreTime.current >= STORE_INTERVAL) {
+        lastStoreTime.current = now;
+        setAudioFeatures(features);
+      }
+
       rafRef.current = requestAnimationFrame(analyze);
     }
 
