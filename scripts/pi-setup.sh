@@ -40,7 +40,7 @@ info "Installing dependencies..."
 sudo apt-get install -y -qq \
   git \
   ffmpeg \
-  chromium-browser \
+  chromium \
   avahi-daemon \
   avahi-utils \
   libnss-mdns \
@@ -175,7 +175,7 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-exec chromium-browser \
+exec chromium \
   --kiosk \
   --start-fullscreen \
   --incognito \

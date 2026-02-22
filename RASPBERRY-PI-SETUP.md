@@ -96,7 +96,7 @@ The script is fully unattended. Grab a coffee — it takes a few minutes to down
 
 | Step | What happens |
 |---|---|
-| System packages | Installs `git`, `ffmpeg`, `chromium-browser`, `labwc`, `avahi-daemon`, `alsa-utils` |
+| System packages | Installs `git`, `ffmpeg`, `chromium`, `labwc`, `avahi-daemon`, `alsa-utils` |
 | Node.js 22 | Adds the NodeSource apt repository and installs Node 22 |
 | Clone / pull | Clones the repo into `~/vynalize` (or pulls latest if already cloned) |
 | Build | Runs `npm install` then builds the backend and frontend for production |
