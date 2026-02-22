@@ -70,6 +70,10 @@ Vynalize can run as a self-contained appliance on a Raspberry Pi -- no phone, ke
 
 ### Pi Setup
 
+See **[RASPBERRY-PI-SETUP.md](RASPBERRY-PI-SETUP.md)** for the full step-by-step guide — OS flashing, first boot, running the setup script, optional API keys, and troubleshooting.
+
+Quick version (assumes Raspberry Pi OS 64-bit is already running):
+
 ```bash
 git clone https://github.com/oaktech/vynalize.git ~/vynalize
 ~/vynalize/scripts/pi-setup.sh
@@ -78,7 +82,7 @@ sudo reboot
 
 The setup script installs everything: Node.js, Chromium kiosk, systemd service, mDNS (`vynalize.local`), and ALSA config for the USB mic.
 
-After reboot, the Pi boots into a full-screen Chromium kiosk at `/kiosk?autostart` and audio capture begins automatically. The phone remote is still available at `http://vynalize.local:3001/remote`.
+After reboot, the Pi boots into a full-screen Chromium kiosk at `/kiosk?autostart` and audio capture begins automatically. The phone remote is available at `http://vynalize.local:3001/remote`.
 
 ## How It Works
 
