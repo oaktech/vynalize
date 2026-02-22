@@ -221,7 +221,7 @@ describe('Visualizer Cycling Flow', () => {
     expect(modes).toEqual([
       'spectrum', 'radial', 'particles', 'radical', 'nebula',
       'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero',
-      'vynalize', 'beatsaber', 'pittsburgh',
+      'vynalize', 'beatsaber',
     ]);
 
     // Full cycle returns to start

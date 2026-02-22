@@ -9,11 +9,11 @@ describe('Visualizer View', () => {
     const ALL_VISUALIZER_MODES: VisualizerMode[] = [
       'spectrum', 'radial', 'particles', 'radical', 'nebula',
       'vitals', 'synthwave', 'spaceage', 'starrynight',
-      'guitarhero', 'vynalize', 'beatsaber', 'pittsburgh',
+      'guitarhero', 'vynalize', 'beatsaber',
     ];
 
-    it('has exactly 13 visualizer modes', () => {
-      expect(ALL_VISUALIZER_MODES).toHaveLength(13);
+    it('has exactly 12 visualizer modes', () => {
+      expect(ALL_VISUALIZER_MODES).toHaveLength(12);
     });
 
     it('each mode maps to a component', () => {
@@ -21,7 +21,7 @@ describe('Visualizer View', () => {
       const lazyComponents = [
         'SpectrumBars', 'RadialSpectrum', 'ParticleField', 'Radical',
         'Nebula', 'Vitals', 'Synthwave', 'SpaceAge', 'StarryNight',
-        'GuitarHero', 'VynalizeLogo', 'BeatSaber', 'PittsburghSkyline',
+        'GuitarHero', 'VynalizeLogo', 'BeatSaber',
       ];
       expect(lazyComponents).toHaveLength(ALL_VISUALIZER_MODES.length);
     });
@@ -139,11 +139,10 @@ describe('Mode Selector', () => {
       { id: 'guitarhero', label: 'Guitar Hero', tag: 'Note highway' },
       { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
       { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
-      { id: 'pittsburgh', label: 'Pittsburgh', tag: 'City skyline' },
     ];
 
-    it('all 13 visualizer modes have labels and tags', () => {
-      expect(vizModes).toHaveLength(13);
+    it('all 12 visualizer modes have labels and tags', () => {
+      expect(vizModes).toHaveLength(12);
       for (const mode of vizModes) {
         expect(mode.label).toBeTruthy();
         expect(mode.tag).toBeTruthy();

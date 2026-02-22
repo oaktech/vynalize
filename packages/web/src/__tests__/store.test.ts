@@ -265,7 +265,7 @@ describe('Store', () => {
     const allModes: VisualizerMode[] = [
       'spectrum', 'radial', 'particles', 'radical', 'nebula',
       'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero',
-      'vynalize', 'beatsaber', 'pittsburgh',
+      'vynalize', 'beatsaber',
     ];
 
     it('cycles to next visualizer', () => {
@@ -277,7 +277,7 @@ describe('Store', () => {
     });
 
     it('wraps around from last to first', () => {
-      getState().setVisualizerMode('pittsburgh');
+      getState().setVisualizerMode('beatsaber');
       getState().nextVisualizer();
       expect(getState().visualizerMode).toBe('spectrum');
     });
@@ -291,12 +291,12 @@ describe('Store', () => {
     it('wraps around from first to last', () => {
       expect(getState().visualizerMode).toBe('spectrum');
       getState().prevVisualizer();
-      expect(getState().visualizerMode).toBe('pittsburgh');
+      expect(getState().visualizerMode).toBe('beatsaber');
     });
 
-    it('visits all 13 modes in a full cycle', () => {
+    it('visits all 12 modes in a full cycle', () => {
       const visited: VisualizerMode[] = [getState().visualizerMode];
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 11; i++) {
         getState().nextVisualizer();
         visited.push(getState().visualizerMode);
       }
