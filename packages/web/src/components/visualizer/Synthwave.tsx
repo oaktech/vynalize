@@ -1,6 +1,5 @@
-import { useRef, useEffect, useMemo } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow } from '../../utils/perfConfig';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Config ───────────────────────────────────────────────────
 
@@ -60,15 +59,13 @@ function createMountain(points: number): number[] {
 
 export default function Synthwave({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
 
   const beatPulse = useRef(0);
   const gridScroll = useRef(0);
   const smooth = useRef({ rms: 0, bass: 0, mid: 0, high: 0, energy: 0 });
   const shootingStars = useRef<{ x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number }[]>([]);
   const lastShootingStar = useRef(0);
+  const prevBeat = useRef(false);
 
   const stars = useMemo(() => createStars(STAR_COUNT), []);
   const baseMountain = useMemo(() => createMountain(MOUNTAIN_POINTS), []);
@@ -85,22 +82,19 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const { width, height } = canvas;
     const dpr = getVisDpr();
     const [ar, ag, ab] = hexToRgb(accentColor);
 
     const { rms, bass, mid, high, energy } = audioFeatures;
     const freq = audioFeatures.frequencyData;
+
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
 
     // Smooth audio
     const s = smooth.current;
@@ -115,7 +109,7 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
     const pulse = beatPulse.current;
 
     // Scroll speed tied to BPM
-    const beatsPerSec = (bpm || 120) / 60;
+    const beatsPerSec = (audioRef.bpm || 120) / 60;
     gridScroll.current += beatsPerSec * 0.012;
 
     const horizon = height * 0.48;
@@ -348,7 +342,9 @@ export default function Synthwave({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = flareGrad;
       ctx.fillRect(0, 0, width, height);
     }
-  }, [audioFeatures, accentColor, isBeat, bpm, stars, baseMountain]);
+  }, [accentColor, stars, baseMountain]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

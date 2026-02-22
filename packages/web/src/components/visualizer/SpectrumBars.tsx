@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, applyGlow, clearGlow, getLowPowerCount } from '../../utils/perfConfig';
+import { useRef, useEffect, useCallback } from 'react';
+import { getVisDpr, applyGlow, clearGlow, getLowPowerCount, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -26,17 +25,13 @@ function boost(value: number, barNorm: number): number {
 
 export default function SpectrumBars({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
   const beatFlash = useRef(0);
   const smoothBars = useRef<Float32Array | null>(null);
+  const prevBeat = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     const resize = () => {
       canvas.width = canvas.clientWidth * getVisDpr();
       canvas.height = canvas.clientHeight * getVisDpr();
@@ -46,17 +41,14 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  useEffect(() => {
-    if (isBeat) beatFlash.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Beat detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) beatFlash.current = 1;
+    prevBeat.current = audioRef.isBeat;
 
-    const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
@@ -134,12 +126,9 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = reflGradient;
       ctx.fillRect(x, height, barWidth, barHeight * 0.3);
     }
-  }, [audioFeatures, accentColor, isBeat]);
+  }, [accentColor]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-    />
-  );
+  useVisualizerLoop(canvasRef, draw, [draw]);
+
+  return <canvas ref={canvasRef} className="w-full h-full" />;
 }

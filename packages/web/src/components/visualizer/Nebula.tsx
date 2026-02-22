@@ -1,6 +1,5 @@
-import { useRef, useEffect, useMemo } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, getLowPowerCount, isLowPower } from '../../utils/perfConfig';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { getVisDpr, getLowPowerCount, isLowPower, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 // ── Color helpers ────────────────────────────────────────────
 
@@ -121,13 +120,11 @@ const RIBBON_COUNT = 4;
 
 export default function Nebula({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const isBeat = useStore((s) => s.isBeat);
-  const bpm = useStore((s) => s.bpm);
 
   const beatPulse = useRef(0);
   const smooth = useRef({ rms: 0, bass: 0, mid: 0, high: 0, energy: 0 });
   const trailCanvas = useRef<HTMLCanvasElement | null>(null);
+  const prevBeat = useRef(false);
 
   // Eye gaze state — smooth wandering with saccade-like jumps on beats
   const gaze = useRef({ x: 0, y: 0 });           // current gaze (-1 to 1)
@@ -162,18 +159,14 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  useEffect(() => {
-    if (isBeat) beatPulse.current = 1;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  // Main render loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const { width, height } = canvas;
+    // Beat edge detection
+    if (audioRef.isBeat && !prevBeat.current) beatPulse.current = 1;
+    prevBeat.current = audioRef.isBeat;
+    const bpm = audioRef.bpm;
     const cx = width / 2;
     const cy = height / 2;
     const maxR = Math.max(width, height) * 0.5;
@@ -485,7 +478,9 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, bright * 0.9)})`;
       ctx.fill();
     }
-  }, [audioFeatures, accentColor, isBeat, bpm, stars, orbs]);
+  }, [accentColor, stars, orbs]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }

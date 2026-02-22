@@ -1,6 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useStore } from '../../store';
-import { getVisDpr, getLowPowerCount } from '../../utils/perfConfig';
+import { useRef, useEffect, useCallback } from 'react';
+import { getVisDpr, getLowPowerCount, useVisualizerLoop, audioRef } from '../../utils/perfConfig';
 
 function hexToRgb(color: string): [number, number, number] {
   if (color.startsWith('rgb')) {
@@ -25,12 +24,10 @@ function boost(value: number, gain: number = 3.5): number {
 
 export default function RadialSpectrum({ accentColor }: { accentColor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioFeatures = useStore((s) => s.audioFeatures);
-  const bpm = useStore((s) => s.bpm);
-  const isBeat = useStore((s) => s.isBeat);
   const rotation = useRef(0);
   const pulseScale = useRef(1);
   const smooth = useRef({ bass: 0, mid: 0, energy: 0 });
+  const prevBeat = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -44,17 +41,14 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  useEffect(() => {
-    if (isBeat) pulseScale.current = 1.25;
-  }, [isBeat]);
+  const draw = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const audioFeatures = audioRef.features;
+    if (!audioFeatures) return;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !audioFeatures) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Beat edge detection from shared ref
+    if (audioRef.isBeat && !prevBeat.current) pulseScale.current = 1.25;
+    prevBeat.current = audioRef.isBeat;
 
-    const { width, height } = canvas;
     ctx.clearRect(0, 0, width, height);
 
     const centerX = width / 2;
@@ -77,6 +71,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     const bLowMid = boost(s.bass * 0.4 + s.mid * 0.6, 6.0);
 
     // Rotation speed based on BPM, modulated by lower mids
+    const bpm = audioRef.bpm;
     const speed = bpm ? (bpm / 120) * 0.005 : 0.003;
     rotation.current += speed * (1 + bLowMid * 1.5);
 
@@ -141,7 +136,9 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
     ctx.fill();
 
     ctx.restore();
-  }, [audioFeatures, accentColor, bpm, isBeat]);
+  }, [accentColor]);
+
+  useVisualizerLoop(canvasRef, draw, [draw]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }
