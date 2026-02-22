@@ -202,12 +202,7 @@ journalctl -u vynalize -f
 **Update to the latest version:**
 
 ```bash
-cd ~/vynalize
-git pull
-npm install --workspaces --include-workspace-root
-npm run build --workspace=packages/server
-npm run build --workspace=packages/web
-sudo systemctl restart vynalize
+cd ~/vynalize && git pull && npm install && npm run build && sudo systemctl restart vynalize
 ```
 
 **Reconfigure after swapping the USB mic:**
