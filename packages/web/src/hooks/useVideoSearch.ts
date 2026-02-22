@@ -4,7 +4,6 @@ import { searchMusicVideo } from '../services/videoApi';
 
 export function useVideoSearch() {
   const currentSong = useStore((s) => s.currentSong);
-  const remoteConnected = useStore((s) => s.remoteConnected);
   const setVideoId = useStore((s) => s.setVideoId);
   const setVideoSearching = useStore((s) => s.setVideoSearching);
   const setVideoOffsetMs = useStore((s) => s.setVideoOffsetMs);
@@ -13,11 +12,6 @@ export function useVideoSearch() {
     if (!currentSong) {
       setVideoId(null);
       setVideoSearching(false);
-      return;
-    }
-
-    // Only search when actively synced to a remote controller
-    if (!remoteConnected) {
       return;
     }
 
@@ -41,5 +35,5 @@ export function useVideoSearch() {
     return () => {
       cancelled = true;
     };
-  }, [currentSong, remoteConnected, setVideoId, setVideoSearching]);
+  }, [currentSong, setVideoId, setVideoSearching]);
 }
