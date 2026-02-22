@@ -2,9 +2,10 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useStore } from '../store';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
+import { useSwipe } from '../hooks/useSwipe';
 import NowPlaying from './NowPlaying';
 import ListeningPulse from './ListeningPulse';
-import ModeSelector from './ModeSelector';
+import ModeSelector, { APP_MODES } from './ModeSelector';
 import SyncControls from './SyncControls';
 import Settings from './Settings';
 import UserSettings from './UserSettings';
@@ -47,6 +48,28 @@ export default function AppShell() {
       setControlsVisible(false);
     }, CONTROLS_HIDE_DELAY);
   }, [setControlsVisible]);
+
+  const nextVisualizer = useStore((s) => s.nextVisualizer);
+  const prevVisualizer = useStore((s) => s.prevVisualizer);
+
+  const swipe = useSwipe({
+    onSwipeLeft: useCallback(() => {
+      if (useStore.getState().appMode === 'visualizer') {
+        nextVisualizer();
+      } else {
+        const i = APP_MODES.indexOf(useStore.getState().appMode);
+        setAppMode(APP_MODES[(i + 1) % APP_MODES.length]);
+      }
+    }, [setAppMode, nextVisualizer]),
+    onSwipeRight: useCallback(() => {
+      if (useStore.getState().appMode === 'visualizer') {
+        prevVisualizer();
+      } else {
+        const i = APP_MODES.indexOf(useStore.getState().appMode);
+        setAppMode(APP_MODES[(i - 1 + APP_MODES.length) % APP_MODES.length]);
+      }
+    }, [setAppMode, prevVisualizer]),
+  });
 
   const adjustOffset = useStore((s) => s.adjustOffset);
   const adjustVideoOffset = useStore((s) => s.adjustVideoOffset);
@@ -112,7 +135,8 @@ export default function AppShell() {
     <div
       className="relative w-screen h-dvh overflow-hidden bg-black"
       onMouseMove={showControls}
-      onTouchStart={showControls}
+      onTouchStart={(e) => { showControls(); swipe.onTouchStart(e); }}
+      onTouchEnd={swipe.onTouchEnd}
       onClick={showControls}
     >
       {/* Main content area with crossfade */}

@@ -117,7 +117,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
             <div className="space-y-2 text-xs">
               {[
                 ['Tap screen', 'Show/hide controls'],
-                ['Swipe mode bar', 'Switch visualizer modes'],
+                ['Swipe left / right', 'Switch display mode'],
                 ['Sync buttons', 'Adjust lyrics/video timing'],
               ].map(([action, desc]) => (
                 <div key={action} className="flex items-center justify-between">
