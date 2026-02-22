@@ -7,6 +7,7 @@ import ListeningPulse from './ListeningPulse';
 import ModeSelector from './ModeSelector';
 import SyncControls from './SyncControls';
 import Settings from './Settings';
+import UserSettings from './UserSettings';
 import ManualSearch from './ManualSearch';
 import SongHistory from './SongHistory';
 import VisualizerView from './visualizer/VisualizerView';
@@ -36,6 +37,8 @@ export default function AppShell() {
   const isOnline = useStore((s) => s.isOnline);
   const hideTimer = useRef<number>(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [userSettingsOpen, setUserSettingsOpen] = useState(false);
+  const authUser = useStore((s) => s.authUser);
 
   const showControls = useCallback(() => {
     setControlsVisible(true);
@@ -152,6 +155,22 @@ export default function AppShell() {
                 {bpm} BPM
               </span>
             )}
+            {authUser && (
+              <button
+                onClick={() => setUserSettingsOpen(true)}
+                className="p-1 rounded-full hover:ring-2 ring-white/20 transition-all"
+                aria-label="Account"
+                title="Account"
+              >
+                {authUser.avatarUrl ? (
+                  <img src={authUser.avatarUrl} alt="" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-violet-500/30 flex items-center justify-center text-white/70 text-xs font-medium">
+                    {authUser.displayName.charAt(0)}
+                  </div>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-3 sm:p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -215,6 +234,11 @@ export default function AppShell() {
 
       {/* Settings modal */}
       <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      {/* User settings modal */}
+      {userSettingsOpen && (
+        <UserSettings onClose={() => setUserSettingsOpen(false)} />
+      )}
     </div>
   );
 }

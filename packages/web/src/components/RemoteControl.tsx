@@ -23,7 +23,6 @@ const VIZ_MODES: { id: VisualizerMode; label: string }[] = [
   { id: 'starrynight', label: 'Starry Night' },
   { id: 'guitarhero', label: 'Guitar Hero' },
   { id: 'vynalize', label: 'Vynalize' },
-  { id: 'pittsburgh', label: 'Pittsburgh' },
 ];
 
 const VIZ_COUNT = VIZ_MODES.length;

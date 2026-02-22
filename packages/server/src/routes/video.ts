@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { cacheGet, cacheSet, cacheIncr } from '../services/cache.js';
 import { createRateLimit } from '../middleware/rateLimit.js';
 import { getSettings } from '../services/settings.js';
+import { getUserId, isAuthEnabled } from '../middleware/auth.js';
+import { getUserApiKey } from '../services/users.js';
+import { checkAndIncrementQuota } from '../services/quota.js';
 
 const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
 const CACHE_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -31,19 +34,50 @@ videoRouter.get(
       return;
     }
 
-    const apiKey = getSettings().youtubeApiKey;
+    // Resolve API key: user's own key → shared key → error
+    const userId = getUserId(req);
+    let apiKey: string | null = null;
+    let usingUserKey = false;
+
+    if (userId) {
+      const userKey = await getUserApiKey(userId);
+      if (userKey) {
+        apiKey = userKey;
+        usingUserKey = true;
+      }
+    }
+
+    if (!apiKey) {
+      apiKey = getSettings().youtubeApiKey;
+    }
+
     if (!apiKey) {
       res.status(500).json({ error: 'YOUTUBE_API_KEY not configured' });
       return;
     }
 
-    // Check YouTube quota before making API call
-    const today = new Date().toISOString().slice(0, 10);
-    const quotaCount = await cacheIncr(`quota:youtube:${today}`, QUOTA_TTL);
-    if (quotaCount > QUOTA_LIMIT) {
-      console.warn('[video] YouTube API daily quota exceeded');
-      res.status(429).json({ error: 'YouTube API quota exceeded for today' });
-      return;
+    // Per-user quota check (shared key only, authenticated users only)
+    if (!usingUserKey && userId && isAuthEnabled()) {
+      const quota = await checkAndIncrementQuota(userId);
+      res.setHeader('X-Quota-Remaining', String(quota.remaining));
+      if (!quota.allowed) {
+        console.warn(`[video] User ${userId} exceeded daily quota`);
+        res.status(429).json({
+          error: 'Daily search quota exceeded. Add your own YouTube API key in settings for unlimited searches.',
+        });
+        return;
+      }
+    }
+
+    // Global quota check for shared key
+    if (!usingUserKey) {
+      const today = new Date().toISOString().slice(0, 10);
+      const quotaCount = await cacheIncr(`quota:youtube:${today}`, QUOTA_TTL);
+      if (quotaCount > QUOTA_LIMIT) {
+        console.warn('[video] YouTube API daily quota exceeded');
+        res.status(429).json({ error: 'YouTube API quota exceeded for today' });
+        return;
+      }
     }
 
     try {
@@ -57,7 +91,7 @@ videoRouter.get(
         key: apiKey,
       });
 
-      console.log(`[video] Searching YouTube: "${query}"`);
+      console.log(`[video] Searching YouTube: "${query}"${usingUserKey ? ' (user key)' : ''}`);
       const ytRes = await fetch(`${YOUTUBE_API_URL}?${params}`);
 
       if (!ytRes.ok) {

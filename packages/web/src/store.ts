@@ -12,7 +12,7 @@ import type {
 
 const VISUALIZER_MODES: VisualizerMode[] = [
   'spectrum', 'radial', 'particles',
-  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber', 'pittsburgh',
+  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber',
 ];
 
 interface VinylStore {
@@ -127,6 +127,14 @@ interface VinylStore {
   // Auto-play music videos when discovered
   autoPlayVideo: boolean;
   setAutoPlayVideo: (v: boolean) => void;
+
+  // Auth (not persisted — fetched from server)
+  authUser: { id: number; email: string; displayName: string; avatarUrl: string | null; hasYoutubeApiKey: boolean } | null;
+  authLoading: boolean;
+  authRequired: boolean;
+  setAuthUser: (u: VinylStore['authUser']) => void;
+  setAuthLoading: (v: boolean) => void;
+  setAuthRequired: (v: boolean) => void;
 }
 
 const defaultPosition: PositionState = {
@@ -260,6 +268,13 @@ export const useStore = create<VinylStore>()(
 
       autoPlayVideo: false,
       setAutoPlayVideo: (autoPlayVideo) => set({ autoPlayVideo }),
+
+      authUser: null,
+      authLoading: true,
+      authRequired: false,
+      setAuthUser: (authUser) => set({ authUser }),
+      setAuthLoading: (authLoading) => set({ authLoading }),
+      setAuthRequired: (authRequired) => set({ authRequired }),
     }),
     {
       name: 'vynalize-store',

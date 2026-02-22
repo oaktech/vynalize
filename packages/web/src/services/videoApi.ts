@@ -16,7 +16,7 @@ export async function searchMusicVideo(
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetchWithTimeout(`/api/video/search?${params}`);
+      const res = await fetchWithTimeout(`/api/video/search?${params}`, { credentials: 'include' });
       if (!res.ok) return null;
 
       const data = await res.json();

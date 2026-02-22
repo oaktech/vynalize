@@ -14,7 +14,6 @@ const StarryNight = lazy(() => import('./StarryNight'));
 const GuitarHero = lazy(() => import('./GuitarHero'));
 const VynalizeLogo = lazy(() => import('./VynalizeLogo'));
 const BeatSaber = lazy(() => import('./BeatSaber'));
-const PittsburghSkyline = lazy(() => import('./PittsburghSkyline'));
 
 function VisualizerLoading() {
   return (
@@ -54,7 +53,6 @@ export default function VisualizerView() {
           {visualizerMode === 'guitarhero' && <GuitarHero accentColor={accentColor} />}
           {visualizerMode === 'vynalize' && <VynalizeLogo accentColor={accentColor} />}
           {visualizerMode === 'beatsaber' && <BeatSaber accentColor={accentColor} />}
-          {visualizerMode === 'pittsburgh' && <PittsburghSkyline accentColor={accentColor} />}
         </Suspense>
       </div>
     </div>

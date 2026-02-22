@@ -21,6 +21,7 @@ export async function identifySong(audioBlob: Blob): Promise<IdentifyResult | nu
       const res = await fetchWithTimeout('/api/identify', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       }, 15000);
 
       if (!res.ok) {
