@@ -57,15 +57,26 @@ function getLocalIPs(): Set<string> {
 
 /**
  * Resolve the real client IP from a raw HTTP request (e.g. WebSocket upgrade).
- * When TRUST_PROXY is set, reads X-Forwarded-For; otherwise uses the TCP peer.
+ * When TRUST_PROXY is set, reads X-Forwarded-For from the RIGHT — proxies
+ * append to XFF, so the rightmost entries are trusted hops and the real client
+ * IP sits just before them.  Reading from the left is unsafe because an
+ * attacker can prepend a spoofed value (e.g. a private IP) to bypass isLocal.
+ *
+ * TRUST_PROXY=true  → assumes 1 trusted hop (safe default for Railway/nginx)
+ * TRUST_PROXY=<N>   → trusts N hops from the right
  */
 export function getClientIp(req: IncomingMessage): string {
   if (process.env.TRUST_PROXY) {
     const forwarded = req.headers['x-forwarded-for'];
     if (typeof forwarded === 'string') {
-      // X-Forwarded-For is "client, proxy1, proxy2" — leftmost is the original client
-      const first = forwarded.split(',')[0].trim();
-      if (first) return first;
+      const hops = forwarded.split(',').map(s => s.trim()).filter(Boolean);
+      if (hops.length > 0) {
+        const hopCount = process.env.TRUST_PROXY === 'true'
+          ? 1
+          : parseInt(process.env.TRUST_PROXY, 10) || 1;
+        // Client IP is at hops[length - hopCount], clamped to 0
+        return hops[Math.max(0, hops.length - hopCount)];
+      }
     }
   }
   return req.socket.remoteAddress ?? '';

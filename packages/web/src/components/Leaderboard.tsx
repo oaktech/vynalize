@@ -255,7 +255,7 @@ export default function Leaderboard() {
                     </p>
                   </div>
                   {song.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
+                    <span className="text-base shrink-0" title="Top listener location">
                       {countryFlag(song.topCountry)}
                     </span>
                   )}
@@ -293,7 +293,7 @@ export default function Leaderboard() {
                     </p>
                   </div>
                   {artist.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
+                    <span className="text-base shrink-0" title="Top listener location">
                       {countryFlag(artist.topCountry)}
                     </span>
                   )}
@@ -329,7 +329,7 @@ export default function Leaderboard() {
                     </p>
                   </div>
                   {genre.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
+                    <span className="text-base shrink-0" title="Top listener location">
                       {countryFlag(genre.topCountry)}
                     </span>
                   )}
