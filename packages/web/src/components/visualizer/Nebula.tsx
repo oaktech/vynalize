@@ -203,7 +203,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     if (trail) {
       const tctx = trail.getContext('2d')!;
       tctx.globalCompositeOperation = 'source-over';
-      tctx.drawImage(canvas, 0, 0);
+      tctx.drawImage(canvasRef.current!, 0, 0);
     }
 
     // Clear main canvas

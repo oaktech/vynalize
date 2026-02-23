@@ -148,7 +148,7 @@ export function useAudioAnalysis() {
     rafRef.current = requestAnimationFrame(analyze);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [isListening, setAudioFeatures]);
 }
