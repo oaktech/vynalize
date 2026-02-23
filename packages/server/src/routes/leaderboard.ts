@@ -4,8 +4,8 @@ import { dbAvailable, getPool } from '../services/db.js';
 export const leaderboardRouter = Router();
 
 const PERIOD_FILTERS: Record<string, string> = {
-  today: `played_at >= DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')`,
-  week: `played_at >= DATE_TRUNC('week', NOW() AT TIME ZONE 'UTC')`,
+  today: `played_at >= NOW() - INTERVAL '24 hours'`,
+  week: `played_at >= NOW() - INTERVAL '7 days'`,
   month: `played_at >= DATE_TRUNC('month', NOW() AT TIME ZONE 'UTC')`,
   year: `played_at >= DATE_TRUNC('year', NOW() AT TIME ZONE 'UTC')`,
   all: '1=1',
