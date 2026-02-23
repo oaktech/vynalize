@@ -132,7 +132,7 @@ export function useAudioAnalysis() {
 
       // Always write to shared ref (visualizers read this via rAF — no React overhead)
       audioRef.features = features;
-      audioRef.bpm = useStore.getState().bpm;
+      audioRef.bpm = useStore.getState().bpm ?? 0;
       audioRef.isBeat = useStore.getState().isBeat;
 
       // Throttle React store updates — only needed for non-visualizer consumers
