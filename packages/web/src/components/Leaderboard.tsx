@@ -249,7 +249,7 @@ export default function Leaderboard() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{song.title}</p>
-                    <p className="text-xs text-white/40 truncate">
+                    <p className="text-sm text-white/40 truncate">
                       {song.artist}
                       {song.album && <span className="text-white/20"> &middot; {song.album}</span>}
                     </p>
@@ -288,7 +288,7 @@ export default function Leaderboard() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{artist.artist}</p>
-                    <p className="text-xs text-white/40">
+                    <p className="text-sm text-white/40">
                       {artist.songCount} {pluralize(artist.songCount, 'song')}
                     </p>
                   </div>
@@ -324,7 +324,7 @@ export default function Leaderboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{genre.genre}</p>
-                    <p className="text-xs text-white/40">
+                    <p className="text-sm text-white/40">
                       {genre.artistCount} {pluralize(genre.artistCount, 'artist')}
                     </p>
                   </div>
