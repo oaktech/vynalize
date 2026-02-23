@@ -11,7 +11,7 @@ import {
   touchSession,
 } from './services/sessionManager.js';
 import { getSettings } from './services/settings.js';
-import { isPrivateIP } from './middleware/localOnly.js';
+import { isPrivateIP, getClientIp } from './middleware/localOnly.js';
 
 const OPEN_SESSION = '__open__';
 const MAX_MESSAGE_SIZE = 50 * 1024; // 50 KB
@@ -200,7 +200,7 @@ export function attachWebSocket(server: Server): void {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
     const role = (url.searchParams.get('role') as ClientRole) || 'controller';
     const sessionParam = url.searchParams.get('session');
-    const clientIp = req.socket.remoteAddress ?? '';
+    const clientIp = getClientIp(req);
     const isLocal = isPrivateIP(clientIp);
 
     // Register message handler synchronously to avoid race with async setup.

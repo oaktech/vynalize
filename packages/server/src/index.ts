@@ -155,7 +155,7 @@ async function start() {
       if (match) { lanHost = match.address; break; }
     }
     // Local network clients skip the pairing code — they share the open session
-    const clientIp = req.socket.remoteAddress ?? '';
+    const clientIp = req.ip ?? req.socket.remoteAddress ?? '';
     const isLocal = isPrivateIP(clientIp);
     res.json({
       requireCode: isLocal ? false : getSettings().requireCode,

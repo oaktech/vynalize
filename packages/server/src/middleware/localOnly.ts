@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import type { IncomingMessage } from 'http';
 import { networkInterfaces } from 'os';
 
 /**
@@ -54,12 +55,32 @@ function getLocalIPs(): Set<string> {
   return localIPs;
 }
 
+/**
+ * Resolve the real client IP from a raw HTTP request (e.g. WebSocket upgrade).
+ * When TRUST_PROXY is set, reads X-Forwarded-For; otherwise uses the TCP peer.
+ */
+export function getClientIp(req: IncomingMessage): string {
+  if (process.env.TRUST_PROXY) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      // X-Forwarded-For is "client, proxy1, proxy2" — leftmost is the original client
+      const first = forwarded.split(',')[0].trim();
+      if (first) return first;
+    }
+  }
+  return req.socket.remoteAddress ?? '';
+}
+
 export { isPrivateIP };
 
 export function localOnly(req: Request, res: Response, next: NextFunction): void {
-  // Use the raw TCP peer address — NOT req.ip, which reflects X-Forwarded-For
-  // when trust proxy is enabled and can be spoofed by any remote client.
-  const ip = req.socket.remoteAddress ?? '';
+  // req.ip respects the Express "trust proxy" setting:
+  //  - When trust proxy is configured, req.ip is the real client IP as
+  //    forwarded by the trusted proxy (not spoofable by the end client).
+  //  - When trust proxy is NOT configured, req.ip === req.socket.remoteAddress.
+  // Using req.socket.remoteAddress directly would always see 127.0.0.1
+  // behind a reverse proxy, bypassing this middleware entirely.
+  const ip = req.ip ?? req.socket.remoteAddress ?? '';
 
   if (isPrivateIP(ip) || getLocalIPs().has(ip)) {
     next();
