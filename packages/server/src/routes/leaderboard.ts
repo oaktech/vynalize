@@ -43,6 +43,24 @@ leaderboardRouter.get('/', async (req, res) => {
   }
 
   try {
+    // Summary stats (only on first page)
+    let summary: { totalPlays: number; uniqueCount: number } | undefined;
+    if (offset === 0) {
+      const genreFilter = category === 'genres' ? ' AND genre IS NOT NULL' : '';
+      const uniqueExpr =
+        category === 'artists' ? 'COUNT(DISTINCT artist)'
+        : category === 'genres' ? 'COUNT(DISTINCT genre)'
+        : 'COUNT(DISTINCT (title, artist))';
+      const { rows: statsRows } = await pool.query(
+        `SELECT COUNT(*)::int AS total_plays, ${uniqueExpr}::int AS unique_count
+         FROM song_plays WHERE ${whereClause}${genreFilter}`,
+      );
+      summary = {
+        totalPlays: statsRows[0]?.total_plays ?? 0,
+        uniqueCount: statsRows[0]?.unique_count ?? 0,
+      };
+    }
+
     if (category === 'artists') {
       const { rows } = await pool.query(
         `SELECT
@@ -50,7 +68,8 @@ leaderboardRouter.get('/', async (req, res) => {
            COUNT(*)::int AS play_count,
            COUNT(DISTINCT title)::int AS song_count,
            MAX(album_art_url) AS album_art_url,
-           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country,
+           MAX(played_at) AS last_played
          FROM song_plays
          WHERE ${whereClause}
          GROUP BY artist
@@ -61,6 +80,7 @@ leaderboardRouter.get('/', async (req, res) => {
 
       res.json({
         period,
+        ...(summary && { summary }),
         artists: rows.map((row, i) => ({
           rank: offset + i + 1,
           artist: row.artist,
@@ -68,6 +88,7 @@ leaderboardRouter.get('/', async (req, res) => {
           songCount: row.song_count,
           albumArtUrl: row.album_art_url,
           topCountry: row.top_country,
+          lastPlayed: row.last_played,
         })),
       });
     } else if (category === 'genres') {
@@ -76,7 +97,8 @@ leaderboardRouter.get('/', async (req, res) => {
            genre,
            COUNT(*)::int AS play_count,
            COUNT(DISTINCT artist)::int AS artist_count,
-           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country,
+           MAX(played_at) AS last_played
          FROM song_plays
          WHERE ${whereClause} AND genre IS NOT NULL
          GROUP BY genre
@@ -87,12 +109,14 @@ leaderboardRouter.get('/', async (req, res) => {
 
       res.json({
         period,
+        ...(summary && { summary }),
         genres: rows.map((row, i) => ({
           rank: offset + i + 1,
           genre: row.genre,
           playCount: row.play_count,
           artistCount: row.artist_count,
           topCountry: row.top_country,
+          lastPlayed: row.last_played,
         })),
       });
     } else {
@@ -104,7 +128,8 @@ leaderboardRouter.get('/', async (req, res) => {
            MAX(album) AS album,
            MAX(album_art_url) AS album_art_url,
            COUNT(*)::int AS play_count,
-           MODE() WITHIN GROUP (ORDER BY country) AS top_country
+           MODE() WITHIN GROUP (ORDER BY country) AS top_country,
+           MAX(played_at) AS last_played
          FROM song_plays
          WHERE ${whereClause}
          GROUP BY title, artist
@@ -115,6 +140,7 @@ leaderboardRouter.get('/', async (req, res) => {
 
       res.json({
         period,
+        ...(summary && { summary }),
         songs: rows.map((row, i) => ({
           rank: offset + i + 1,
           title: row.title,
@@ -123,6 +149,7 @@ leaderboardRouter.get('/', async (req, res) => {
           albumArtUrl: row.album_art_url,
           playCount: row.play_count,
           topCountry: row.top_country,
+          lastPlayed: row.last_played,
         })),
       });
     }

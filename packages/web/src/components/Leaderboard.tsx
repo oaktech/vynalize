@@ -22,6 +22,7 @@ interface Song {
   albumArtUrl: string | null;
   playCount: number;
   topCountry: string | null;
+  lastPlayed: string | null;
 }
 
 interface Artist {
@@ -31,6 +32,7 @@ interface Artist {
   songCount: number;
   albumArtUrl: string | null;
   topCountry: string | null;
+  lastPlayed: string | null;
 }
 
 interface Genre {
@@ -39,6 +41,12 @@ interface Genre {
   playCount: number;
   artistCount: number;
   topCountry: string | null;
+  lastPlayed: string | null;
+}
+
+interface Summary {
+  totalPlays: number;
+  uniqueCount: number;
 }
 
 function countryFlag(code: string | null): string {
@@ -46,6 +54,25 @@ function countryFlag(code: string | null): string {
   return String.fromCodePoint(
     ...code.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
   );
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return '';
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+function pluralize(count: number, singular: string, plural?: string): string {
+  return count === 1 ? singular : (plural ?? singular + 's');
 }
 
 const PAGE_SIZE = 20;
@@ -56,6 +83,7 @@ export default function Leaderboard() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -72,12 +100,14 @@ export default function Leaderboard() {
         setSongs(data.songs ?? []);
         setArtists(data.artists ?? []);
         setGenres(data.genres ?? []);
+        setSummary(data.summary ?? null);
         if (items.length < PAGE_SIZE) setHasMore(false);
       })
       .catch(() => {
         setSongs([]);
         setArtists([]);
         setGenres([]);
+        setSummary(null);
         setHasMore(false);
       })
       .finally(() => setLoading(false));
@@ -124,6 +154,9 @@ export default function Leaderboard() {
       ? 'w-7 h-7 rounded-full bg-white/15 text-white font-bold text-xs flex items-center justify-center shrink-0'
       : 'w-7 text-center text-sm font-mono text-white/30 shrink-0';
 
+  const summaryLabel =
+    category === 'songs' ? 'song' : category === 'artists' ? 'artist' : 'genre';
+
   return (
     <div className="fixed inset-0 overflow-y-auto bg-black text-white">
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
@@ -137,7 +170,7 @@ export default function Leaderboard() {
         </div>
 
         {/* Sticky navigation */}
-        <div className="sticky top-0 z-10 bg-black pb-3 pt-2 -mx-4 px-4">
+        <div className="sticky top-0 z-10 bg-black pb-3 pt-2 -mx-4 px-4 border-b border-white/[0.06]">
           {/* Category tabs */}
           <div className="flex gap-1 mb-2">
             {CATEGORIES.map((c) => (
@@ -189,6 +222,15 @@ export default function Leaderboard() {
           </div>
         ) : (
           <div className="space-y-1">
+            {/* Summary stats */}
+            {summary && (
+              <div className="flex items-center gap-3 px-3 py-2 text-xs text-white/30">
+                <span>{summary.totalPlays.toLocaleString()} {pluralize(summary.totalPlays, 'play')}</span>
+                <span className="text-white/10">|</span>
+                <span>{summary.uniqueCount.toLocaleString()} {pluralize(summary.uniqueCount, summaryLabel)}</span>
+              </div>
+            )}
+
             {category === 'songs' &&
               songs.map((song) => (
                 <div
@@ -203,20 +245,28 @@ export default function Leaderboard() {
                   {song.albumArtUrl ? (
                     <img src={song.albumArtUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0" />
+                    <div className="w-10 h-10 rounded-lg bg-white/10 shrink-0 flex items-center justify-center text-white/30 text-sm">{'\u{1F3B5}'}</div>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{song.title}</p>
-                    <p className="text-xs text-white/40 truncate">{song.artist}</p>
+                    <p className="text-xs text-white/40 truncate">
+                      {song.artist}
+                      {song.album && <span className="text-white/20"> &middot; {song.album}</span>}
+                    </p>
                   </div>
                   {song.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
                       {countryFlag(song.topCountry)}
                     </span>
                   )}
-                  <span className="text-xs font-mono text-white/50 shrink-0">
-                    {song.playCount} <span className="text-white/30">plays</span>
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-xs font-mono text-white/50">
+                      {song.playCount} <span className="text-white/30">{pluralize(song.playCount, 'play')}</span>
+                    </span>
+                    {song.lastPlayed && (
+                      <span className="text-[10px] text-white/20">{timeAgo(song.lastPlayed)}</span>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -234,22 +284,27 @@ export default function Leaderboard() {
                   {artist.albumArtUrl ? (
                     <img src={artist.albumArtUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-white/10 shrink-0" />
+                    <div className="w-10 h-10 rounded-full bg-white/10 shrink-0 flex items-center justify-center text-white/30 text-sm">{'\u{1F3A4}'}</div>
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{artist.artist}</p>
                     <p className="text-xs text-white/40">
-                      {artist.songCount} {artist.songCount === 1 ? 'song' : 'songs'}
+                      {artist.songCount} {pluralize(artist.songCount, 'song')}
                     </p>
                   </div>
                   {artist.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
                       {countryFlag(artist.topCountry)}
                     </span>
                   )}
-                  <span className="text-xs font-mono text-white/50 shrink-0">
-                    {artist.playCount} <span className="text-white/30">plays</span>
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-xs font-mono text-white/50">
+                      {artist.playCount} <span className="text-white/30">{pluralize(artist.playCount, 'play')}</span>
+                    </span>
+                    {artist.lastPlayed && (
+                      <span className="text-[10px] text-white/20">{timeAgo(artist.lastPlayed)}</span>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -270,17 +325,22 @@ export default function Leaderboard() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{genre.genre}</p>
                     <p className="text-xs text-white/40">
-                      {genre.artistCount} {genre.artistCount === 1 ? 'artist' : 'artists'}
+                      {genre.artistCount} {pluralize(genre.artistCount, 'artist')}
                     </p>
                   </div>
                   {genre.topCountry && (
-                    <span className="text-xs shrink-0 hidden sm:block">
+                    <span className="text-xs shrink-0 hidden sm:block" title="Top listener location">
                       {countryFlag(genre.topCountry)}
                     </span>
                   )}
-                  <span className="text-xs font-mono text-white/50 shrink-0">
-                    {genre.playCount} <span className="text-white/30">plays</span>
-                  </span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-xs font-mono text-white/50">
+                      {genre.playCount} <span className="text-white/30">{pluralize(genre.playCount, 'play')}</span>
+                    </span>
+                    {genre.lastPlayed && (
+                      <span className="text-[10px] text-white/20">{timeAgo(genre.lastPlayed)}</span>
+                    )}
+                  </div>
                 </div>
               ))}
           {/* Sentinel for infinite scroll */}
