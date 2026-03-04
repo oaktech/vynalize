@@ -206,8 +206,6 @@ Vynalize collects **no personal information, accounts, cookies, or tracking iden
 
 Short audio samples (5 seconds) are sent to the Vynalize server and forwarded to Shazam for song matching, then immediately discarded. Song title and artist are shared with YouTube, MusicBrainz, Cover Art Archive, and lrclib.net to fetch videos, metadata, artwork, and lyrics. UI preferences and song history are kept in your browser's localStorage and never leave your device.
 
-Full details are available in the app at [`/privacy`](packages/web/src/components/Privacy.tsx).
-
 ## License
 
 MIT
