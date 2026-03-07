@@ -1,5 +1,6 @@
 import { useStore } from '../store';
-import type { AppMode, VisualizerMode } from '../types';
+import { VISUALIZER_REGISTRY } from '../visualizerRegistry';
+import type { AppMode } from '../types';
 
 export const APP_MODES: AppMode[] = ['visualizer', 'lyrics', 'video', 'ascii'];
 
@@ -10,20 +11,7 @@ const appModes: { id: AppMode; label: string; icon: string }[] = [
   { id: 'ascii', label: 'ASCII', icon: 'M4 7V4h16v3M9 20h6M12 4v16' },
 ];
 
-const vizModes: { id: VisualizerMode; label: string; tag: string }[] = [
-  { id: 'spectrum', label: 'Spectrum', tag: 'Classic bars' },
-  { id: 'radial', label: 'Radial', tag: 'Circular rings' },
-  { id: 'particles', label: 'Particles', tag: 'Floating sparks' },
-  { id: 'radical', label: 'Radical', tag: 'Wild geometry' },
-  { id: 'nebula', label: 'Nebula', tag: 'Cosmic clouds' },
-  { id: 'vitals', label: 'Vitals', tag: 'Audio heartbeat' },
-  { id: 'synthwave', label: 'Synthwave', tag: 'Retro grid' },
-  { id: 'spaceage', label: 'Space Age', tag: '3D starfield' },
-  { id: 'starrynight', label: 'Starry Night', tag: 'Van Gogh skies' },
-  { id: 'guitarhero', label: 'Guitar Hero', tag: 'Note highway' },
-  { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
-  { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
-];
+const vizModes = VISUALIZER_REGISTRY;
 
 export default function ModeSelector() {
   const appMode = useStore((s) => s.appMode);

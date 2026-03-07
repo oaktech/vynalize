@@ -1,19 +1,23 @@
 import { lazy, Suspense } from 'react';
 import { useStore } from '../../store';
+import type { VisualizerMode } from '../../types';
 
-// Lazy-load all visualizers — only the active one's code is loaded
-const SpectrumBars = lazy(() => import('./SpectrumBars'));
-const RadialSpectrum = lazy(() => import('./RadialSpectrum'));
-const ParticleField = lazy(() => import('./ParticleField'));
-const Radical = lazy(() => import('./Radical'));
-const Nebula = lazy(() => import('./Nebula'));
-const Vitals = lazy(() => import('./Vitals'));
-const Synthwave = lazy(() => import('./Synthwave'));
-const SpaceAge = lazy(() => import('./SpaceAge'));
-const StarryNight = lazy(() => import('./StarryNight'));
-const GuitarHero = lazy(() => import('./GuitarHero'));
-const VynalizeLogo = lazy(() => import('./VynalizeLogo'));
-const BeatSaber = lazy(() => import('./BeatSaber'));
+// Lazy-load all visualizers — only the active one's code is loaded.
+// Static import() paths are required for Vite's code-splitting.
+const components: Record<VisualizerMode, React.LazyExoticComponent<React.ComponentType<any>>> = {
+  spectrum: lazy(() => import('./SpectrumBars')),
+  radial: lazy(() => import('./RadialSpectrum')),
+  particles: lazy(() => import('./ParticleField')),
+  radical: lazy(() => import('./Radical')),
+  nebula: lazy(() => import('./Nebula')),
+  vitals: lazy(() => import('./Vitals')),
+  synthwave: lazy(() => import('./Synthwave')),
+  spaceage: lazy(() => import('./SpaceAge')),
+  starrynight: lazy(() => import('./StarryNight')),
+  guitarhero: lazy(() => import('./GuitarHero')),
+  vynalize: lazy(() => import('./VynalizeLogo')),
+  beatsaber: lazy(() => import('./BeatSaber')),
+};
 
 function VisualizerLoading() {
   return (
@@ -28,6 +32,8 @@ export default function VisualizerView() {
   const currentSong = useStore((s) => s.currentSong);
   const accentColor = useStore((s) => s.accentColor);
 
+  const Component = components[visualizerMode];
+
   return (
     <div className="w-full h-full relative">
       {/* Album art background (blurred) */}
@@ -41,18 +47,7 @@ export default function VisualizerView() {
       {/* Visualizer */}
       <div className="absolute inset-0">
         <Suspense fallback={<VisualizerLoading />}>
-          {visualizerMode === 'spectrum' && <SpectrumBars accentColor={accentColor} />}
-          {visualizerMode === 'radial' && <RadialSpectrum accentColor={accentColor} />}
-          {visualizerMode === 'particles' && <ParticleField />}
-          {visualizerMode === 'radical' && <Radical accentColor={accentColor} />}
-          {visualizerMode === 'nebula' && <Nebula accentColor={accentColor} />}
-          {visualizerMode === 'vitals' && <Vitals accentColor={accentColor} />}
-          {visualizerMode === 'synthwave' && <Synthwave accentColor={accentColor} />}
-          {visualizerMode === 'spaceage' && <SpaceAge accentColor={accentColor} />}
-          {visualizerMode === 'starrynight' && <StarryNight accentColor={accentColor} />}
-          {visualizerMode === 'guitarhero' && <GuitarHero accentColor={accentColor} />}
-          {visualizerMode === 'vynalize' && <VynalizeLogo accentColor={accentColor} />}
-          {visualizerMode === 'beatsaber' && <BeatSaber accentColor={accentColor} />}
+          {Component && <Component accentColor={accentColor} />}
         </Suspense>
       </div>
     </div>

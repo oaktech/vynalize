@@ -9,11 +9,9 @@ import type {
   AudioFeatures,
   PositionState,
 } from './types';
+import { VISUALIZER_MODES } from './visualizerRegistry';
 
-export const VISUALIZER_MODES: VisualizerMode[] = [
-  'spectrum', 'radial', 'particles',
-  'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber',
-];
+export { VISUALIZER_MODES };
 
 interface VinylStore {
   // Audio state
