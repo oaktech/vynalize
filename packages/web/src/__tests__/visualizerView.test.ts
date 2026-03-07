@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useStore, VISUALIZER_MODES } from '../store';
+import { VISUALIZER_REGISTRY } from '../visualizerRegistry';
+import { components } from '../components/visualizer/VisualizerView';
 import type { VisualizerMode, AppMode } from '../types';
 
 // ── Visualizer View Tests ──────────────────────────────────
@@ -12,14 +14,12 @@ describe('Visualizer View', () => {
       expect(ALL_VISUALIZER_MODES.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('each mode maps to a component', () => {
-      // VisualizerView.tsx lazy-loads each of these
-      const lazyComponents = [
-        'SpectrumBars', 'RadialSpectrum', 'ParticleField', 'Radical',
-        'Nebula', 'Vitals', 'Synthwave', 'SpaceAge', 'StarryNight',
-        'GuitarHero', 'VynalizeLogo', 'BeatSaber',
-      ];
-      expect(lazyComponents).toHaveLength(ALL_VISUALIZER_MODES.length);
+    it('each mode maps to a lazy component', () => {
+      const componentKeys = Object.keys(components) as VisualizerMode[];
+      expect(componentKeys).toHaveLength(ALL_VISUALIZER_MODES.length);
+      for (const mode of ALL_VISUALIZER_MODES) {
+        expect(components[mode]).toBeDefined();
+      }
     });
 
     it('only renders one visualizer at a time', () => {
@@ -122,33 +122,35 @@ describe('App Mode Routing', () => {
 
 describe('Mode Selector', () => {
   describe('Visualizer modes metadata', () => {
-    const vizModes = [
-      { id: 'spectrum', label: 'Spectrum', tag: 'Classic bars' },
-      { id: 'radial', label: 'Radial', tag: 'Circular rings' },
-      { id: 'particles', label: 'Particles', tag: 'Floating sparks' },
-      { id: 'radical', label: 'Radical', tag: 'Wild geometry' },
-      { id: 'nebula', label: 'Nebula', tag: 'Cosmic clouds' },
-      { id: 'vitals', label: 'Vitals', tag: 'Audio heartbeat' },
-      { id: 'synthwave', label: 'Synthwave', tag: 'Retro grid' },
-      { id: 'spaceage', label: 'Space Age', tag: '3D starfield' },
-      { id: 'starrynight', label: 'Starry Night', tag: 'Van Gogh skies' },
-      { id: 'guitarhero', label: 'Guitar Hero', tag: 'Note highway' },
-      { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
-      { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
-    ];
-
-    it('all 12 visualizer modes have labels and tags', () => {
-      expect(vizModes).toHaveLength(12);
-      for (const mode of vizModes) {
-        expect(mode.label).toBeTruthy();
-        expect(mode.tag).toBeTruthy();
+    it('every mode has a label and tag', () => {
+      for (const entry of VISUALIZER_REGISTRY) {
+        expect(entry.label).toBeTruthy();
+        expect(entry.tag).toBeTruthy();
       }
     });
 
     it('tags are descriptive and distinct', () => {
-      const tags = vizModes.map(m => m.tag);
+      const tags = VISUALIZER_REGISTRY.map(m => m.tag);
       const uniqueTags = new Set(tags);
       expect(uniqueTags.size).toBe(tags.length);
+    });
+  });
+
+  describe('Registry completeness', () => {
+    it('registry covers every mode in VISUALIZER_MODES', () => {
+      const registryIds = VISUALIZER_REGISTRY.map(e => e.id);
+      expect(registryIds).toEqual(VISUALIZER_MODES);
+    });
+
+    it('component map covers every mode in VISUALIZER_MODES', () => {
+      const componentKeys = Object.keys(components).sort();
+      const sortedModes = [...VISUALIZER_MODES].sort();
+      expect(componentKeys).toEqual(sortedModes);
+    });
+
+    it('no duplicate IDs in registry', () => {
+      const ids = VISUALIZER_REGISTRY.map(e => e.id);
+      expect(new Set(ids).size).toBe(ids.length);
     });
   });
 

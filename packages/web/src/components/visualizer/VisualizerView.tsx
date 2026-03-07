@@ -4,7 +4,7 @@ import type { VisualizerMode } from '../../types';
 
 // Lazy-load all visualizers — only the active one's code is loaded.
 // Static import() paths are required for Vite's code-splitting.
-const components: Record<VisualizerMode, React.LazyExoticComponent<React.ComponentType<any>>> = {
+export const components: Record<VisualizerMode, React.LazyExoticComponent<React.ComponentType<any>>> = {
   spectrum: lazy(() => import('./SpectrumBars')),
   radial: lazy(() => import('./RadialSpectrum')),
   particles: lazy(() => import('./ParticleField')),
