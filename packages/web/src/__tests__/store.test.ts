@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '../store';
+import { useStore, VISUALIZER_MODES } from '../store';
 import type { SongInfo, AudioFeatures, VisualizerMode } from '../types';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -262,11 +262,7 @@ describe('Store', () => {
   });
 
   describe('Visualizer cycling', () => {
-    const allModes: VisualizerMode[] = [
-      'spectrum', 'radial', 'particles', 'radical', 'nebula',
-      'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero',
-      'vynalize', 'beatsaber',
-    ];
+    const allModes = VISUALIZER_MODES;
 
     it('cycles to next visualizer', () => {
       expect(getState().visualizerMode).toBe('spectrum');
@@ -277,9 +273,9 @@ describe('Store', () => {
     });
 
     it('wraps around from last to first', () => {
-      getState().setVisualizerMode('beatsaber');
+      getState().setVisualizerMode(allModes[allModes.length - 1]);
       getState().nextVisualizer();
-      expect(getState().visualizerMode).toBe('spectrum');
+      expect(getState().visualizerMode).toBe(allModes[0]);
     });
 
     it('cycles to previous visualizer', () => {
@@ -291,12 +287,12 @@ describe('Store', () => {
     it('wraps around from first to last', () => {
       expect(getState().visualizerMode).toBe('spectrum');
       getState().prevVisualizer();
-      expect(getState().visualizerMode).toBe('beatsaber');
+      expect(getState().visualizerMode).toBe(allModes[allModes.length - 1]);
     });
 
-    it('visits all 12 modes in a full cycle', () => {
+    it('visits all modes in a full cycle', () => {
       const visited: VisualizerMode[] = [getState().visualizerMode];
-      for (let i = 0; i < 11; i++) {
+      for (let i = 0; i < allModes.length - 1; i++) {
         getState().nextVisualizer();
         visited.push(getState().visualizerMode);
       }

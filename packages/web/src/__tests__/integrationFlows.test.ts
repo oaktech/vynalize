@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useStore } from '../store';
+import { useStore, VISUALIZER_MODES } from '../store';
 import type { SongInfo, VisualizerMode, AppMode } from '../types';
 
 // ── Integration Flow Tests ─────────────────────────────────
@@ -209,23 +209,19 @@ describe('Kiosk Mode Flow', () => {
 });
 
 describe('Visualizer Cycling Flow', () => {
-  it('cycles through all 13 modes in sequence', () => {
+  it('cycles through all modes in sequence', () => {
     const modes: VisualizerMode[] = [];
-    useStore.getState().setVisualizerMode('spectrum');
+    useStore.getState().setVisualizerMode(VISUALIZER_MODES[0]);
 
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < VISUALIZER_MODES.length + 1; i++) {
       modes.push(useStore.getState().visualizerMode);
       useStore.getState().nextVisualizer();
     }
 
-    expect(modes).toEqual([
-      'spectrum', 'radial', 'particles', 'radical', 'nebula',
-      'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero',
-      'vynalize', 'beatsaber',
-    ]);
+    expect(modes).toEqual([...VISUALIZER_MODES, VISUALIZER_MODES[0]]);
 
     // Full cycle returns to start
-    expect(useStore.getState().visualizerMode).toBe('spectrum');
+    expect(useStore.getState().visualizerMode).toBe(VISUALIZER_MODES[0]);
   });
 
   it('prev/next round-trip is consistent', () => {

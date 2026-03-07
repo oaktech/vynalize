@@ -10,7 +10,7 @@ import type {
   PositionState,
 } from './types';
 
-const VISUALIZER_MODES: VisualizerMode[] = [
+export const VISUALIZER_MODES: VisualizerMode[] = [
   'spectrum', 'radial', 'particles',
   'radical', 'nebula', 'vitals', 'synthwave', 'spaceage', 'starrynight', 'guitarhero', 'vynalize', 'beatsaber',
 ];
