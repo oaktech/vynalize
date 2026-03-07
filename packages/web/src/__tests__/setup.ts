@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { afterEach, vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 import { useStore } from '../store';
 
 // ── Browser API mocks ──────────────────────────────────────
@@ -174,39 +174,11 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
 
 // ── Reset store between tests ──────────────────────────────
 
-afterEach(() => {
-  // Reset Zustand store to initial state
-  useStore.setState({
-    isListening: false,
-    audioFeatures: null,
-    currentSong: null,
-    isIdentifying: false,
-    bpm: null,
-    lastBeat: null,
-    isBeat: false,
-    lyrics: [],
-    position: { elapsedMs: 0, offsetMs: 0, isTracking: false, startedAt: null },
-    appMode: 'visualizer',
-    visualizerMode: 'spectrum',
-    isFullscreen: false,
-    controlsVisible: true,
-    videoId: null,
-    videoSearching: false,
-    videoOffsetMs: 0,
-    videoCheckpoint: null,
-    accentColor: '#8b5cf6',
-    audioInputDeviceId: '',
-    sensitivityGain: 1,
-    sessionId: null,
-    remoteConnected: false,
-    wsStatus: 'disconnected',
-    micError: null,
-    isOnline: true,
-    songHistory: [],
-    favoriteVisualizers: [],
-    autoCycleEnabled: false,
-    autoCycleIntervalSec: 30,
-    tutorialSeen: false,
-    installDismissed: false,
-  });
+beforeEach(() => {
+  try { localStorage.clear(); } catch { /* jsdom may not provide localStorage */ }
+  // Extract only data properties (not functions) from the initial state to avoid
+  // triggering a full replace that conflicts with the persist middleware.
+  const initial = useStore.getInitialState();
+  const dataKeys = Object.entries(initial).filter(([, v]) => typeof v !== 'function');
+  useStore.setState(Object.fromEntries(dataKeys));
 });

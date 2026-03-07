@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useStore } from '../store';
+import { useStore, VISUALIZER_MODES } from '../store';
 
 // ── Auto Display Priority Tests ────────────────────────────
 // Tests the useAutoDisplay hook logic:
@@ -134,11 +134,11 @@ describe('Auto Cycle Logic', () => {
   it('cycles through all modes eventually', () => {
     const visited = new Set<string>();
     useStore.getState().setVisualizerMode('spectrum');
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < VISUALIZER_MODES.length; i++) {
       visited.add(useStore.getState().visualizerMode);
       useStore.getState().nextVisualizer();
     }
-    expect(visited.size).toBe(13);
+    expect(visited.size).toBe(VISUALIZER_MODES.length);
   });
 
   it('interval can be 15, 30, or 60 seconds', () => {

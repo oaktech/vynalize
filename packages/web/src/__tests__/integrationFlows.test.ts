@@ -213,12 +213,12 @@ describe('Visualizer Cycling Flow', () => {
     const modes: VisualizerMode[] = [];
     useStore.getState().setVisualizerMode(VISUALIZER_MODES[0]);
 
-    for (let i = 0; i < VISUALIZER_MODES.length + 1; i++) {
+    for (let i = 0; i < VISUALIZER_MODES.length; i++) {
       modes.push(useStore.getState().visualizerMode);
       useStore.getState().nextVisualizer();
     }
 
-    expect(modes).toEqual([...VISUALIZER_MODES, VISUALIZER_MODES[0]]);
+    expect(modes).toEqual([...VISUALIZER_MODES]);
 
     // Full cycle returns to start
     expect(useStore.getState().visualizerMode).toBe(VISUALIZER_MODES[0]);
