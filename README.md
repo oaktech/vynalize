@@ -117,9 +117,8 @@ Switch modes with keyboard shortcuts or the mode selector.
 | 9 | Starry Night | Van Gogh-inspired scene with swirling brushstrokes, star halos, and cypress tree |
 | 10 | Guitar Hero | Simulated rhythm game with 5-lane highway, note gems, combo flames, stage effects, and scoring |
 | 11 | Vynalize | Animated logo with reactive eyes, sparkle particles, and beat-driven ripples |
-| 12 | Beat Saber | 3D corridor with color-coded blocks, directional arrows, and perspective fog |
 
-All 12 visualizers are lazy-loaded to keep the main bundle small (~34KB gzipped). Hover over a visualizer name in the mode selector to see a short description.
+All 11 visualizers are lazy-loaded to keep the main bundle small (~34KB gzipped). Hover over a visualizer name in the mode selector to see a short description.
 
 ## Beat Detection
 
@@ -148,7 +147,6 @@ vynalize/
 │           ├── wsRelay.ts    # Session-based WebSocket relay
 │           ├── cluster.ts    # Production multi-process entry point
 │           └── index.ts      # Express app entry point
-├── hardware/             # 3D-printable enclosure designs (OpenSCAD)
 ├── scripts/              # Raspberry Pi setup script
 └── package.json          # npm workspaces root
 ```
