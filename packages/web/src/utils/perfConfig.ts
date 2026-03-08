@@ -60,7 +60,7 @@ type DrawFn = (
 
 /**
  * Runs a rAF-driven draw loop, completely outside React's render cycle.
- * `draw` is called at ~60fps (desktop) or ~15fps (Pi).
+ * `draw` is called at ~60fps (desktop) or ~30fps (Pi).
  * Re-initializes only when `deps` change (e.g. accentColor).
  */
 export function useVisualizerLoop(
@@ -76,7 +76,7 @@ export function useVisualizerLoop(
 
     let raf = 0;
     let lastFrame = 0;
-    const interval = isLowPower() ? 66 : 0; // 15fps cap on Pi, uncapped on desktop
+    const interval = isLowPower() ? 33 : 0; // 30fps cap on Pi, uncapped on desktop
 
     function loop(now: number) {
       if (interval && now - lastFrame < interval) {

@@ -52,8 +52,9 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
     ctx.clearRect(0, 0, width, height);
 
     const freq = audioFeatures.frequencyData;
+    const dpr = getVisDpr();
     const barCount = getLowPowerCount(64, 24);
-    const gap = 2 * getVisDpr();
+    const gap = 2 * dpr;
     const barWidth = (width - gap * (barCount - 1)) / barCount;
 
     const [r, g, b] = hexToRgb(accentColor);
@@ -95,7 +96,7 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
         : prev + (target - prev) * 0.15;
 
       const val = smoothBars.current[i];
-      const barHeight = Math.max(2 * getVisDpr(), val * height * 0.9);
+      const barHeight = Math.max(2 * dpr, val * height * 0.9);
 
       const x = i * (barWidth + gap);
       const y = height - barHeight;
@@ -108,13 +109,13 @@ export default function SpectrumBars({ accentColor }: { accentColor: string }) {
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      const radius = Math.min(barWidth / 2, 4 * getVisDpr());
+      const radius = Math.min(barWidth / 2, 4 * dpr);
       ctx.roundRect(x, y, barWidth, barHeight, [radius, radius, 0, 0]);
       ctx.fill();
 
       // Glow on loud bars
       if (val > 0.5) {
-        applyGlow(ctx, 15 * getVisDpr(), `rgba(${r}, ${g}, ${b}, ${(val - 0.5) * 0.8})`);
+        applyGlow(ctx, 15 * dpr, `rgba(${r}, ${g}, ${b}, ${(val - 0.5) * 0.8})`);
         ctx.fill();
         clearGlow(ctx);
       }

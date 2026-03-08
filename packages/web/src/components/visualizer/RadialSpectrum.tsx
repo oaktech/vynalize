@@ -58,6 +58,8 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
 
     const [r, g, b] = hexToRgb(accentColor);
 
+    const dpr = getVisDpr();
+
     // Smooth audio (fast attack, slow decay — matches SpectrumBars)
     const s = smooth.current;
     const rawBass = audioFeatures.bass;
@@ -107,7 +109,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       const alpha = 0.3 + val * 0.7;
       ctx.beginPath();
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-      ctx.lineWidth = (2 + val * 3) * getVisDpr();
+      ctx.lineWidth = (2 + val * 3) * dpr;
       ctx.lineCap = 'round';
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -119,7 +121,7 @@ export default function RadialSpectrum({ accentColor }: { accentColor: string })
       const y3 = Math.sin(angle) * (baseRadius - innerLength);
       ctx.beginPath();
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.4})`;
-      ctx.lineWidth = 1.5 * getVisDpr();
+      ctx.lineWidth = 1.5 * dpr;
       ctx.moveTo(x1, y1);
       ctx.lineTo(x3, y3);
       ctx.stroke();

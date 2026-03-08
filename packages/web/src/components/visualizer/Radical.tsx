@@ -15,6 +15,7 @@ interface AudioCtx {
   energy: number;  // 0-1 compressed
   lowMid: number;  // 0-1 compressed
   beatPulse: number;
+  dpr: number;     // cached getVisDpr() for the frame
 }
 
 // ── Neon palette ──────────────────────────────────────────────
@@ -128,7 +129,7 @@ function drawStarburst(
     );
     ctx.closePath();
     ctx.fillStyle = col;
-    applyGlow(ctx, (8 + a.energy * 18) * getVisDpr(), col);
+    applyGlow(ctx, (8 + a.energy * 18) * a.dpr, col);
     ctx.fill();
   }
   clearGlow(ctx);
@@ -165,12 +166,12 @@ function drawRings(
     const ringR = r * (t + breathe + audioExpand);
 
     const col = i % 2 === 0 ? color : color2;
-    const lw = baseWidth * (1 + a.energy * 0.6) * getVisDpr();
+    const lw = baseWidth * (1 + a.energy * 0.6) * a.dpr;
     ctx.beginPath();
     ctx.arc(cx, cy, Math.max(1, ringR), 0, Math.PI * 2);
     ctx.strokeStyle = col;
     ctx.lineWidth = lw;
-    applyGlow(ctx, (14 + a.energy * 16) * getVisDpr(), col);
+    applyGlow(ctx, (14 + a.energy * 16) * a.dpr, col);
     ctx.stroke();
   }
   clearGlow(ctx);
@@ -217,10 +218,10 @@ function drawZigzag(
     }
     const col = row % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.mid * 0.4) * getVisDpr();
+    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.mid * 0.4) * a.dpr;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    applyGlow(ctx, (10 + a.energy * 14) * getVisDpr(), col);
+    applyGlow(ctx, (10 + a.energy * 14) * a.dpr, col);
     ctx.stroke();
   }
 
@@ -259,8 +260,8 @@ function drawDiamond(
 
     const col = i % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    ctx.lineWidth = (2.5 + params[2] * 2.5) * (1 + a.energy * 0.5) * getVisDpr();
-    applyGlow(ctx, (12 + a.energy * 14) * getVisDpr(), col);
+    ctx.lineWidth = (2.5 + params[2] * 2.5) * (1 + a.energy * 0.5) * a.dpr;
+    applyGlow(ctx, (12 + a.energy * 14) * a.dpr, col);
     ctx.stroke();
   }
 
@@ -281,7 +282,7 @@ function drawGrid(
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(rotation);
-  ctx.lineWidth = (2 + a.energy * 1.5) * getVisDpr();
+  ctx.lineWidth = (2 + a.energy * 1.5) * a.dpr;
   ctx.lineCap = 'round';
 
   // Wave amplitude driven by audio + gentle idle
@@ -291,7 +292,7 @@ function drawGrid(
     const offset = -r + i * spacing;
     const col = i % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
-    applyGlow(ctx, (8 + a.energy * 12) * getVisDpr(), col);
+    applyGlow(ctx, (8 + a.energy * 12) * a.dpr, col);
 
     // horizontal — wave vertically
     ctx.beginPath();
@@ -353,10 +354,10 @@ function drawBolt(
     const col = b % 2 === 0 ? color : color2;
     ctx.strokeStyle = col;
     // Thickness surges with bass
-    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.bass * 0.8 + a.beatPulse * 0.5) * getVisDpr();
+    ctx.lineWidth = (3 + params[2] * 3) * (1 + a.bass * 0.8 + a.beatPulse * 0.5) * a.dpr;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    applyGlow(ctx, (20 + a.energy * 24 + a.beatPulse * 16) * getVisDpr(), col);
+    applyGlow(ctx, (20 + a.energy * 24 + a.beatPulse * 16) * a.dpr, col);
     ctx.stroke();
   }
 
@@ -492,6 +493,7 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
     }
 
     // Build audio context for draw functions
+    const dpr = getVisDpr();
     const buildAudioCtx = (scene: Scene): AudioCtx => ({
       t: (now - scene.spawnTime) / 1000,
       bass: bBass,
@@ -499,6 +501,7 @@ export default function Radical({ accentColor: _accentColor }: { accentColor: st
       energy: bEnergy,
       lowMid: bLowMid,
       beatPulse: beatPulseRef.current,
+      dpr,
     });
 
     // Draw outgoing scene (fading out)

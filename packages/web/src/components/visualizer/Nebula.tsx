@@ -172,6 +172,8 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
     const maxR = Math.max(width, height) * 0.5;
     const now = performance.now() / 1000;
 
+    const dpr = getVisDpr();
+
     // ── Smooth audio params (fast attack, slow decay — matches SpectrumBars) ──
     const s = smooth.current;
     const { rms, bass, mid, high, energy } = audioFeatures;
@@ -223,7 +225,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const sy = star.y * height;
       const flicker = 0.5 + 0.5 * Math.sin(now * star.twinkleSpeed + star.twinkleOffset);
       const bright = star.brightness * (0.4 + flicker * 0.6) + twinkle * flicker * 0.3;
-      const sz = star.size * getVisDpr() * (0.8 + pulse * 0.4);
+      const sz = star.size * dpr * (0.8 + pulse * 0.4);
 
       ctx.beginPath();
       ctx.arc(sx, sy, sz, 0, Math.PI * 2);
@@ -404,7 +406,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
         relIrisY + Math.sin(angle) * outerR,
       );
       ctx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, ${0.08 + pulse * 0.06})`;
-      ctx.lineWidth = 1.5 * getVisDpr();
+      ctx.lineWidth = 1.5 * dpr;
       ctx.stroke();
     }
 
@@ -456,7 +458,7 @@ export default function Nebula({ accentColor }: { accentColor: string }) {
       const ox = cx + Math.cos(orb.angle) * dist;
       const oy = cy + Math.sin(orb.angle) * dist * 0.6 + wobble; // elliptical orbit
 
-      const sz = orb.size * getVisDpr() * (0.8 + bLowMid * 1.0 + pulse * 0.6);
+      const sz = orb.size * dpr * (0.8 + bLowMid * 1.0 + pulse * 0.6);
       const bright = orb.brightness * (0.5 + bLowMid * 0.6 + pulse * 0.5);
 
       // Particle glow
