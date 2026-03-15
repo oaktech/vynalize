@@ -11,7 +11,7 @@ const PERIOD_FILTERS: Record<string, string> = {
   all: '1=1',
 };
 
-const CATEGORIES = new Set(['songs', 'artists', 'genres']);
+const CATEGORIES = new Set(['songs', 'artists', 'genres', 'countries']);
 
 leaderboardRouter.get('/', async (req, res) => {
   const category = String(req.query.category || 'songs');
@@ -46,10 +46,12 @@ leaderboardRouter.get('/', async (req, res) => {
     // Summary stats (only on first page)
     let summary: { totalPlays: number; uniqueCount: number } | undefined;
     if (offset === 0) {
-      const genreFilter = category === 'genres' ? ' AND genre IS NOT NULL' : '';
+      const genreFilter = category === 'genres' ? ' AND genre IS NOT NULL'
+        : category === 'countries' ? ' AND country IS NOT NULL' : '';
       const uniqueExpr =
         category === 'artists' ? 'COUNT(DISTINCT artist)'
         : category === 'genres' ? 'COUNT(DISTINCT genre)'
+        : category === 'countries' ? 'COUNT(DISTINCT country)'
         : 'COUNT(DISTINCT (title, artist))';
       const { rows: statsRows } = await pool.query(
         `SELECT COUNT(*)::int AS total_plays, ${uniqueExpr}::int AS unique_count
@@ -116,6 +118,38 @@ leaderboardRouter.get('/', async (req, res) => {
           playCount: row.play_count,
           artistCount: row.artist_count,
           topCountry: row.top_country,
+          lastPlayed: row.last_played,
+        })),
+      });
+    } else if (category === 'countries') {
+      const { rows } = await pool.query(
+        `SELECT
+           country,
+           COUNT(*)::int AS play_count,
+           COUNT(DISTINCT (title, artist))::int AS song_count,
+           COUNT(DISTINCT artist)::int AS artist_count,
+           (ARRAY_AGG(title ORDER BY played_at DESC))[1] AS recent_title,
+           (ARRAY_AGG(artist ORDER BY played_at DESC))[1] AS recent_artist,
+           MAX(played_at) AS last_played
+         FROM song_plays
+         WHERE ${whereClause} AND country IS NOT NULL
+         GROUP BY country
+         ORDER BY play_count DESC, MAX(played_at) DESC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      res.json({
+        period,
+        ...(summary && { summary }),
+        countries: rows.map((row, i) => ({
+          rank: offset + i + 1,
+          country: row.country,
+          playCount: row.play_count,
+          songCount: row.song_count,
+          artistCount: row.artist_count,
+          recentTitle: row.recent_title,
+          recentArtist: row.recent_artist,
           lastPlayed: row.last_played,
         })),
       });

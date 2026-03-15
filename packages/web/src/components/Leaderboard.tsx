@@ -12,6 +12,7 @@ const CATEGORIES = [
   { key: 'songs', label: 'Songs' },
   { key: 'artists', label: 'Artists' },
   { key: 'genres', label: 'Genres' },
+  { key: 'countries', label: 'Countries' },
 ] as const;
 
 interface Song {
@@ -44,6 +45,17 @@ interface Genre {
   lastPlayed: string | null;
 }
 
+interface Country {
+  rank: number;
+  country: string;
+  playCount: number;
+  songCount: number;
+  artistCount: number;
+  recentTitle: string | null;
+  recentArtist: string | null;
+  lastPlayed: string | null;
+}
+
 interface Summary {
   totalPlays: number;
   uniqueCount: number;
@@ -54,6 +66,12 @@ function countryFlag(code: string | null): string {
   return String.fromCodePoint(
     ...code.toUpperCase().split('').map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
   );
+}
+
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+function countryName(code: string): string {
+  try { return regionNames.of(code.toUpperCase()) ?? code; }
+  catch { return code; }
 }
 
 function timeAgo(iso: string | null): string {
@@ -83,6 +101,7 @@ export default function Leaderboard() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -96,10 +115,11 @@ export default function Leaderboard() {
     fetch(`/api/leaderboard?period=${period}&category=${category}&limit=${PAGE_SIZE}&offset=0`)
       .then((r) => r.json())
       .then((data) => {
-        const items = data.songs ?? data.artists ?? data.genres ?? [];
+        const items = data.songs ?? data.artists ?? data.genres ?? data.countries ?? [];
         setSongs(data.songs ?? []);
         setArtists(data.artists ?? []);
         setGenres(data.genres ?? []);
+        setCountries(data.countries ?? []);
         setSummary(data.summary ?? null);
         if (items.length < PAGE_SIZE) setHasMore(false);
       })
@@ -107,6 +127,7 @@ export default function Leaderboard() {
         setSongs([]);
         setArtists([]);
         setGenres([]);
+        setCountries([]);
         setSummary(null);
         setHasMore(false);
       })
@@ -114,7 +135,7 @@ export default function Leaderboard() {
   }, [period, category]);
 
   const currentLength =
-    category === 'songs' ? songs.length : category === 'artists' ? artists.length : genres.length;
+    category === 'songs' ? songs.length : category === 'artists' ? artists.length : category === 'countries' ? countries.length : genres.length;
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -122,11 +143,12 @@ export default function Leaderboard() {
     fetch(`/api/leaderboard?period=${period}&category=${category}&limit=${PAGE_SIZE}&offset=${currentLength}`)
       .then((r) => r.json())
       .then((data) => {
-        const items = data.songs ?? data.artists ?? data.genres ?? [];
+        const items = data.songs ?? data.artists ?? data.genres ?? data.countries ?? [];
         if (items.length < PAGE_SIZE) setHasMore(false);
         if (data.songs) setSongs((prev) => [...prev, ...data.songs]);
         if (data.artists) setArtists((prev) => [...prev, ...data.artists]);
         if (data.genres) setGenres((prev) => [...prev, ...data.genres]);
+        if (data.countries) setCountries((prev) => [...prev, ...data.countries]);
       })
       .catch(() => setHasMore(false))
       .finally(() => setLoadingMore(false));
@@ -147,7 +169,8 @@ export default function Leaderboard() {
   const isEmpty =
     (category === 'songs' && songs.length === 0) ||
     (category === 'artists' && artists.length === 0) ||
-    (category === 'genres' && genres.length === 0);
+    (category === 'genres' && genres.length === 0) ||
+    (category === 'countries' && countries.length === 0);
 
   const rankClass = (rank: number) =>
     rank <= 3
@@ -155,7 +178,7 @@ export default function Leaderboard() {
       : 'w-7 text-center text-sm font-mono text-white/30 shrink-0';
 
   const summaryLabel =
-    category === 'songs' ? 'song' : category === 'artists' ? 'artist' : 'genre';
+    category === 'songs' ? 'song' : category === 'artists' ? 'artist' : category === 'countries' ? 'country' : 'genre';
 
   return (
     <div className="fixed inset-0 overflow-y-auto bg-black text-white">
@@ -217,6 +240,8 @@ export default function Leaderboard() {
             <p className="text-white/20 text-sm mt-2">
               {category === 'genres'
                 ? 'Genres will appear here as songs are identified'
+                : category === 'countries'
+                ? 'Countries will appear here as people listen worldwide'
                 : `${category === 'artists' ? 'Artists' : 'Songs'} will appear here as people listen`}
             </p>
           </div>
@@ -227,7 +252,7 @@ export default function Leaderboard() {
               <div className="flex items-center gap-3 px-3 py-2 text-xs text-white/30">
                 <span>{summary.totalPlays.toLocaleString()} {pluralize(summary.totalPlays, 'play')}</span>
                 <span className="text-white/10">|</span>
-                <span>{summary.uniqueCount.toLocaleString()} {pluralize(summary.uniqueCount, summaryLabel)}</span>
+                <span>{summary.uniqueCount.toLocaleString()} {pluralize(summary.uniqueCount, summaryLabel, category === 'countries' ? 'countries' : undefined)}</span>
               </div>
             )}
 
@@ -343,6 +368,37 @@ export default function Leaderboard() {
                   </div>
                 </div>
               ))}
+            {category === 'countries' &&
+              countries.map((c) => (
+                <div
+                  key={c.country}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                    c.rank <= 3
+                      ? 'bg-white/[0.05] hover:bg-white/[0.08]'
+                      : 'bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
+                >
+                  <span className={rankClass(c.rank)}>{c.rank}</span>
+                  <div className="w-10 h-10 rounded-xl bg-white/10 shrink-0 flex items-center justify-center text-xl">
+                    {countryFlag(c.country)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{countryName(c.country)}</p>
+                    <p className="text-sm text-white/40 truncate">
+                      {c.songCount} {pluralize(c.songCount, 'song')} &middot; {c.artistCount} {pluralize(c.artistCount, 'artist')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <span className="text-xs font-mono text-white/50">
+                      {c.playCount} <span className="text-white/30">{pluralize(c.playCount, 'play')}</span>
+                    </span>
+                    {c.lastPlayed && (
+                      <span className="text-[10px] text-white/20">{timeAgo(c.lastPlayed)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+
           {/* Sentinel for infinite scroll */}
           {hasMore && <div ref={sentinelRef} className="h-1" />}
           {loadingMore && (
