@@ -17,6 +17,7 @@ export const components: Record<VisualizerMode, React.LazyExoticComponent<React.
   guitarhero: lazy(() => import('./GuitarHero')),
   vynalize: lazy(() => import('./VynalizeLogo')),
   beatsaber: lazy(() => import('./BeatSaber')),
+  starwars: lazy(() => import('./StarWars')),
 };
 
 function VisualizerLoading() {
