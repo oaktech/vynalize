@@ -65,8 +65,8 @@ const FACE_RIGHT = [1, 5, 6, 2] as const;
 
 const SHADE_FRONT = 1.0;
 const SHADE_TOP = 0.7;
-const SHADE_BOT = 0.5;
-const SHADE_SIDE = 0.55;
+const SHADE_BOT = 0.35;
+const SHADE_SIDE = 0.45;
 
 function colToX(col: number): number { return col - 1.5; }
 function rowToY(row: number): number { return row + 0.5; }
@@ -133,6 +133,13 @@ interface MilestoneState {
   time: number;
 }
 
+interface SaberSwing {
+  progress: number;     // 0 = idle, 0→1 = swinging out, 1→2 = returning
+  targetX: number;      // screen-space target of the swing
+  targetY: number;
+  direction: number;    // block's arrow direction (for swing arc)
+}
+
 interface ColState {
   prevValue: number;
   lastSpikeTime: number;
@@ -161,6 +168,12 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
   );
   const saberFlashL = useRef(0);
   const saberFlashR = useRef(0);
+  const saberSwingL = useRef<SaberSwing>({ progress: 0, targetX: 0, targetY: 0, direction: 0 });
+  const saberSwingR = useRef<SaberSwing>({ progress: 0, targetX: 0, targetY: 0, direction: 0 });
+  // Trail: ring buffer of recent tip positions [x, y, alpha] for each saber
+  const TRAIL_LEN = 10;
+  const trailL = useRef<Array<[number, number, number]>>([]);
+  const trailR = useRef<Array<[number, number, number]>>([]);
   const smoothEnergy = useRef(0);
   const projBuf = useRef(new Float64Array(16));
 
@@ -382,8 +395,15 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
           score.lastHitText = text;
           score.lastHitTime = now;
 
-          if (block.side === 'red') saberFlashL.current = 1;
-          else saberFlashR.current = 1;
+          // Flash on hit (swing already started during anticipation)
+          if (block.side === 'red') {
+            saberFlashL.current = 1;
+            // Reset swing to slash-through phase
+            saberSwingL.current.progress = 1.01;
+          } else {
+            saberFlashR.current = 1;
+            saberSwingR.current.progress = 1.01;
+          }
 
           if (score.multiplier > prevMult) {
             milestoneRef.current = { text: `${score.multiplier}X MULTIPLIER!`, time: now };
@@ -468,6 +488,36 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
 
     if (slicesRef.current.length > 60) slicesRef.current = slicesRef.current.slice(-60);
     if (particlesRef.current.length > 300) particlesRef.current = particlesRef.current.slice(-300);
+
+    // ── Saber anticipation: start swing before block arrives ──
+    const ANTIC_Z = 16.0; // start anticipating when block enters this depth
+    let nearestRed: Block | null = null;
+    let nearestBlue: Block | null = null;
+    for (const block of blocksRef.current) {
+      if (!block.active || block.hitResult !== '') continue;
+      if (block.worldZ > ANTIC_Z) continue;
+      if (block.side === 'red' && (!nearestRed || block.worldZ < nearestRed.worldZ)) nearestRed = block;
+      if (block.side === 'blue' && (!nearestBlue || block.worldZ < nearestBlue.worldZ)) nearestBlue = block;
+    }
+    // Start or update wind-up swing toward the nearest approaching block
+    function updateSwingTarget(swing: SaberSwing, block: Block, fallbackX: number) {
+      const screenPos = project(block.worldX, block.worldY, HIT_Z);
+      const tx = screenPos ? screenPos[0] : fallbackX;
+      const ty = screenPos ? screenPos[1] : height * 0.68;
+      if (swing.progress === 0) {
+        swing.progress = 0.01;
+      }
+      // Continuously update target as block approaches
+      swing.targetX = tx;
+      swing.targetY = ty;
+      swing.direction = block.direction;
+    }
+    if (nearestRed && saberSwingL.current.progress <= 1) {
+      updateSwingTarget(saberSwingL.current, nearestRed, centerX - width * 0.06);
+    }
+    if (nearestBlue && saberSwingR.current.progress <= 1) {
+      updateSwingTarget(saberSwingR.current, nearestBlue, centerX + width * 0.06);
+    }
 
     // ════════════════════════════════════════════════════════
     // DRAW
@@ -644,12 +694,12 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
 
       const rgb = block.side === 'red' ? RED_RGB : BLUE_RGB;
 
-      // Glow halo behind block
+      // Glow halo behind block (subtle, doesn't drown out geometry)
       const ctr = project(bwx, bwy, bwz);
       if (ctr) {
-        const glowR = (FOCAL_LENGTH / bwz) * pixelScale * 0.6;
+        const glowR = (FOCAL_LENGTH / bwz) * pixelScale * 0.35;
         const gGrad = ctx.createRadialGradient(ctr[0], ctr[1], 0, ctr[0], ctr[1], glowR);
-        gGrad.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.3 * alpha})`);
+        gGrad.addColorStop(0, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${0.2 * alpha})`);
         gGrad.addColorStop(1, `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0)`);
         ctx.fillStyle = gGrad;
         ctx.beginPath();
@@ -664,24 +714,24 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
       const seeRight = 0 > bwx + BLOCK_HALF;
 
       // Draw back faces first, front last
-      if (seeTop) drawFace(FACE_TOP, rgb[0], rgb[1], rgb[2], SHADE_TOP, alpha * 0.85);
-      if (seeBot) drawFace(FACE_BOT, rgb[0], rgb[1], rgb[2], SHADE_BOT, alpha * 0.85);
-      if (seeLeft) drawFace(FACE_LEFT, rgb[0], rgb[1], rgb[2], SHADE_SIDE, alpha * 0.85);
-      if (seeRight) drawFace(FACE_RIGHT, rgb[0], rgb[1], rgb[2], SHADE_SIDE, alpha * 0.85);
+      if (seeTop) drawFace(FACE_TOP, rgb[0], rgb[1], rgb[2], SHADE_TOP, alpha * 0.95);
+      if (seeBot) drawFace(FACE_BOT, rgb[0], rgb[1], rgb[2], SHADE_BOT, alpha * 0.95);
+      if (seeLeft) drawFace(FACE_LEFT, rgb[0], rgb[1], rgb[2], SHADE_SIDE, alpha * 0.95);
+      if (seeRight) drawFace(FACE_RIGHT, rgb[0], rgb[1], rgb[2], SHADE_SIDE, alpha * 0.95);
 
       // Front face
-      drawFace(FACE_FRONT, rgb[0], rgb[1], rgb[2], SHADE_FRONT, alpha * 0.85);
+      drawFace(FACE_FRONT, rgb[0], rgb[1], rgb[2], SHADE_FRONT, alpha * 0.95);
 
-      // Front face neon border
-      const borderW = Math.max(1, (FOCAL_LENGTH / bwz) * pixelScale * 0.02);
-      strokeFace(FACE_FRONT, `rgba(255, 255, 255, ${alpha * 0.5})`, borderW);
+      // Front face neon border (bright edge highlight for 3D pop)
+      const borderW = Math.max(1.5, (FOCAL_LENGTH / bwz) * pixelScale * 0.025);
+      strokeFace(FACE_FRONT, `rgba(255, 255, 255, ${alpha * 0.7})`, borderW);
 
       // Inner highlight gradient on front face
       const buf = projBuf.current;
       const ftop = Math.min(buf[1], buf[3], buf[5], buf[7]);
       const fbot = Math.max(buf[1], buf[3], buf[5], buf[7]);
       const hiGrad = ctx.createLinearGradient(centerX, ftop, centerX, fbot);
-      hiGrad.addColorStop(0, `rgba(255, 255, 255, ${0.15 * alpha})`);
+      hiGrad.addColorStop(0, `rgba(255, 255, 255, ${0.25 * alpha})`);
       hiGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = hiGrad;
       ctx.beginPath();
@@ -788,62 +838,247 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     const lFlash = saberFlashL.current;
     const rFlash = saberFlashR.current;
 
-    // Left saber (red)
-    const lBaseX = centerX - width * 0.15;
-    const lBaseY = height * 0.85;
-    const lTipX = centerX - width * 0.04;
-    const lTipY = height * 0.55;
+    // Advance swing animations (0→1 wind-up toward block, 1→2 slash-through & return)
+    const WINDUP_SPEED = 0.06;   // anticipation (~17 frames to reach target)
+    const RETURN_SPEED = 0.12;   // fast slash-through and snap back
+    const swL = saberSwingL.current;
+    const swR = saberSwingR.current;
+    function advanceSwing(sw: SaberSwing) {
+      if (sw.progress <= 0) return;
+      if (sw.progress <= 1) {
+        sw.progress = Math.min(1, sw.progress + WINDUP_SPEED);
+      } else {
+        sw.progress = Math.min(2, sw.progress + RETURN_SPEED);
+        if (sw.progress >= 2) sw.progress = 0;
+      }
+    }
+    advanceSwing(swL);
+    advanceSwing(swR);
 
-    const saberPasses: [number, number, number, number, number][] = [
-      [12 * dpr * (1 + lFlash), 0.08 + lFlash * 0.05, RED_RGB[0], RED_RGB[1], RED_RGB[2]],
-      [5 * dpr * (1 + lFlash * 0.5), 0.4 + lFlash * 0.2, RED_RGB[0], RED_RGB[1], RED_RGB[2]],
-      [2 * dpr, 0.7 + lFlash * 0.3, 255, 200, 200],
-    ];
+    // Ease function: fast start then settle for wind-up, fast slash-through return
+    function swingEase(p: number): number {
+      if (p <= 1) {
+        // Wind-up: ease-out (moves quickly at first, settles into position)
+        return 1 - (1 - p) * (1 - p);
+      }
+      // Slash-through & return: fast quadratic
+      const ret = p - 1;
+      return 1 - ret * ret;
+    }
+
+    // Idle sway — always visible, amplified by audio energy
+    const swayT = timeSec * 1.2;
+    const swayAmp = 0.035 + energy * 0.02;
+
+    function computeSaber(
+      side: 'left' | 'right',
+      swing: SaberSwing,
+      flash: number,
+    ): { baseX: number; baseY: number; tipX: number; tipY: number } {
+      const sign = side === 'left' ? -1 : 1;
+      // Rest positions (tips point toward vanishing point)
+      const restBaseX = centerX + sign * width * 0.15;
+      const restBaseY = height * 0.85;
+      const restTipX = centerX + sign * width * 0.04;
+      const restTipY = height * 0.55;
+
+      // Idle sway offset
+      const idleOffX = Math.sin(swayT + (side === 'left' ? 0 : Math.PI * 0.7)) * width * swayAmp;
+      const idleOffY = Math.cos(swayT * 0.8 + (side === 'left' ? 0.5 : 2.1)) * height * swayAmp * 0.5;
+
+      let tipX = restTipX + idleOffX;
+      let tipY = restTipY + idleOffY;
+      const baseX = restBaseX + idleOffX * 0.3;
+      const baseY = restBaseY + idleOffY * 0.15;
+
+      // Swing toward target block
+      if (swing.progress > 0) {
+        const t = swingEase(swing.progress);
+        tipX = tipX + (swing.targetX - tipX) * t * 0.85;
+        tipY = tipY + (swing.targetY - tipY) * t * 0.7;
+      }
+
+      return { baseX, baseY, tipX, tipY };
+    }
+
+    const leftSaber = computeSaber('left', swL, lFlash);
+    const rightSaber = computeSaber('right', swR, rFlash);
+
+    // Record trail positions
+    trailL.current.push([leftSaber.tipX, leftSaber.tipY, 1]);
+    trailR.current.push([rightSaber.tipX, rightSaber.tipY, 1]);
+    if (trailL.current.length > TRAIL_LEN) trailL.current.shift();
+    if (trailR.current.length > TRAIL_LEN) trailR.current.shift();
+
+    // Draw trail arcs (additive blending for glow)
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
-    for (const [sw, sa, cr, cg, cb] of saberPasses) {
-      ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${sa})`;
-      ctx.lineWidth = sw;
-      ctx.beginPath();
-      ctx.moveTo(lBaseX, lBaseY);
-      ctx.lineTo(lTipX, lTipY);
-      ctx.stroke();
+
+    function drawTrail(
+      trail: Array<[number, number, number]>,
+      rgb: [number, number, number],
+      flash: number,
+    ) {
+      const len = trail.length;
+      if (len < 2) return;
+      const trailAlpha = flash > 0.1 ? 0.5 + flash * 0.3 : energy * 0.15;
+      if (trailAlpha < 0.02) return;
+
+      const [r, g, b] = rgb;
+      // Two-layer trail: wide soft bloom + narrow bright core
+      for (let i = 1; i < len; i++) {
+        const frac = i / len;
+        const a = frac * frac * trailAlpha;
+        // Outer bloom layer
+        const wOuter = (4 + frac * 18 + flash * 10) * dpr;
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${a * 0.3})`;
+        ctx.lineWidth = wOuter;
+        ctx.beginPath();
+        ctx.moveTo(trail[i - 1][0], trail[i - 1][1]);
+        ctx.lineTo(trail[i][0], trail[i][1]);
+        ctx.stroke();
+        // Bright core layer
+        const wCore = (1 + frac * 6 + flash * 4) * dpr;
+        ctx.strokeStyle = `rgba(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)}, ${a * 0.7})`;
+        ctx.lineWidth = wCore;
+        ctx.beginPath();
+        ctx.moveTo(trail[i - 1][0], trail[i - 1][1]);
+        ctx.lineTo(trail[i][0], trail[i][1]);
+        ctx.stroke();
+      }
     }
 
-    // Left handle
-    ctx.fillStyle = 'rgba(80, 80, 90, 0.9)';
-    ctx.save();
-    ctx.translate(lBaseX, lBaseY);
-    ctx.rotate(Math.atan2(lTipY - lBaseY, lTipX - lBaseX));
-    ctx.fillRect(-2 * dpr, -3 * dpr, 14 * dpr, 6 * dpr);
+    drawTrail(trailL.current, RED_RGB, lFlash);
+    drawTrail(trailR.current, BLUE_RGB, rFlash);
+    ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
 
-    // Right saber (blue)
-    const rBaseX = centerX + width * 0.15;
-    const rBaseY = height * 0.85;
-    const rTipX = centerX + width * 0.04;
-    const rTipY = height * 0.55;
+    // Draw volumetric saber blades + handles
+    ctx.lineCap = 'round';
 
-    const rSaberPasses: [number, number, number, number, number][] = [
-      [12 * dpr * (1 + rFlash), 0.08 + rFlash * 0.05, BLUE_RGB[0], BLUE_RGB[1], BLUE_RGB[2]],
-      [5 * dpr * (1 + rFlash * 0.5), 0.4 + rFlash * 0.2, BLUE_RGB[0], BLUE_RGB[1], BLUE_RGB[2]],
-      [2 * dpr, 0.7 + rFlash * 0.3, 200, 200, 255],
-    ];
-    for (const [sw, sa, cr, cg, cb] of rSaberPasses) {
-      ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${sa})`;
-      ctx.lineWidth = sw;
+    function drawSaber(
+      bx: number, by: number, tx: number, ty: number,
+      rgb: [number, number, number],
+      flash: number,
+    ) {
+      const [r, g, b] = rgb;
+      const f = flash;
+
+      // ─ Ambient glow: large soft radial at blade midpoint ─
+      const mx = (bx + tx) * 0.5;
+      const my = (by + ty) * 0.5;
+      const bladeLen = Math.hypot(tx - bx, ty - by);
+      const ambR = bladeLen * (0.6 + f * 0.3);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const ambGrad = ctx.createRadialGradient(mx, my, 0, mx, my, ambR);
+      ambGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.06 + f * 0.04})`);
+      ambGrad.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${0.02 + f * 0.02})`);
+      ambGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+      ctx.fillStyle = ambGrad;
+      ctx.fillRect(mx - ambR, my - ambR, ambR * 2, ambR * 2);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+
+      // ─ Blade: 6-pass volumetric tube (outer bloom → saturated body → white-hot core) ─
+      const passes: [number, number, string][] = [
+        // Outer bloom (very wide, very faint)
+        [56 * dpr * (1 + f * 0.5), 0.04 + f * 0.03, `${r}, ${g}, ${b}`],
+        // Mid bloom
+        [36 * dpr * (1 + f * 0.4), 0.08 + f * 0.05, `${r}, ${g}, ${b}`],
+        // Saturated body (the visible "tube")
+        [24 * dpr * (1 + f * 0.3), 0.35 + f * 0.15, `${r}, ${g}, ${b}`],
+        // Inner bright
+        [14 * dpr * (1 + f * 0.2), 0.6 + f * 0.2, `${Math.min(255, r + 60)}, ${Math.min(255, g + 60)}, ${Math.min(255, b + 60)}`],
+        // Hot core
+        [6 * dpr, 0.8 + f * 0.2, `${Math.min(255, r + 140)}, ${Math.min(255, g + 140)}, ${Math.min(255, b + 140)}`],
+        // White-hot center
+        [2.5 * dpr, 0.95, '255, 255, 255'],
+      ];
+      for (const [sw, sa, col] of passes) {
+        ctx.strokeStyle = `rgba(${col}, ${sa})`;
+        ctx.lineWidth = sw;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      }
+
+      // ─ Handle: cylindrical grip with pommel ─
+      const angle = Math.atan2(ty - by, tx - bx);
+      const handleLen = 28 * dpr;
+      const handleW = 7 * dpr;
+      const gripW = 6 * dpr;
+      const pommelR = 4.5 * dpr;
+
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(angle);
+
+      // Handle extends opposite to blade direction
+      const hDir = -1; // handle extends behind the blade base
+
+      // Grip body (dark metallic gradient)
+      const gripGrad = ctx.createLinearGradient(0, -handleW, 0, handleW);
+      gripGrad.addColorStop(0, 'rgba(50, 50, 58, 0.95)');
+      gripGrad.addColorStop(0.3, 'rgba(90, 90, 100, 0.95)');
+      gripGrad.addColorStop(0.5, 'rgba(110, 110, 120, 0.95)');
+      gripGrad.addColorStop(0.7, 'rgba(90, 90, 100, 0.95)');
+      gripGrad.addColorStop(1, 'rgba(50, 50, 58, 0.95)');
+      ctx.fillStyle = gripGrad;
+
+      // Rounded rect for grip
+      const gx = hDir * 1 * dpr;
+      const gw = hDir * handleLen;
       ctx.beginPath();
-      ctx.moveTo(rBaseX, rBaseY);
-      ctx.lineTo(rTipX, rTipY);
-      ctx.stroke();
+      ctx.roundRect(
+        Math.min(gx, gx + gw), -gripW,
+        Math.abs(gw), gripW * 2,
+        2 * dpr,
+      );
+      ctx.fill();
+
+      // Grip ridges (3 subtle lines across the handle)
+      ctx.strokeStyle = 'rgba(40, 40, 48, 0.7)';
+      ctx.lineWidth = 1 * dpr;
+      for (let i = 1; i <= 3; i++) {
+        const rx = hDir * (handleLen * 0.25 * i);
+        ctx.beginPath();
+        ctx.moveTo(rx, -gripW * 0.8);
+        ctx.lineTo(rx, gripW * 0.8);
+        ctx.stroke();
+      }
+
+      // Guard ring (where blade meets handle)
+      ctx.fillStyle = 'rgba(130, 130, 145, 0.9)';
+      ctx.beginPath();
+      ctx.roundRect(-2 * dpr, -handleW, 4 * dpr, handleW * 2, 1.5 * dpr);
+      ctx.fill();
+
+      // Pommel cap (rounded end)
+      const pommelX = hDir * (handleLen + 1 * dpr);
+      ctx.fillStyle = 'rgba(100, 100, 112, 0.9)';
+      ctx.beginPath();
+      ctx.arc(pommelX, 0, pommelR, 0, Math.PI * 2);
+      ctx.fill();
+      // Pommel highlight
+      ctx.fillStyle = 'rgba(160, 160, 175, 0.5)';
+      ctx.beginPath();
+      ctx.arc(pommelX - 0.5 * dpr, -1 * dpr, pommelR * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     }
 
-    // Right handle
-    ctx.fillStyle = 'rgba(80, 80, 90, 0.9)';
-    ctx.save();
-    ctx.translate(rBaseX, rBaseY);
-    ctx.rotate(Math.atan2(rTipY - rBaseY, rTipX - rBaseX));
-    ctx.fillRect(-14 * dpr, -3 * dpr, 14 * dpr, 6 * dpr);
-    ctx.restore();
+    drawSaber(
+      leftSaber.baseX, leftSaber.baseY, leftSaber.tipX, leftSaber.tipY,
+      RED_RGB, lFlash,
+    );
+    drawSaber(
+      rightSaber.baseX, rightSaber.baseY, rightSaber.tipX, rightSaber.tipY,
+      BLUE_RGB, rFlash,
+    );
 
     ctx.lineCap = 'butt';
     saberFlashL.current *= 0.86;
