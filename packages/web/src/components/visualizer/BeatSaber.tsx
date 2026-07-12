@@ -30,6 +30,10 @@ const COL_BINS: [number, number][] = [
 const RED_RGB: [number, number, number] = [220, 50, 50];
 const BLUE_RGB: [number, number, number] = [50, 120, 255];
 
+// Clears the app shell's top bar (song info / buttons), which overlays
+// the canvas — without this the score sits directly behind it.
+const TOP_HUD_Y = 100;
+
 const ARROW_DIRS = [
   [0, -1],  // up
   [0, 1],   // down
@@ -1108,19 +1112,19 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     ctx.font = `bold ${42 * dpr}px monospace`;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     applyGlow(ctx, 8 * dpr, 'rgba(0, 0, 0, 0.9)');
-    ctx.fillText(score.score.toLocaleString(), centerX, 24 * dpr);
+    ctx.fillText(score.score.toLocaleString(), centerX, TOP_HUD_Y * dpr);
 
     // Combo & multiplier (below score, centered)
     if (score.combo > 0) {
       ctx.font = `bold ${22 * dpr}px monospace`;
       const mCol = score.multiplier >= 8 ? '255, 200, 50' : score.multiplier >= 4 ? '50, 200, 255' : '200, 200, 200';
       ctx.fillStyle = `rgba(${mCol}, 0.95)`;
-      ctx.fillText(`${score.combo}x COMBO`, centerX, 72 * dpr);
+      ctx.fillText(`${score.combo}x COMBO`, centerX, (TOP_HUD_Y + 48) * dpr);
 
       if (score.multiplier > 1) {
         ctx.font = `bold ${16 * dpr}px monospace`;
         ctx.fillStyle = 'rgba(255, 255, 100, 0.9)';
-        ctx.fillText(`${score.multiplier}x MULTIPLIER`, centerX, 100 * dpr);
+        ctx.fillText(`${score.multiplier}x MULTIPLIER`, centerX, (TOP_HUD_Y + 76) * dpr);
       }
     }
 
@@ -1128,7 +1132,7 @@ export default function BeatSaber({ accentColor }: { accentColor: string }) {
     if (score.streak > 1) {
       ctx.font = `bold ${14 * dpr}px monospace`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.fillText(`${score.streak} STREAK`, centerX, 122 * dpr);
+      ctx.fillText(`${score.streak} STREAK`, centerX, (TOP_HUD_Y + 98) * dpr);
     }
     clearGlow(ctx);
 
