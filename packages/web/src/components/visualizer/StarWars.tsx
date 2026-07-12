@@ -65,6 +65,10 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
   const starsReady = useRef(false);
   const beatPulse = useRef(0);
   const prevBeat = useRef(false);
+  // Self-driven clock for the idle crawl (title/artist), used when there
+  // are no timed lyrics to follow — keeps the crawl moving instead of
+  // sitting frozen on the title.
+  const idleClockStart = useRef<number | null>(null);
 
   // Resize canvas to physical pixels
   useEffect(() => {
@@ -139,9 +143,35 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     // ── Fetch live position ─────────────────────────────────
     const state = useStore.getState();
     const { lyrics, position, currentSong } = state;
-    const posMs = position.startedAt
-      ? performance.now() - position.startedAt + position.offsetMs
-      : 0;
+    const hasLyrics = lyrics.length > 0;
+
+    // When there are no timed lyrics yet, still crawl — loop the title
+    // (and artist) through the same perspective scroll on a self-driven
+    // clock, so the screen never just sits on a frozen title.
+    let crawlLines: { timeMs: number; text: string }[];
+    let posMs: number;
+    if (hasLyrics) {
+      crawlLines = lyrics;
+      posMs = position.startedAt
+        ? performance.now() - position.startedAt + position.offsetMs
+        : 0;
+      idleClockStart.current = null;
+    } else if (currentSong) {
+      crawlLines = currentSong.artist
+        ? [
+            { timeMs: 0, text: currentSong.title },
+            { timeMs: 4000, text: `BY ${currentSong.artist}` },
+          ]
+        : [{ timeMs: 0, text: currentSong.title }];
+      // Pause after the last line fully recedes (worldZ cap ≈ 54.5s past
+      // its timeMs) before looping back to the start.
+      const loopPeriodMs = crawlLines[crawlLines.length - 1].timeMs + 60000;
+      if (idleClockStart.current === null) idleClockStart.current = performance.now();
+      posMs = (performance.now() - idleClockStart.current) % loopPeriodMs;
+    } else {
+      crawlLines = [];
+      posMs = 0;
+    }
 
     // ── Crawl text ──────────────────────────────────────────
     ctx.save();
@@ -153,16 +183,16 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Current lyric: last line whose timeMs has passed
+    // Current line: last one whose timeMs has passed
     let currentIdx = -1;
-    for (let i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].timeMs <= posMs) currentIdx = i;
+    for (let i = 0; i < crawlLines.length; i++) {
+      if (crawlLines[i].timeMs <= posMs) currentIdx = i;
       else break;
     }
 
-    for (let i = 0; i < lyrics.length; i++) {
-      // worldZ = how far in the past this lyric is — grows as line recedes toward horizon
-      const rawWorldZ = (posMs - lyrics[i].timeMs) * WORLD_SCALE;
+    for (let i = 0; i < crawlLines.length; i++) {
+      // worldZ = how far in the past this line is — grows as it recedes toward horizon
+      const rawWorldZ = (posMs - crawlLines[i].timeMs) * WORLD_SCALE;
       if (rawWorldZ < 0) continue;    // not yet arrived
       if (rawWorldZ > 3000) continue; // too far past, nearly invisible
 
@@ -188,27 +218,11 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
         ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, ${distanceFade * 0.85})`;
       }
 
-      ctx.fillText(lyrics[i].text.toUpperCase(), cx, screenY, maxLineWidth);
+      ctx.fillText(crawlLines[i].text.toUpperCase(), cx, screenY, maxLineWidth);
     }
 
     clearGlow(ctx);
     ctx.restore();
-
-    // ── Idle: show song title when no lyrics are loaded ─────
-    if (lyrics.length === 0 && currentSong) {
-      const titleSize = 20 * dpr;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `bold ${titleSize}px "Arial Narrow", Arial, sans-serif`;
-      ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, 0.65)`;
-      ctx.fillText(currentSong.title.toUpperCase(), cx, height * 0.5);
-
-      if (currentSong.artist) {
-        ctx.font = `${13 * dpr}px "Arial Narrow", Arial, sans-serif`;
-        ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, 0.38)`;
-        ctx.fillText(currentSong.artist.toUpperCase(), cx, height * 0.5 + 26 * dpr);
-      }
-    }
 
     // ── Horizon fade — softens the vanishing point edge ─────
     const fadeGrad = ctx.createLinearGradient(0, vanishY - 2 * dpr, 0, vanishY + 40 * dpr);
