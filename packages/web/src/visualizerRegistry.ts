@@ -20,6 +20,7 @@ export const VISUALIZER_REGISTRY: VisualizerMeta[] = [
   { id: 'vynalize', label: 'Vynalize', tag: 'Logo pulse' },
   { id: 'beatsaber', label: 'Beat Saber', tag: '3D slicing' },
   { id: 'starwars', label: 'Star Wars', tag: 'Crawl lyrics' },
+  { id: 'mycelium', label: 'Mycelium', tag: 'Coral growth' },
 ];
 
 export const VISUALIZER_MODES: VisualizerMode[] = VISUALIZER_REGISTRY.map((e) => e.id);

@@ -8,7 +8,9 @@ const CRAWL_YELLOW = '#FFE81F';
 const CRAWL_YELLOW_RGB = '255, 232, 31';
 
 // Perspective focal length in world units — higher = flatter convergence
-const FOCAL = 280;
+// (also tightens vertical gaps between lines, since less of the crawl's
+// height range is spent on the steep near-camera falloff)
+const FOCAL = 460;
 
 // Where the vanishing point sits as a fraction of canvas height
 const VANISH_FRAC = 0.18;
@@ -19,7 +21,7 @@ const BOTTOM_FRAC = 1.04;
 const MAX_WIDTH_FRAC = 0.62;
 
 // Logical font size at full scale (scale = 1, bottom of crawl)
-const BASE_FONT_SIZE = 40;
+const BASE_FONT_SIZE = 54;
 
 // Converts ms elapsed since a lyric fired into world-Z units.
 // 1000ms ago → worldZ ≈ 55 → line is well up the crawl.
@@ -29,12 +31,14 @@ const STAR_COUNT_FULL = 200;
 const STAR_COUNT_LOW = 80;
 
 interface Star {
-  x: number;
-  y: number;
+  originX: number;
+  originY: number;
   r: number;
   baseAlpha: number;
   phase: number;
   speed: number;
+  driftX: number;
+  driftY: number;
 }
 
 // ── Perspective projection ────────────────────────────────────
@@ -65,6 +69,10 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
   const starsReady = useRef(false);
   const beatPulse = useRef(0);
   const prevBeat = useRef(false);
+  // Self-driven clock for the idle crawl (title/artist), used when there
+  // are no timed lyrics to follow — keeps the crawl moving instead of
+  // sitting frozen on the title.
+  const idleClockStart = useRef<number | null>(null);
 
   // Resize canvas to physical pixels
   useEffect(() => {
@@ -98,14 +106,21 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     // ── Lazy-init star field ────────────────────────────────
     const starCount = getLowPowerCount(STAR_COUNT_FULL, STAR_COUNT_LOW);
     if (!starsReady.current) {
-      stars.current = Array.from({ length: starCount }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        r: (Math.random() * 1.5 + 0.3) * dpr,
-        baseAlpha: Math.random() * 0.55 + 0.2,
-        phase: Math.random() * Math.PI * 2,
-        speed: Math.random() * 1.8 + 0.5,
-      }));
+      stars.current = Array.from({ length: starCount }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        // Bigger (nearer) stars drift faster — cheap parallax.
+        const driftSpeed = (Math.random() * 8 + 4) * dpr;
+        return {
+          originX: Math.random() * width,
+          originY: Math.random() * height,
+          r: (Math.random() * 1.5 + 0.3) * dpr,
+          baseAlpha: Math.random() * 0.55 + 0.2,
+          phase: Math.random() * Math.PI * 2,
+          speed: Math.random() * 1.8 + 0.5,
+          driftX: Math.cos(angle) * driftSpeed,
+          driftY: Math.sin(angle) * driftSpeed,
+        };
+      });
       starsReady.current = true;
     }
 
@@ -114,12 +129,16 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     ctx.fillRect(0, 0, width, height);
 
     // ── Stars ───────────────────────────────────────────────
+    // Position is a pure function of absolute time (origin + drift·t, wrapped)
+    // rather than mutated state — frame-rate independent, no accumulation drift.
     for (const star of stars.current) {
       const twinkle = 0.5 + 0.5 * Math.sin(timeSec * star.speed + star.phase);
       const alpha = Math.min(1, star.baseAlpha + twinkle * 0.22 + beatPulse.current * 0.3);
       const r = star.r * (1 + beatPulse.current * 0.45);
+      const x = ((star.originX + star.driftX * timeSec) % width + width) % width;
+      const y = ((star.originY + star.driftY * timeSec) % height + height) % height;
       ctx.beginPath();
-      ctx.arc(star.x, star.y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255, 255, 245, ${alpha})`;
       ctx.fill();
     }
@@ -139,9 +158,35 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     // ── Fetch live position ─────────────────────────────────
     const state = useStore.getState();
     const { lyrics, position, currentSong } = state;
-    const posMs = position.startedAt
-      ? performance.now() - position.startedAt + position.offsetMs
-      : 0;
+    const hasLyrics = lyrics.length > 0;
+
+    // When there are no timed lyrics yet, still crawl — loop the title
+    // (and artist) through the same perspective scroll on a self-driven
+    // clock, so the screen never just sits on a frozen title.
+    let crawlLines: { timeMs: number; text: string }[];
+    let posMs: number;
+    if (hasLyrics) {
+      crawlLines = lyrics;
+      posMs = position.startedAt
+        ? performance.now() - position.startedAt + position.offsetMs
+        : 0;
+      idleClockStart.current = null;
+    } else if (currentSong) {
+      crawlLines = currentSong.artist
+        ? [
+            { timeMs: 0, text: currentSong.title },
+            { timeMs: 4000, text: `BY ${currentSong.artist}` },
+          ]
+        : [{ timeMs: 0, text: currentSong.title }];
+      // Pause after the last line fully recedes (worldZ cap ≈ 54.5s past
+      // its timeMs) before looping back to the start.
+      const loopPeriodMs = crawlLines[crawlLines.length - 1].timeMs + 60000;
+      if (idleClockStart.current === null) idleClockStart.current = performance.now();
+      posMs = (performance.now() - idleClockStart.current) % loopPeriodMs;
+    } else {
+      crawlLines = [];
+      posMs = 0;
+    }
 
     // ── Crawl text ──────────────────────────────────────────
     ctx.save();
@@ -153,16 +198,16 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Current lyric: last line whose timeMs has passed
+    // Current line: last one whose timeMs has passed
     let currentIdx = -1;
-    for (let i = 0; i < lyrics.length; i++) {
-      if (lyrics[i].timeMs <= posMs) currentIdx = i;
+    for (let i = 0; i < crawlLines.length; i++) {
+      if (crawlLines[i].timeMs <= posMs) currentIdx = i;
       else break;
     }
 
-    for (let i = 0; i < lyrics.length; i++) {
-      // worldZ = how far in the past this lyric is — grows as line recedes toward horizon
-      const rawWorldZ = (posMs - lyrics[i].timeMs) * WORLD_SCALE;
+    for (let i = 0; i < crawlLines.length; i++) {
+      // worldZ = how far in the past this line is — grows as it recedes toward horizon
+      const rawWorldZ = (posMs - crawlLines[i].timeMs) * WORLD_SCALE;
       if (rawWorldZ < 0) continue;    // not yet arrived
       if (rawWorldZ > 3000) continue; // too far past, nearly invisible
 
@@ -188,27 +233,11 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
         ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, ${distanceFade * 0.85})`;
       }
 
-      ctx.fillText(lyrics[i].text.toUpperCase(), cx, screenY, maxLineWidth);
+      ctx.fillText(crawlLines[i].text.toUpperCase(), cx, screenY, maxLineWidth);
     }
 
     clearGlow(ctx);
     ctx.restore();
-
-    // ── Idle: show song title when no lyrics are loaded ─────
-    if (lyrics.length === 0 && currentSong) {
-      const titleSize = 20 * dpr;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `bold ${titleSize}px "Arial Narrow", Arial, sans-serif`;
-      ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, 0.65)`;
-      ctx.fillText(currentSong.title.toUpperCase(), cx, height * 0.5);
-
-      if (currentSong.artist) {
-        ctx.font = `${13 * dpr}px "Arial Narrow", Arial, sans-serif`;
-        ctx.fillStyle = `rgba(${CRAWL_YELLOW_RGB}, 0.38)`;
-        ctx.fillText(currentSong.artist.toUpperCase(), cx, height * 0.5 + 26 * dpr);
-      }
-    }
 
     // ── Horizon fade — softens the vanishing point edge ─────
     const fadeGrad = ctx.createLinearGradient(0, vanishY - 2 * dpr, 0, vanishY + 40 * dpr);

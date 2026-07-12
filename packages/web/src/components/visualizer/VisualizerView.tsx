@@ -18,6 +18,7 @@ export const components: Record<VisualizerMode, React.LazyExoticComponent<React.
   vynalize: lazy(() => import('./VynalizeLogo')),
   beatsaber: lazy(() => import('./BeatSaber')),
   starwars: lazy(() => import('./StarWars')),
+  mycelium: lazy(() => import('./Mycelium')),
 };
 
 function VisualizerLoading() {

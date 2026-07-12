@@ -31,7 +31,8 @@ export type VisualizerMode =
   | 'guitarhero'
   | 'vynalize'
   | 'beatsaber'
-  | 'starwars';
+  | 'starwars'
+  | 'mycelium';
 
 export type AppMode = 'visualizer' | 'lyrics' | 'video' | 'ascii';
 

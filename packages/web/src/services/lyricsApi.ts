@@ -32,36 +32,58 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutM
   return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
+function linesFromLyricsPayload(data: { syncedLyrics?: string; plainLyrics?: string }): LyricLine[] {
+  if (data.syncedLyrics) {
+    return parseLRC(data.syncedLyrics);
+  }
+  if (data.plainLyrics) {
+    return data.plainLyrics
+      .split('\n')
+      .filter((l: string) => l.trim())
+      .map((text: string, i: number) => ({ timeMs: i * 4000, text }));
+  }
+  return [];
+}
+
+// Fuzzy fallback — /api/get requires an exact duration match, so it misses
+// often. /api/search has no such requirement; take its best-scoring result.
+async function searchLyrics(artist: string, title: string): Promise<LyricLine[]> {
+  const params = new URLSearchParams({ artist_name: artist, track_name: title });
+  const res = await fetchWithTimeout(`https://lrclib.net/api/search?${params}`);
+  if (!res.ok) return [];
+
+  const results = await res.json();
+  if (!Array.isArray(results) || results.length === 0) return [];
+
+  const best = results.find((r) => r.syncedLyrics) ?? results.find((r) => r.plainLyrics);
+  return best ? linesFromLyricsPayload(best) : [];
+}
+
 export async function fetchLyrics(
   artist: string,
-  title: string
+  title: string,
+  album?: string,
+  durationSec?: number,
 ): Promise<LyricLine[]> {
   const params = new URLSearchParams({
     artist_name: artist,
     track_name: title,
   });
+  if (album) params.set('album_name', album);
+  if (durationSec) params.set('duration', String(Math.round(durationSec)));
 
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetchWithTimeout(`https://lrclib.net/api/get?${params}`, {
-        headers: { 'User-Agent': 'Vynalize/0.1.0' },
-      });
+      const res = await fetchWithTimeout(`https://lrclib.net/api/get?${params}`);
 
-      if (!res.ok) return [];
-
-      const data = await res.json();
-      if (data.syncedLyrics) {
-        return parseLRC(data.syncedLyrics);
-      }
-      if (data.plainLyrics) {
-        return data.plainLyrics
-          .split('\n')
-          .filter((l: string) => l.trim())
-          .map((text: string, i: number) => ({ timeMs: i * 4000, text }));
+      if (res.ok) {
+        const lines = linesFromLyricsPayload(await res.json());
+        if (lines.length > 0) return lines;
       }
 
-      return [];
+      // No exact match (or no lyrics on the exact match) — try fuzzy search.
+      return await searchLyrics(artist, title);
     } catch (err) {
       lastError = err;
       if (attempt === 0) {

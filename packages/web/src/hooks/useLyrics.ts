@@ -17,7 +17,7 @@ export function useLyrics() {
     // Clear stale lyrics immediately so the previous song's lyrics don't linger
     setLyrics([]);
 
-    fetchLyrics(currentSong.artist, currentSong.title).then((lines) => {
+    fetchLyrics(currentSong.artist, currentSong.title, currentSong.album, currentSong.duration).then((lines) => {
       if (!cancelled) {
         setLyrics(lines);
       }
