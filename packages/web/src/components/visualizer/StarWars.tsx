@@ -8,7 +8,9 @@ const CRAWL_YELLOW = '#FFE81F';
 const CRAWL_YELLOW_RGB = '255, 232, 31';
 
 // Perspective focal length in world units — higher = flatter convergence
-const FOCAL = 280;
+// (also tightens vertical gaps between lines, since less of the crawl's
+// height range is spent on the steep near-camera falloff)
+const FOCAL = 460;
 
 // Where the vanishing point sits as a fraction of canvas height
 const VANISH_FRAC = 0.18;
@@ -19,7 +21,7 @@ const BOTTOM_FRAC = 1.04;
 const MAX_WIDTH_FRAC = 0.62;
 
 // Logical font size at full scale (scale = 1, bottom of crawl)
-const BASE_FONT_SIZE = 40;
+const BASE_FONT_SIZE = 54;
 
 // Converts ms elapsed since a lyric fired into world-Z units.
 // 1000ms ago → worldZ ≈ 55 → line is well up the crawl.
@@ -29,12 +31,14 @@ const STAR_COUNT_FULL = 200;
 const STAR_COUNT_LOW = 80;
 
 interface Star {
-  x: number;
-  y: number;
+  originX: number;
+  originY: number;
   r: number;
   baseAlpha: number;
   phase: number;
   speed: number;
+  driftX: number;
+  driftY: number;
 }
 
 // ── Perspective projection ────────────────────────────────────
@@ -102,14 +106,21 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     // ── Lazy-init star field ────────────────────────────────
     const starCount = getLowPowerCount(STAR_COUNT_FULL, STAR_COUNT_LOW);
     if (!starsReady.current) {
-      stars.current = Array.from({ length: starCount }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        r: (Math.random() * 1.5 + 0.3) * dpr,
-        baseAlpha: Math.random() * 0.55 + 0.2,
-        phase: Math.random() * Math.PI * 2,
-        speed: Math.random() * 1.8 + 0.5,
-      }));
+      stars.current = Array.from({ length: starCount }, () => {
+        const angle = Math.random() * Math.PI * 2;
+        // Bigger (nearer) stars drift faster — cheap parallax.
+        const driftSpeed = (Math.random() * 8 + 4) * dpr;
+        return {
+          originX: Math.random() * width,
+          originY: Math.random() * height,
+          r: (Math.random() * 1.5 + 0.3) * dpr,
+          baseAlpha: Math.random() * 0.55 + 0.2,
+          phase: Math.random() * Math.PI * 2,
+          speed: Math.random() * 1.8 + 0.5,
+          driftX: Math.cos(angle) * driftSpeed,
+          driftY: Math.sin(angle) * driftSpeed,
+        };
+      });
       starsReady.current = true;
     }
 
@@ -118,12 +129,16 @@ export default function StarWars({ accentColor: _accentColor }: { accentColor: s
     ctx.fillRect(0, 0, width, height);
 
     // ── Stars ───────────────────────────────────────────────
+    // Position is a pure function of absolute time (origin + drift·t, wrapped)
+    // rather than mutated state — frame-rate independent, no accumulation drift.
     for (const star of stars.current) {
       const twinkle = 0.5 + 0.5 * Math.sin(timeSec * star.speed + star.phase);
       const alpha = Math.min(1, star.baseAlpha + twinkle * 0.22 + beatPulse.current * 0.3);
       const r = star.r * (1 + beatPulse.current * 0.45);
+      const x = ((star.originX + star.driftX * timeSec) % width + width) % width;
+      const y = ((star.originY + star.driftY * timeSec) % height + height) % height;
       ctx.beginPath();
-      ctx.arc(star.x, star.y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255, 255, 245, ${alpha})`;
       ctx.fill();
     }
